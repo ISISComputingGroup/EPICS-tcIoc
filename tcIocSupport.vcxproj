@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{20AD3257-8FA8-4C1F-88DF-B96343404C6A}</ProjectGuid>
+    <RootNamespace>tcIocSupport</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v110</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IntDir>$(Configuration)\tcIocSupport\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>$(Configuration)\tcIocSupport\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86-debug;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86-debug</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMTD.lib;TcAdsDll.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMT.lib;TcAdsDll.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>libcmtd.lib;libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\tcIoc\drvTc.h" />
+    <ClInclude Include="atomic_string.h" />
+    <ClInclude Include="devInfo.h" />
+    <ClInclude Include="devTc.h" />
+    <ClInclude Include="devTcTemplate.h" />
+    <ClInclude Include="drvInfo.h" />
+    <ClInclude Include="infoPlc.h" />
+    <ClInclude Include="infoPlcTemplate.h" />
+    <ClInclude Include="plcBase.h" />
+    <ClInclude Include="plcBaseTemplate.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="tcComms.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\tcIoc\drvTc.cpp" />
+    <ClCompile Include="devInfo.cpp" />
+    <ClCompile Include="devTc.cpp" />
+    <ClCompile Include="drvInfo.cpp" />
+    <ClCompile Include="infoPlc.cpp" />
+    <ClCompile Include="plcBase.cpp" />
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="tcComms.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

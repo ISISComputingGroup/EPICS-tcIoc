@@ -1,0 +1,26 @@
+dbLoadDatabase("./tCat.dbd",0,0)
+tCat_registerRecordDeviceDriver(pdbbase)
+
+tcSetScanRate(10, 5)
+tcSetAlias("C1PLC1")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC1\H1ECATC1_PLC1.opc.txt","-l -rn -yi -cp")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC1\H1ECATC1_PLC1.chn.txt","-l")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC1\H1ECATC1_PLC1.req","-lb")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC1\H1ECATC1_PLC1.ini","-l -ns")
+tcLoadRecords ("C:\SlowControls\Target\H1ECATC1\PLC1\PLC1.tpy")
+
+tcSetAlias("C1PLC2")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC2\H1ECATC1_PLC2.opc.txt","-l -rn -yi -cp")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC2\H1ECATC1_PLC2.chn.txt","-l")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC2\H1ECATC1_PLC2.req","-lb")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC2\H1ECATC1_PLC2.ini","-l -ns")
+tcLoadRecords ("C:\SlowControls\Target\H1ECATC1\PLC2\PLC2.tpy", "")
+
+tcSetAlias("C1PLC3")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC3\H1ECATC1_PLC3.opc.txt","-l -rn -yi -cp")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC3\H1ECATC1_PLC3.chn.txt","-l")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC3\H1ECATC1_PLC3.req","-lb")
+tcGenerateList("C:\SlowControls\Target\H1ECATC1\PLC3\H1ECATC1_PLC3.ini","-l -ns")
+tcLoadRecords ("C:\SlowControls\Target\H1ECATC1\PLC3\PLC3.tpy", "")
+
+iocInit()
