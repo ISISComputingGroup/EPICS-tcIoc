@@ -342,7 +342,8 @@ public:
 	template <class Function>
 	int process_type_tree (const type_record& typ, 
 		ParseUtil::opc_list defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname = std::stringcase(), 
+		Function& process, 
+		const ParseUtil::variable_name& varname = ParseUtil::variable_name(), 
 		int level = 0) const;
 
 	/** Starts with a type and resolves the type information 
@@ -361,7 +362,8 @@ public:
 	template <class Function>
 	int process_type_tree (const std::stringcase& typ, unsigned int id, 
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname = std::stringcase(), 
+		Function& process, 
+		const ParseUtil::variable_name& varname = ParseUtil::variable_name(), 
 		int level = 0) const;
 
 protected:
@@ -394,7 +396,7 @@ protected:
 	template <class Function>
 	int process_array (const type_record& typ, dimensions dim, 
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname, int level) const;
+		Function& process, const ParseUtil::variable_name& varname, int level) const;
 };
 
 /** @} */

@@ -66,6 +66,7 @@ const int OPC_PROP_PINI=	  8603;	/* initialization */
 const int OPC_PROP_DTYP=	  8604;	/* DTYP field: opc or opcRaw */
 const int OPC_PROP_SERVER=	  8610;	/* server name */
 const int OPC_PROP_PLCNAME=   8611; /* tc name including ads routing info and port */
+const int OPC_PROP_ALIAS=     8620; /* alias for structure item or symbol name */
 const int OPC_PROP_ALMOSV=	  8700;	/* alarm: one severity */
 const int OPC_PROP_ALMZSV=	  8701;	/* alarm: zero severity */
 const int OPC_PROP_ALMCOSV=	  8702;	/* alarm: change of state severity */

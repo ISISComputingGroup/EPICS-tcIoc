@@ -45,6 +45,11 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 			set_conversion_rule (ligo_std);
 			++num;
 		}
+		// LIGO standard conversion rule for vacuum channels
+		else if (arg == "-rv" || arg == "/rv" ) {
+			set_conversion_rule (ligo_vac);
+			++num;
+		}
 		// Preserve case in EPICS channel names (default)
 		else if (arg == "-cp" || arg == "/cp" ) {
 			set_case_rule (preserve_case);
@@ -96,9 +101,14 @@ string epics_conversion::to_epics (const stringcase& name) const
 	stringcase::size_type pos;
 
 	// eliminate leading dot
-	if (no_leading_dot || (conv_rule == ligo_std)) {
+	if (no_leading_dot || (conv_rule == ligo_std) || (conv_rule == ligo_vac)) {
+		std::stringcase::size_type pos;
 		if (!n.empty() && (n[0] == '.')) {
 			n.erase (0, 1);
+		}
+		// TwinCAT 3 doesn't use an empty name for globals
+		else if ((pos = n.find ('.')) != std::stringcase::npos) {
+			n.erase (0, pos);
 		}
 	}
 
@@ -115,6 +125,23 @@ string epics_conversion::to_epics (const stringcase& name) const
 		pos = n.find ('.');
 		if (pos != stringcase::npos) {
 			n[pos] = '-';
+		}
+		// replace remaining dots with underscore
+		while ((pos = n.find ('.')) != stringcase::npos) {
+			n[pos] = '_';
+		}
+		break;
+		// ligo standard
+	case ligo_vac:
+		// replace first dot with dash
+		pos = n.find ('.');
+		if (pos != stringcase::npos) {
+			n[pos] = '-';
+		}
+		// replace second dot with colon
+		pos = n.find ('.');
+		if (pos != stringcase::npos) {
+			n[pos] = ':';
 		}
 		// replace remaining dots with underscore
 		while ((pos = n.find ('.')) != stringcase::npos) {
@@ -475,7 +502,7 @@ bool epics_list_processing::operator() (const process_arg& arg)
 	increment (arg.get_opc().is_readonly());
 	// write record information to output file
 	// produce a listing
-	string epicsname = to_epics (arg.get_name());
+	string epicsname = to_epics (arg.get_alias());
 	if (listing == listing_autoburt) {
 		stringcase ro = arg.get_opc().is_readonly() ? "RO " : "";
 		fprintf (get_file(), "%s%s", ro.c_str(), epicsname.c_str());
@@ -601,7 +628,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	}
 
 	// check record header
-	string epicsname = to_epics (arg.get_name());
+	string epicsname = to_epics (arg.get_alias());
 	if (epicsname.size() > MAX_EPICS_CHANNEL) {
 		fprintf (stderr, "Warning: channel name %s too long by %i\n", 
 			epicsname.c_str(), epicsname.size() - MAX_EPICS_CHANNEL);

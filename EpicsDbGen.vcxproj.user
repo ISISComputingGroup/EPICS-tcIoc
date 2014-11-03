@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LocalDebuggerCommandArguments>-lb -ps -nd -rl -ni -cu -i C:\SlowControls\EPICS\Utilities\tcIoc\PLC1.tpy -o C:\SlowControls\EPICS\Utilities\tcIoc\PLC1.txt</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-lb -ps -nd -rv -ni -cu -i C:\SlowControlsMaggie\EPICS\Utilities\tcIoc\PLC3.tpy -o C:\SlowControlsMaggie\EPICS\Utilities\tcIoc\PLC3.txt</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

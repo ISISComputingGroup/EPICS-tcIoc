@@ -155,6 +155,36 @@ bool opc_list::get_property (int prop, double& val) const
 }
 
 
+/*variable_name::append
+ ************************************************************************/
+void variable_name::append (const std::stringcase& n, const std::stringcase& sep)
+{
+	name += sep;
+	name += n;
+	alias += sep;
+	alias += n;
+}
+
+
+/*variable_name::append
+ ************************************************************************/
+void variable_name::append (const std::stringcase& n, const opc_list& opc, 
+		const std::stringcase& sep)
+{
+	name += sep;
+	name += n;
+	alias += sep;
+	std::stringcase a;
+	if (opc.get_property (OPC_PROP_ALIAS, a)) {
+		std::trim_space (a);
+		alias += a;
+	}
+	else {
+		alias += n;
+	}
+}
+
+
 /* memory_location::isValid
  ************************************************************************/
  bool memory_location::isValid() const 

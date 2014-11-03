@@ -27,9 +27,9 @@ namespace ParseTpy {
 	int tpy_file::process_type_tree (const symbol_record& symbol, 
 		Function& process, const std::stringcase& prefix) const
 	{
-		std::stringcase n = prefix + symbol.get_name();
-//		if (!n.empty() && n[0] == '.') n.erase (0, 1);
-		if (!n.empty()) {
+		ParseUtil::variable_name n (prefix);
+		n.append (symbol.get_name(), symbol.get_opc(), "");
+		if (!n.get_name().empty()) {
 			return process_type_tree (symbol.get_type_name(), 
 				symbol.get_type_decoration(), 
 				symbol.get_opc(), symbol, process, n, 0);
@@ -44,7 +44,8 @@ namespace ParseTpy {
 	template <class Function>
 	int tpy_file::process_type_tree (const type_record& typ, 
 		ParseUtil::opc_list defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname, int level) const
+		Function& process, const ParseUtil::variable_name& varname, 
+		int level) const
 	{
 		// Check recursive level
 		if (level > 100) return 0;
@@ -114,9 +115,8 @@ namespace ParseTpy {
 						continue;
 					}
 					// Add a dot to the variable name
-					std::stringcase n (varname);
-					n += ".";
-					n += i->get_name();
+					ParseUtil::variable_name n (varname);
+					n.append (i->get_name(), i->get_opc(), "."); 
 					opc_list o (defopc);
 					o.add (i->get_opc());
 					num += process_type_tree (i->get_type_name(), 
@@ -125,7 +125,7 @@ namespace ParseTpy {
 				return num; 
 			}
 		default :
-			fprintf (stderr, "Unknown type for %s\n", varname.c_str());
+			fprintf (stderr, "Unknown type for %s\n", varname.get_name().c_str());
 			return 0;
 		}
 	}
@@ -135,7 +135,7 @@ namespace ParseTpy {
 	template <class Function>
 	int tpy_file::process_type_tree (const std::stringcase& typ, unsigned int id,
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname, int level) const
+		Function& process, const ParseUtil::variable_name& varname, int level) const
 	{
 		type_map::const_iterator t;
 
@@ -178,7 +178,7 @@ namespace ParseTpy {
 			return process_type_tree (t->second, defopc, loc, process, varname, level);
 		}
 		else {
-			fprintf (stderr, "Unknown type for %s\n", varname.c_str());
+			fprintf (stderr, "Unknown type for %s\n", varname.get_name().c_str());
 			return 0;
 		}
 	}
@@ -188,7 +188,7 @@ namespace ParseTpy {
 	template <class Function>
 	int tpy_file::process_array (const type_record& typ, dimensions dim, 
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
-		Function& process, const std::stringcase& varname, int level) const
+		Function& process, const ParseUtil::variable_name& varname, int level) const
 	{
 		// This is an array where all dimensions have been processed
 		if (dim.empty()) {
@@ -202,7 +202,8 @@ namespace ParseTpy {
 			dim.pop_front();
 			// invalid number of elements
 			if (d.second < 0) {
-				fprintf (stderr, "Array with negative element number for %s\n", varname.c_str());
+				fprintf (stderr, "Array with negative element number for %s\n", 
+						 varname.get_name().c_str());
 				return 0;
 			}
 			// Call process for entire array (not an atomic type)
@@ -222,7 +223,8 @@ namespace ParseTpy {
 			else {
 				// Check if we have a size which is a multiple of the array length
 				if (typ.get_bit_size() % d.second != 0) {
-					fprintf (stderr, "Illegal array bit size for %s\n", varname.c_str());
+					fprintf (stderr, "Illegal array bit size for %s\n", 
+						     varname.get_name().c_str());
 					return 0;
 				}
 			}
@@ -236,8 +238,8 @@ namespace ParseTpy {
 				}
 				char buf[40];
 				sprintf_s (buf, sizeof (buf), "[%i]", i);
-				std::stringcase narr (varname);
-				narr += buf;
+				ParseUtil::variable_name narr (varname);
+				narr.append (buf, "");
 				num += process_array (typ, dim, defopc, el_loc, process, narr, level);
 			}
 			return num;

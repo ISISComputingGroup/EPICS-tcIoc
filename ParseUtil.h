@@ -141,6 +141,44 @@ protected:
  ************************************************************************/
 /** @{ */
 
+/** This is a class for storing a variable name and an alias
+************************************************************************/
+class variable_name
+{
+public:
+	/// Default constructor
+	variable_name () {}
+	/// Constructor
+	explicit variable_name (const std::stringcase& n) : name (n), alias (n) {}
+	/// Constructor
+	variable_name (const std::stringcase& n, const std::stringcase& a) 
+		: name (n), alias (a) {}
+
+	/// Get name
+	const std::stringcase& get_name() const { return name; }
+	/// Get alias
+	const std::stringcase& get_alias() const { return alias; }
+	/// Set name & alias
+	void set (const std::stringcase& n) { 
+		name = n; alias = n; }
+	/// Set name & alias
+	void set (const std::stringcase& n, const std::stringcase& a) { 
+		name = n; alias = a; }
+	/// Append
+	void append (const std::stringcase& n, const std::stringcase& sep = ".");
+	/// Append
+	void append (const std::stringcase& n, const opc_list& opc, 
+		const std::stringcase& sep = ".");
+
+protected:
+	/// variable name
+	std::stringcase		name;
+	/// alias name
+	std::stringcase		alias;
+};
+
+	
+	
 /** This is a class for storing bit offset and size in a structure
 ************************************************************************/
 class bit_location
@@ -261,13 +299,17 @@ public:
 	/// @param tname Type name
 	/// @param at Atomic type
 	process_arg (const memory_location& loc,
-		const std::stringcase& vname, process_type_enum pt, 
+		const variable_name& vname, process_type_enum pt, 
 		const opc_list& o, const std::stringcase& tname, bool at) 
 		: name (vname), type_n (tname), opc (o), memloc (loc),
 		ptype (pt), atomic (at) {}
 
+	/// Get variable
+	const variable_name& get_var() const { return name; }
 	/// Get name
-	const std::stringcase& get_name() const { return name; }
+	const std::stringcase& get_name() const { return name.get_name(); }
+	/// Get alias
+	const std::stringcase& get_alias() const { return name.get_alias(); }
 	/// Get type name 
 	const std::stringcase& get_type_name() const { return type_n; }
 	/// Get OPC list
@@ -295,7 +337,7 @@ public:
 
 protected:
 	/// name of type
-	const std::stringcase&	name;
+	const variable_name&	name;
 	/// type definition
 	const std::stringcase&	type_n;
 	/// list of opc properties

@@ -30,7 +30,13 @@ enum tc_epics_conv {
 	/// Replace sceond '.' with ':',
 	/// Replace third '.' with '-',
 	/// Replace all other '.' with '_'
-	ligo_std
+	ligo_std,
+	/// LIGO standard conversion for vacuum channels:
+	/// Eliminate leading '.', 
+	/// Replace sceond '.' with '-',
+	/// Replace third '.' with ':',
+	/// Replace all other '.' with '_'
+	ligo_vac
 };
 
 /** This enum describes the case conversion rule

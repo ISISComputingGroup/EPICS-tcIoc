@@ -39,7 +39,8 @@ int InfoPLC::process_info (const BaseInfoItem& info,
 	while (info.get_info (idx, prefix, name, ptype, opc, type_n, atomic)) {
 		memloc.set_bytesize (idx);
 		++idx;
-		process_arg arg (memloc, name, ptype, opc, type_n, atomic);
+		process_arg arg (memloc, ParseUtil::variable_name(name), ptype, 
+			opc, type_n, atomic);
 		if (process (arg)) ++num;
 		opc = defopc;
 	}
