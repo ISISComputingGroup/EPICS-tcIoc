@@ -108,7 +108,7 @@ string epics_conversion::to_epics (const stringcase& name) const
 		}
 		// TwinCAT 3 doesn't use an empty name for globals
 		else if ((pos = n.find ('.')) != std::stringcase::npos) {
-			n.erase (0, pos);
+			n.erase (0, pos + 1);
 		}
 	}
 
