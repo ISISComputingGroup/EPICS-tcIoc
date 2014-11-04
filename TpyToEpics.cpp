@@ -742,6 +742,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_DTYP :
 		case OPC_PROP_SERVER :
 		case OPC_PROP_PLCNAME :
+		case OPC_PROP_ALIAS :
 			// processed above
 			break;
 			// alarm
