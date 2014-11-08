@@ -73,6 +73,11 @@ const int OPC_PROP_ALMCOSV=	  8702;	/* alarm: change of state severity */
 const int OPC_PROP_ALMUNSV=	  8703;	/* alarm: unknown state severity */
 const int OPC_PROP_ALMZRSV=	  8710;	/* alarm: one state severity */
 const int OPC_PROP_ALMFFSV=	  8725;	/* alarm: fifteen state severity */
+const int OPC_PROP_ALMHHSV=	  8727;	/* alarm: hihi severity */
+const int OPC_PROP_ALMHSV=	  8728;	/* alarm: high severity */
+const int OPC_PROP_ALMLSV=	  8729;	/* alarm: low severity */
+const int OPC_PROP_ALMLLSV=	  8730;	/* alarm: lolo severity */
+
 /** @} */
 
 }

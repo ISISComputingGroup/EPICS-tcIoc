@@ -44,7 +44,9 @@ void errorPrintf(int nErr)
 	/// This function prints the proper error message for common ADS return codes.
 	/// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
 	/////////////////////////////////////////////////
-	if (nErr == 6	) 
+	if (nErr == 4	) 
+		printf("no ADS mailbox was available to process this message\n");
+	else if (nErr == 6	) 
 		printf("target port not found, Cause: System not switched to RUN\n");
 	else if (nErr == 7	) 
 		printf("target machine not found, Cause: Missing ADS routes\n");
@@ -64,6 +66,8 @@ void errorPrintf(int nErr)
 		printf("symbol not found\n");
 	else if (nErr == 1813) 
 		printf("notification client not registered\n");
+	else if (nErr == 1861) 
+		printf("timeout elapsed; check ADS routes of sender and receiver and your firewall settings\n");
 	else if (nErr == 1910) 
 		printf("server is in invalid state\n");
 	else if (nErr == 1864) 

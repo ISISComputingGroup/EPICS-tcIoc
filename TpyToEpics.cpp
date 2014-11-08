@@ -783,7 +783,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ALMZRSV + 14:
 		case OPC_PROP_ALMFFSV:
 			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_UNSV, f->second);
+				process_field_alarm (EPICS_DB_ZRSV[f->first-OPC_PROP_ALMZRSV], f->second);
 			}
 			break;
 		case OPC_PROP_ALMHH:
@@ -807,7 +807,27 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ALMLL:
 			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
 				process_field_numeric (EPICS_DB_LOLO, f->second);
-				process_field_alarm (EPICS_DB_LOLO, EPICS_DB_MAJOR);
+				process_field_alarm (EPICS_DB_LLSV, EPICS_DB_MAJOR);
+			}
+			break;
+		case OPC_PROP_ALMHHSV:
+			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
+				process_field_alarm (EPICS_DB_HHSV, f->second);
+			}
+			break;
+		case OPC_PROP_ALMHSV:
+			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
+				process_field_alarm (EPICS_DB_HSV, f->second);
+			}
+			break;
+		case OPC_PROP_ALMLSV:
+			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
+				process_field_alarm (EPICS_DB_LSV, f->second);
+			}
+			break;
+		case OPC_PROP_ALMLLSV:
+			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
+				process_field_alarm (EPICS_DB_LLSV, f->second);
 			}
 			break;
 		case OPC_PROP_ALMDB:
