@@ -47,10 +47,10 @@ const int OPC_PROP_ALMPRIMARYAREA= 303;	/* primery area */
 const int OPC_PROP_ALMCONDITION=   304;	/* condition */
 const int OPC_PROP_ALMLIMIT=  305;	/* limit */
 const int OPC_PROP_ALMDB=     306;	/* dead band, tolerance */
-const int OPC_PROP_ALMHH=     307;	/* high high alaram -> HIHI */
-const int OPC_PROP_ALMH=      308;	/* high alaram -> HIGH */
-const int OPC_PROP_ALML=      309;	/* low alaram -> LOW */
-const int OPC_PROP_ALMLL=     310;	/* low low alaram -> LOLO */
+const int OPC_PROP_ALMHH=     307;	/* high high alarm -> HIHI */
+const int OPC_PROP_ALMH=      308;	/* high alarm -> HIGH */
+const int OPC_PROP_ALML=      309;	/* low alarm -> LOW */
+const int OPC_PROP_ALMLL=     310;	/* low low alaam -> LOLO */
 const int OPC_PROP_ALMROC=    311;	/* rate of change */
 const int OPC_PROP_ALMDEV=    312;	/* deviation */
 

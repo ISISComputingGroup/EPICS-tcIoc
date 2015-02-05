@@ -789,25 +789,37 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ALMHH:
 			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
 				process_field_numeric (EPICS_DB_HIHI, f->second);
-				process_field_alarm (EPICS_DB_HHSV, EPICS_DB_MAJOR);
+				std::stringcase alarmsv;
+				if (!arg.get_opc().get_property (OPC_PROP_ALMHHSV, alarmsv)) {
+					process_field_alarm (EPICS_DB_HHSV, EPICS_DB_MAJOR);
+				}
 			}
 			break;
 		case OPC_PROP_ALMH:
 			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
 				process_field_numeric (EPICS_DB_HIGH, f->second);
-				process_field_alarm (EPICS_DB_HSV, EPICS_DB_MINOR);
+				std::stringcase alarmsv;
+				if (!arg.get_opc().get_property (OPC_PROP_ALMHSV, alarmsv)) {
+					process_field_alarm (EPICS_DB_HSV, EPICS_DB_MINOR);
+				}
 			}
 			break;
 		case OPC_PROP_ALML:
 			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
 				process_field_numeric (EPICS_DB_LOW, f->second);
-				process_field_alarm (EPICS_DB_LSV, EPICS_DB_MINOR);
+				std::stringcase alarmsv;
+				if (!arg.get_opc().get_property (OPC_PROP_ALMLSV, alarmsv)) {
+					process_field_alarm (EPICS_DB_LSV, EPICS_DB_MINOR);
+				}
 			}
 			break;
 		case OPC_PROP_ALMLL:
 			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
 				process_field_numeric (EPICS_DB_LOLO, f->second);
-				process_field_alarm (EPICS_DB_LLSV, EPICS_DB_MAJOR);
+				std::stringcase alarmsv;
+				if (!arg.get_opc().get_property (OPC_PROP_ALMLLSV, alarmsv)) {
+					process_field_alarm (EPICS_DB_LLSV, EPICS_DB_MAJOR);
+				}
 			}
 			break;
 		case OPC_PROP_ALMHHSV:
@@ -871,11 +883,27 @@ bool epics_db_processing::process_field_numeric (stringcase name, int val)
 /* Process a field
 epics_db_processing::process_field_numeric
 ************************************************************************/
+bool epics_db_processing::process_field_numeric (stringcase name, double val)
+{
+	char buf[40];
+	sprintf_s (buf, sizeof(buf), "%g", val);
+	return process_field_string (name, buf);
+}
+
+/* Process a field
+epics_db_processing::process_field_numeric
+************************************************************************/
 bool epics_db_processing::process_field_numeric (stringcase name, 
 												 stringcase val)
 {
-	int v = strtol (val.c_str(), NULL, 10);
-	return process_field_numeric (name, v);
+	if (val.find_first_of (".Ee") != stringcase::npos) {
+		double v = strtol (val.c_str(), NULL, 10);
+		return process_field_numeric (name, v);
+	}
+	else {
+		int v = strtol (val.c_str(), NULL, 10);
+		return process_field_numeric (name, v);
+	}
 }
 
 /* Process a field

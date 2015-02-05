@@ -464,6 +464,11 @@ protected:
 	/// @param val Value of field
 	/// @return True if successful
 	bool process_field_numeric (std::stringcase name, int val);
+	/// Process a record field of numeric type
+	/// @param name Name of field
+	/// @param val Value of field
+	/// @return True if successful
+	bool process_field_numeric (std::stringcase name, double val);
 	/// Process a record field of type string
 	/// @param name Name of field
 	/// @param val Value of field
