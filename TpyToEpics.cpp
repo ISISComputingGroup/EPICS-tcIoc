@@ -897,7 +897,7 @@ bool epics_db_processing::process_field_numeric (stringcase name,
 												 stringcase val)
 {
 	if (val.find_first_of (".Ee") != stringcase::npos) {
-		double v = strtol (val.c_str(), NULL, 10);
+		double v = strtod (val.c_str(), NULL);
 		return process_field_numeric (name, v);
 	}
 	else {
