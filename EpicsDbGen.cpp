@@ -20,9 +20,12 @@ int main(int argc, char *argv[])
 	tpy_file		tpyfile;
 	stringcase		inpfilename;
 	stringcase		outfilename;
+	stringcase		aliasname;
 	bool			listing = false;
+	bool			macros = false;
 	bool			argp_list[100] = {false};
 	bool			argp_db[100] = {false};
+	bool			argp_macro[100] = {false};
 	int				help = 0;
 
 	// command line parsing
@@ -33,32 +36,55 @@ int main(int argc, char *argv[])
 		// specify input file
 		if ((arg == "-i" || arg == "/i") && i + 1 < argc) {
 			inpfilename = next;
-			argp_list[i] = argp_db[i] = true;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
 			i += 1;
-			argp_list[i] = argp_db[i] = true;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
 		}
 		// specify output file
 		else if ((arg == "-o" || arg == "/o") && i + 1 < argc) {
 			outfilename = next;
-			argp_list[i] = argp_db[i] = true;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
 			i += 1;
-			argp_list[i] = argp_db[i] = true;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
+		}
+		// specify alias name
+		else if ((arg == "-a" || arg == "/a") && i + 1 < argc) {
+			aliasname = next;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
+			i += 1;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
 		}
 		// ask for help
 		else if (arg == "-h" || arg == "/h" ) {
 			help = 1;
-			argp_list[i] = argp_db[i] = true;
+			argp_list[i] = argp_db[i] = argp_macro[i] = true;
 		}
 		else if (arg.compare (0, 2, "/l") == 0 || 
 				 arg.compare (0, 2, "-l") == 0) {
 			listing = true;
+			macros = false;
+		}
+		else if (arg.compare (0, 2, "/m") == 0 || 
+				 arg.compare (0, 2, "-m") == 0) {
+			macros = true;
+			listing = false;
 		}
 	}
-	bool* argp = listing ? argp_list : argp_db;
+	bool* argp = macros ? argp_macro : (listing ? argp_list : argp_db);
 	tpyfile.getopt (argc, argv, argp);
 	// default conversion rules
-	epics_list_processing	listproc (outfilename, argc, argv, argp_list);
-	epics_db_processing		dbproc (outfilename, argc, argv, argp_db);
+	epics_list_processing	listproc;
+	epics_db_processing		dbproc;
+	epics_macrofiles_processing	macroproc;
+	if (macros) {
+		macroproc = epics_macrofiles_processing (aliasname, outfilename, argc, argv, argp_macro);
+	}
+	else if (listing) {
+		listproc = epics_list_processing (outfilename, argc, argv, argp_list);
+	}
+	else {
+		dbproc = epics_db_processing (outfilename, argc, argv, argp_db);
+	}
 
 	// check if all arguments were processed
 	for (int i = 1; i < argc; ++i) {
@@ -70,6 +96,8 @@ int main(int argc, char *argv[])
 			"       Generates an EPICS database from a TwinCAT tpy file.\n"
 			"       -ea exports all variables regardless of their opc setting\n"
 			"       -l[l][a|e|b] generate an [extended] [atomic|epics|burt] channel listing\n"
+			"       -m[f|e|a] generate a macro lists with fields|errors|all\n"
+			"       -a 'alias' alias name for plc name\n"
 			"       -r[n|d] no|dot conversion rule for EPICS names\n"
 			"       -c[u|l] force upper/lower case for EPICS names\n" 
 			"       -yd includes leading dot\n" 
@@ -83,7 +111,7 @@ int main(int argc, char *argv[])
 		if (help == 2) return 1; 
 		else return 0;
 	}
-	if (!listproc || !dbproc) {
+	if ((listing && !listproc) || (macros && !macroproc) || (!listing && !macros && !dbproc)) {
 		fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 		return 1;
 	}
@@ -123,8 +151,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	// generate macro files
+	if (macros) {
+		if (!tpyfile.process_symbols (macroproc)) {
+			fprintf (stderr, "Unable to generate listing.\n");
+			return 1;
+		}
+		macroproc.flush();
+	}
 	// generate listing
-	if (listing) {
+	else if (listing) {
 		if (!tpyfile.process_symbols (listproc)) {
 			fprintf (stderr, "Unable to generate listing.\n");
 			return 1;
@@ -141,18 +177,34 @@ int main(int argc, char *argv[])
 	}
 
 	// write summary information
-	split_io_support* summary= listing ? 
-		(split_io_support*)(&listproc) : (split_io_support*)(&dbproc);
-	fprintf (outfilename.empty() ? stdout : stderr, "\nSummary:\n");
-	fprintf (outfilename.empty() ? stdout : stderr, 
-		"Total number of processed records = %5d\n", 
-		summary->get_processed_total());
-	fprintf (outfilename.empty() ? stdout : stderr, 
-		"Total number of input records     = %5d\n", 
-		summary->get_processed_readonly());
-	fprintf (outfilename.empty() ? stdout : stderr, 
-		"Total number of in/out records    = %5d\n",  
-		summary->get_processed_io());
+	if (macros) {
+		multi_io_support* summary= &macroproc;
+		fprintf (stdout, "\nSummary:\n");
+		fprintf (stdout, "Total number of processed records = %5d\n", 
+			summary->get_processed_total());
+		fprintf (stdout, "Total number of input records     = %5d\n", 
+			summary->get_processed_readonly());
+		fprintf (stdout, "Total number of in/out records    = %5d\n",  
+			summary->get_processed_io());
+		fprintf (stdout, "Total number files read           = %5d\n",  
+			summary->get_filein_total());
+		fprintf (stdout, "Total number files written        = %5d\n",  
+			summary->get_fileout_total());
+	}
+	else {
+		split_io_support* summary= listing ? 
+			(split_io_support*)(&listproc) : (split_io_support*)(&dbproc);
+		fprintf (outfilename.empty() ? stdout : stderr, "\nSummary:\n");
+		fprintf (outfilename.empty() ? stdout : stderr, 
+			"Total number of processed records = %5d\n", 
+			summary->get_processed_total());
+		fprintf (outfilename.empty() ? stdout : stderr, 
+			"Total number of input records     = %5d\n", 
+			summary->get_processed_readonly());
+		fprintf (outfilename.empty() ? stdout : stderr, 
+			"Total number of in/out records    = %5d\n",  
+			summary->get_processed_io());
+	}
 
 	return 0;
 }

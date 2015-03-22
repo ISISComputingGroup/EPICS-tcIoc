@@ -4,8 +4,10 @@
 #include "ParseTpy.h"
 #include "TpyToEpicsConst.h"
 #include "TpyToEpics.h"
+#include <filesystem>
 
 using namespace std;
+using namespace std::tr2::sys;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
@@ -269,7 +271,7 @@ int split_io_support::getopt (int argc, const char* const argv[], bool argp[])
 }
 
 /* Set the file name
-split_io_support::set_filename
+   split_io_support::set_filename
 ************************************************************************/
 void split_io_support::set_filename (const stringcase& fn)
 {
@@ -334,7 +336,7 @@ void split_io_support::set_filename (const stringcase& fn)
 }
 
 /* Flush file content
-split_io_support::flush
+   split_io_support::flush
 ************************************************************************/
 void split_io_support::flush()
 {
@@ -343,7 +345,7 @@ void split_io_support::flush()
 }
 
 /* Closes files
-split_io_support::close
+   split_io_support::close
 ************************************************************************/
 void split_io_support::close()
 {
@@ -354,7 +356,7 @@ void split_io_support::close()
 }
 
 /* Increment record  number
-split_io_support::increment
+   split_io_support::increment
 ************************************************************************/
 bool split_io_support::increment (bool readonly)
 {
@@ -425,6 +427,45 @@ bool split_io_support::increment (bool readonly)
 
 	return error;
 }
+
+
+/* Open a file
+   multi_io_support::operator
+************************************************************************/
+bool multi_io_support::operator! () const
+{ 
+	path dpath (dirname.c_str());
+	return !is_directory (dpath);
+}
+
+/* Open a file
+   multi_io_support::open
+************************************************************************/
+bool multi_io_support::open (const std::stringcase& fname, 
+							 const std::stringcase& io)
+{
+	close();
+	path newfile (dirname.c_str());
+	newfile /= fname.c_str();
+	FILE* fio = fopen (newfile.file_string().c_str(), io.c_str());
+	if (!fio) {
+		fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
+		return false;
+	}
+	filename = newfile.file_string().c_str();
+	filehandle = fio;
+	return true;
+}
+
+/* Closes file
+   multi_io_support::close
+************************************************************************/
+void multi_io_support::close()
+{
+	if (filehandle) fclose (filehandle);
+	filehandle = 0;
+}
+
 
 /* Option processing
    epics_list_processing::epics_list_processing
@@ -530,6 +571,316 @@ bool epics_list_processing::operator() (const process_arg& arg)
 
 
 /* Option processing
+   epics_macrofiles_processing::epics_macrofiles_processing
+************************************************************************/
+epics_macrofiles_processing::epics_macrofiles_processing (
+		const std::stringcase& pname, const std::stringcase& dname,
+		int argc, const char* const argv[], bool argp[])
+	: epics_conversion (argc, argv, argp), 
+	  multi_io_support (dname, argc, argv, argp),
+	  plcname (pname)
+{
+	mygetopt (argc, argv, argp); 
+}
+
+
+/* Destructor
+   epics_macrofiles_processing::flush
+************************************************************************/
+void epics_macrofiles_processing::flush()
+{
+	while (!procstack.empty()) {
+		process_record (procstack.top());
+		procstack.pop();
+	}
+}
+
+/* Option processing
+   epics_macrofiles_processing::getopt
+************************************************************************/
+int epics_macrofiles_processing::getopt (
+	int argc, const char* const argv[], bool argp[]) 
+{
+	return epics_conversion::getopt (argc, argv, argp) +
+		   mygetopt (argc, argv, argp); 
+}
+
+/* Option processing
+   epics_macrofiles_processing::mygetopt
+************************************************************************/
+int epics_macrofiles_processing::mygetopt (
+	int argc, const char* const argv[], bool argp[]) 
+{
+	int num = 0;
+	for (int i = 1; i < argc; ++i) {
+		if (argp && argp[i]) continue;
+		if (!argv[i]) {
+			if (argp) argp[i] = true;
+			continue;
+		}
+		std::stringcase arg (argv[i]);
+		int oldnum = num;
+		// macro file for each structure describing all fields 
+		if (arg == "-mf" || arg == "/mf") {
+			set_macrofile_type (macro_fields);
+			++num;
+		}
+		// macro file for each structure describing the error messages
+		else if (arg == "-me" || arg == "/me" ) {
+			set_macrofile_type (macro_errors);
+			++num;
+		}
+		// macro file for each structure for fields and errors (default)
+		else if (arg == "-ma" || arg == "/ma" ) {
+			set_macrofile_type (macro_all);
+			++num;
+		}
+		// now set flag to indicated a processed option
+		if (argp && (num > oldnum)) {
+			argp[i] = true;
+		}
+	}
+	return num;
+}
+
+/* Process a channel
+   epics_macrofiles_processing::operator()
+************************************************************************/
+bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
+{
+	// Check if this is a valid
+	if (arg.get_process_type() == pt_invalid) {
+		return false;
+	}
+	// make sure we have at least one record on the processing stack
+	if (procstack.empty()) {
+		procstack.push (macro_record());
+	}
+
+	// Get info
+	macro_info minfo;
+	minfo.ptype = arg.get_process_type();
+	minfo.name = to_epics (arg.get_alias()).c_str();
+	minfo.type_n = arg.get_type_name();
+	minfo.readonly = arg.get_opc().is_readonly();
+
+	// check if we need to process the top
+	while ((procstack.size() > 1) && 
+		   (minfo.name.compare (0, procstack.top().record.name.length(), 
+		                        procstack.top().record.name) != 0)) {
+		process_record (procstack.top());
+		procstack.pop();
+	}
+
+	// Add the new field
+	procstack.top().fields.push_back (minfo);
+
+	// check if this is a structure
+	if (!arg.is_atomic()) {
+		// found a record: add to processing stack
+ 		if (minfo.type_n.find ("ARRAY") == stringcase::npos) {
+			macro_record mrec;
+			mrec.record = minfo;
+			mrec.back = procstack.top().record;
+			procstack.push (mrec);
+			rec_num += 1;
+			if (minfo.readonly) rec_num_in += 1;
+			if (!minfo.readonly) rec_num_io += 1;
+			return true;
+		}
+		// found an array: ignore
+		else {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+/** Translate epics name to filename
+************************************************************************/
+std::stringcase epics_macrofiles_processing::to_filename (
+	const std::stringcase& epicsname)
+{
+	std::stringcase ret (epicsname);
+	std::stringcase::size_type pos;
+	while ((pos = ret.find (':')) != stringcase::npos) ret.erase (pos, 1);
+	while ((pos = ret.find ('-')) != stringcase::npos) ret[pos] = '_';
+	return ret;
+}
+
+/* Constants
+   epics_macrofiles_processing::errorstruct
+   epics_macrofiles_processing::errorlistext
+************************************************************************/
+const std::stringcase epics_macrofiles_processing::errorstruct = "ErrorStruct";
+const std::stringcase epics_macrofiles_processing::errorlistext = "_Errors.exp";
+const std::regex epics_macrofiles_processing::errormatchregex (
+	"[^:]*:\\s*ErrorMessagesArray\\s*:=\\s*([^;]*);[^;]*", 
+	std::regex_constants::icase);
+const std::regex epics_macrofiles_processing::errorsearchregex ( 
+	"'((\\$[\\$'LlNnPpRrTt\\d])|[^'\\$])*'", std::regex_constants::icase);
+
+/* Process a record
+   epics_macrofiles_processing::process_record()
+************************************************************************/
+bool epics_macrofiles_processing::process_record (const macro_record& mrec)
+{
+	// Check if we have a valid record
+	if (mrec.record.ptype == pt_invalid) {
+		return false;
+	}
+
+	// Check if we have an error struct in the fields list
+	bool haserr = false;
+	for (auto i = mrec.fields.begin(); i != mrec.fields.end(); ++i) {
+		if (i->type_n == errorstruct) {
+			haserr = true;
+			break;
+		}
+	}
+	// Check if we need to read a _Errors.exp file containing a list of 
+	// error messages
+	bool havelist = false;
+	std::vector<std::stringcase> errlist;
+	if (haserr && open (mrec.record.type_n + errorlistext, "r")) {
+		havelist = true;
+		// read file with list of error messages
+		FILE* fp = get_file();
+		fseek (fp, 0L, SEEK_END);
+		int sz = ftell (fp);
+		fseek (fp, 0L, SEEK_SET);
+		if (sz > 1000000) sz = 1000000; // let's not get too crazy
+		char* buf = new char [sz+1];
+		sz = fread (buf, sizeof (char), sz, fp);
+		buf[sz] = 0;
+		for (int i = 0; i < sz; ++i) {
+			if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
+		}
+		// check if it is formatted correctly
+		std::cmatch match;
+		if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
+				errormatchregex)) {
+			for (auto i = ++match.begin(); i != match.end(); ++i) {
+				std::string found = i->str();
+				// search and iterate over single quote strings
+				std::regex_iterator<std::string::iterator> rit 
+					(found.begin(), found.end(), errorsearchregex);
+				std::regex_iterator<std::string::iterator> rend;
+				while (rit != rend) {
+					// found one
+					std::stringcase msg = rit->str().c_str();
+					// trim single quotes
+					msg.erase (0, 1);
+					msg.erase (msg.length()-1, 1);
+					// trim control characters
+					msg = std::regex_replace (msg, std::regex ("\\$([LlNnPpRr]|\\d\\d?)"), "");
+					// unescape $' and $$
+					msg = std::regex_replace (msg, std::regex ("\\$([\\$'])"), "$1");
+					// unesacpe $t
+					msg = std::regex_replace (msg, std::regex ("\\$([tT])"), " ");
+					//printf ("found an error message `%s`\n", msg.c_str());
+					errlist.push_back (msg);
+					++rit;
+				}
+			}
+		}
+		delete [] buf;
+		close();
+		file_num_in += 1;
+	}
+
+	// open output file
+	if (!open (mrec.record.type_n + ".aml", "w")) {
+		fprintf (stderr, "Failed to process %s.\n", mrec.record.name.c_str());
+		return false;
+	}
+
+	// write output file
+	FILE* fp = get_file();
+	if (get_plcrname().empty()) {
+		fprintf (fp, "PLC=Unknown\n");
+	}
+	else {
+		fprintf (fp, "PLC=%s,\n", get_plcrname().c_str());
+	}
+	fprintf (fp, "CHN=%s,\n", mrec.record.name.c_str());
+
+	auto colon = mrec.record.name.find (':');
+	auto dash = mrec.record.name.find ('-');
+	std::stringcase ifo;
+	if (colon != stringcase::npos) {
+		ifo = mrec.record.name.substr (0, colon);
+	}
+	std::stringcase sys;
+	std::stringcase sub;
+	if (dash != stringcase::npos) {
+		if (colon == stringcase::npos) {
+			sys = mrec.record.name.substr (0, dash);
+			sub = mrec.record.name.substr (dash + 1, stringcase::npos);
+		} 
+		else if (dash > colon) {
+			sys = mrec.record.name.substr (colon + 1, dash - colon - 1);
+			sub = mrec.record.name.substr (dash + 1, stringcase::npos);
+		}
+		else {
+			sub = mrec.record.name;
+		}
+	}
+	fprintf (fp, "IFO=%s,\n", ifo.c_str());
+	for (unsigned int i = 0; i < ifo.length(); ++i) ifo[i] = tolower (ifo[i]);
+	fprintf (fp, "ifo=%s,\n", ifo.c_str());
+	fprintf (fp, "SYS=%s,\n", sys.c_str());
+	fprintf (fp, "sub=%s,\n", sub.c_str());
+
+	// screen names
+	fprintf (fp, "Itself=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "Related=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "Back=%s,\n", to_filename (mrec.back.name).c_str());
+
+	// Error messages
+	if ((get_macrofile_type() == macro_all) || (get_macrofile_type() == macro_errors)) {
+		int num = 0;
+		for (auto i = errlist.begin(); (i != errlist.end()) && (num < 32); ++i, ++num) {
+			// check if we have a field name
+			const macro_info* pinfo = 0;
+			for (auto j = mrec.fields.begin(); j != mrec.fields.end(); ++j) {
+				if ((j->name == *i) && (j->ptype == pt_binary)) {
+					pinfo = &*j;
+					break;
+				}
+			}
+			fprintf (fp, "v%i=1,\n"
+				"e%i=\"%s\",\n", 
+				num, num, i->c_str());
+			if (pinfo) {
+				fprintf (fp, "vn%i=0,\n"
+					"n%i=%s,\n",
+					num, num, to_filename (pinfo->name.c_str()));
+			}
+		}
+		// remainder is empty
+		for (; num < 32; ++num) {
+			fprintf (fp, "v%i=0,\n"
+				"e%i=,\n"
+				"vn%i=0,\n"
+				"nt%i=,\n", 
+				num, num, num, num);
+		}
+	}
+
+	// Error messages
+	if ((get_macrofile_type() == macro_all) || (get_macrofile_type() == macro_fields)) {
+
+	}
+
+	close();
+	file_num_out += 1;
+	return true;
+}
+
+
+/* Option processing
    epics_db_processing::epics_db_processing
 ************************************************************************/
 epics_db_processing::epics_db_processing (
@@ -566,12 +917,12 @@ int epics_db_processing::mygetopt (int argc, const char* const argv[],
 		}
 		std::stringcase arg (argv[i]);
 		int oldnum = num;
-		// Splits database into input only and input/ouput recrods 
+		// Uses OPC name in INPUT/OUTPUT field (default) 
 		if (arg == "-devopc" || arg == "/devopc") {
 			set_device_support (device_support_opc_name);
 			++num;
 		}
-		// Does not split database by record type (default)
+		// Uses TwinCAT name in INPUT/OUTPUT fields instead of OPC
 		else if (arg == "-devtc" || arg == "/devtc" ) {
 			set_device_support (device_support_tc_name);
 			++num;

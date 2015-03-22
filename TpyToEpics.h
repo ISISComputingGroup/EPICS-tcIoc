@@ -192,7 +192,7 @@ public:
 	/// File pointers will be moved over and the original ones will become invalid.
 	split_io_support (const split_io_support&);
 	/// Assignment
-	/// File pointers will be moved over andt the original ones will become invalid.
+	/// File pointers will be moved over and the original ones will become invalid.
 	split_io_support& operator= (const split_io_support&);
 
 	/// Return error
@@ -291,9 +291,110 @@ protected:
 private:
 };
 
+/** Multi file IO support
+Supports a directory argument and opens files within
+************************************************************************/
+class multi_io_support {
+public:
+	/// Default constructor
+	multi_io_support ()
+		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
+		file_num_out(0) {}
+
+	/// Constructor
+	explicit multi_io_support (const std::stringcase& dname)
+		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
+		file_num_out(0) { set_dirname (dname); }
+	/// Constructor
+	/// Command line arguments will override default parameters when specified
+	/// The format is the same as the arguments passed to the main program
+	/// argv[0] is program name and will be ignored
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	multi_io_support (const std::stringcase& dname,
+		int argc, const char* const argv[], bool argp[] = 0)
+		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
+		file_num_out(0) { 
+		getopt (argc, argv, argp); set_dirname (dname); }
+	/// Destructor
+	~multi_io_support () {close(); }
+
+	/// Return error
+	bool operator! () const;
+	/// Open file for reading/writing
+	bool open (const std::stringcase& fname, const std::stringcase& io = "w");
+	/// Close file
+	void close();
+	/// Get file handle
+	FILE* get_file () const {return filehandle; }
+
+	/// Set directory name
+	void set_dirname (const std::stringcase& dname) {
+		dirname = dname; }
+	/// Get directory name
+	const std::stringcase& get_dirname () const { 
+		return dirname; }
+
+	/// Get full filename
+	const std::stringcase& get_filename () const { 
+		return filename; }
+
+	/// Get number of processed channels
+	int get_processed_total() const { return rec_num; }
+	/// Get number of processed readonly channels
+	int get_processed_readonly() const { return rec_num_in; }
+	/// Get number of processed input/ouput channels
+	int get_processed_io() const { return rec_num_io; }
+	/// Get number of read files
+	int get_filein_total() const { return file_num_in; }
+	/// Get number of written files
+	int get_fileout_total() const { return file_num_out; }
+
+protected:
+	/// Set output filename
+	void set_filename (const std::stringcase& fname);
+
+	/// Parse a command line
+	/// The format is the same as the arguments passed to the main program
+	/// argv[0] is program name and will be ignored
+	/// The argp boolean array can be used to pass in a list of already
+	/// processed (and to be ignored) command line arguments. This list,
+	/// if supplied, must be at least argc long. Upon return, newly processed
+	/// arguments are also marked as processed in this list. The arguments are:
+	///
+	/// Command line arguments can use '-' instead of a '/'. Capitalization does
+	/// not matter. getopt will only override arguments that are specifically 
+	/// specified. It relies on the contructors to provide the defaults.
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	/// @return Number of arguments processed
+	int getopt (int argc, const char* const argv[], bool argp[] = 0) {
+		return 0; }
+
+	/// Directory name
+	std::stringcase	dirname;
+	/// Current filename
+	std::stringcase	filename;
+	/// Output file
+	mutable FILE*	filehandle;
+
+	/// Current number of processed channels (records)
+	int				rec_num;
+	/// Current number of processed read only channels (records)
+	int				rec_num_in;
+	/// Current number of processed input/output channels (records)
+	int				rec_num_io;
+	/// Current file number of processed read only channels (records)
+	int				file_num_in;
+	/// Current file number of processed input/output channels (records)
+	int				file_num_out;
+};
+
 /** @} */
 
-/** @defgroup epicstpyprocessing Classes for converting a paresed tpy
+/** @defgroup epicstpyprocessing Classes for converting a parsed tpy
     into an EPICS database
  ************************************************************************/
 /** @{ */
@@ -381,6 +482,151 @@ protected:
 	listing_type	listing;
 	/// long listing
 	bool			verbose;
+};
+
+/** This enum describes the type of macros to produce
+ ************************************************************************/
+enum macrofile_type {
+	/// Include all fields and error messages
+	macro_all, 
+	/// Include all fields
+	macro_fields,
+	/// Include error messages
+	macro_errors
+};
+
+/** This structure describes a field
+ ************************************************************************/
+struct macro_info {
+	/// Default constructor
+	macro_info () : ptype (ParseUtil::pt_invalid), readonly (false) {}
+
+	/// Process Type
+	ParseUtil::process_type_enum	ptype;
+	/// name of type
+	std::stringcase			name;
+	/// type definition
+	std::stringcase			type_n;
+	/// readonly
+	bool					readonly;
+};
+
+/** A list of fields
+ ************************************************************************/
+typedef std::vector<macro_info> macro_list;
+
+/** This structure describes a record/struct
+ ************************************************************************/
+struct macro_record {
+	/// name of structure
+	macro_info				record;
+	/// List of fields
+	macro_list				fields;
+	/// name of upper level structure
+	macro_info				back;
+};
+
+/** A stack of records/structs
+ ************************************************************************/
+typedef std::stack<macro_record> macro_stack;
+
+/** Class for generatig macro files to be used by medm
+************************************************************************/
+class epics_macrofiles_processing : 
+	public epics_conversion, public multi_io_support {
+public:
+	/// Type name identifying an error struct ("ErrorStruct")
+	static const std::stringcase errorstruct;
+	/// File extension identifying a list of error msgs ("_Errors.exp")
+	static const std::stringcase errorlistext;
+	/// Regular expression to match the entire error record defintition
+	static const std::regex errormatchregex;
+	/// Regular expression to search for the actual error messages
+	static const std::regex errorsearchregex;
+
+	/// Default constructor
+	epics_macrofiles_processing() : macros (macro_all) {}
+	/// Constructor
+	/// @param mt Type of macro
+	explicit epics_macrofiles_processing (macrofile_type mt) : macros (mt) {}
+	/// Constructor
+	/// Command line arguments will override default parameters when specified
+	/// The format is the same as the arguments passed to the main program
+	/// argv[0] is program name and will be ignored
+	/// Processed options with epics_conversion::getopt, 
+	/// split_io_support::getopt and mygetopt().
+	/// @param pname PLC name
+	/// @param dname Directory name
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	epics_macrofiles_processing (const std::stringcase& pname, 
+		const std::stringcase& dname,
+		int argc, const char* const argv[], bool argp[] = 0);
+
+	/// Destructor
+	~epics_macrofiles_processing() { flush(); }
+	/// flush all pending prcossing
+	void flush();
+
+	/// Parse a command line
+	/// Processed options with epics_conversion::getopt and mygetopt().
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	/// @return Number of arguments processed
+	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	/// Parse a command line
+	/// The format is the same as the arguments passed to the main program
+	/// argv[0] is program name and will be ignored
+	/// The argp boolean array can be used to pass in a list of already
+	/// processed (and to be ignored) command line arguments. This list,
+	/// if supplied, must be at least argc long. Upon return, newly processed
+	/// arguments are also marked as processed in this list. The arguments are:
+	///
+	/// /mf: Generate a macro file for each structure describing all fields
+	/// /me: Generate a macro file for each structure describing the error messages
+	/// /ma: Generate a macro file for each structure describing fields and errors (default)
+	///
+	/// Command line arguments can use '-' instead of a '/'. Capitalization does
+	/// not matter. getopt will only override arguments that are specifically 
+	/// specified. It relies on the contructors to provide the defaults.
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	/// @return Number of arguments processed
+	int mygetopt (int argc, const char* const argv[], bool argp[] = 0);
+
+	/// Process a variable
+	/// @param arg Process argument describign the variable and type
+	/// @return True if successfully processed
+	bool operator() (const ParseUtil::process_arg& arg);
+
+	/// Get listing type
+	macrofile_type get_macrofile_type () const { return macros; }
+	/// Set listing
+	void set_macrofile_type (macrofile_type m) { macros = m; }
+
+	/// Set PLC name
+	void set_plcname (const std::stringcase& name) {
+		plcname = name; }
+	/// Get directory name
+	const std::stringcase& get_plcrname () const { 
+		return plcname; }
+
+	/// Translate epics name to filename
+	static std::stringcase to_filename (const std::stringcase& epicsname);
+
+protected:
+	/// Process top of stack
+	bool process_record (const macro_record& mrec);
+
+	/// Listing type
+	macrofile_type	macros;
+	/// PLC name
+	std::stringcase	plcname;
+	/// Processing stack
+	macro_stack		procstack;
 };
 
 /** This enum describes the type of listing to produce
