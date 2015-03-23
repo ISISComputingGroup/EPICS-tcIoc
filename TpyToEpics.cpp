@@ -434,8 +434,9 @@ bool split_io_support::increment (bool readonly)
 ************************************************************************/
 bool multi_io_support::operator! () const
 { 
-	path dpath (dirname.c_str());
-	return !is_directory (dpath);
+	path opath (outdirname.c_str());
+	path ipath (indirname.c_str());
+	return !(is_directory (opath) && is_directory (ipath));
 }
 
 /* Open a file
@@ -445,15 +446,31 @@ bool multi_io_support::open (const std::stringcase& fname,
 							 const std::stringcase& io)
 {
 	close();
-	path newfile (dirname.c_str());
+	if (io.find ('r') != stringcase::npos) {
+		filestat = io_filestat::read;
+	}
+	else {
+		filestat = io_filestat::write;
+	}
+	path newfile ((filestat == io_filestat::read ? indirname : outdirname).c_str());
 	newfile /= fname.c_str();
 	FILE* fio = fopen (newfile.file_string().c_str(), io.c_str());
 	if (!fio) {
+		filestat = io_filestat::closed;
 		fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
 		return false;
 	}
 	filename = newfile.file_string().c_str();
 	filehandle = fio;
+	if (filestat == io_filestat::read) {
+		file_num_in += 1;
+	}
+	else {
+		file_num_out += 1;
+	}
+	//fprintf (stderr, "Opening %s for %s\n", filename.c_str(), 
+	//	filestat == io_filestat::read ? "reading" : "writing");
+
 	return true;
 }
 
@@ -464,6 +481,35 @@ void multi_io_support::close()
 {
 	if (filehandle) fclose (filehandle);
 	filehandle = 0;
+	filestat = io_filestat::closed;
+}
+
+/* Set input directory name
+   multi_io_support::set_indirname
+************************************************************************/
+void multi_io_support::set_indirname (const std::stringcase& dname) 
+{
+	path fname (dname.c_str());
+	if (is_directory (fname)) {
+		indirname = fname.directory_string().c_str();
+	}
+	else {
+		indirname = fname.parent_path().directory_string().c_str();
+	}
+}
+
+/* Set output directory name
+   multi_io_support::set_outdirname
+************************************************************************/
+void multi_io_support::set_outdirname (const std::stringcase& dname) 
+{
+	path fname (dname.c_str());
+	if (is_directory (fname)) {
+		outdirname = fname.directory_string().c_str();
+	}
+	else {
+		outdirname = fname.parent_path().directory_string().c_str();
+	}
 }
 
 
@@ -578,14 +624,13 @@ epics_macrofiles_processing::epics_macrofiles_processing (
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  multi_io_support (dname, argc, argv, argp),
-	  plcname (pname)
+	  plcname (pname), macros (macrofile_type::all), rec_num (0)
 {
 	mygetopt (argc, argv, argp); 
 }
 
 
-/* Destructor
-   epics_macrofiles_processing::flush
+/* epics_macrofiles_processing::flush
 ************************************************************************/
 void epics_macrofiles_processing::flush()
 {
@@ -593,6 +638,7 @@ void epics_macrofiles_processing::flush()
 		process_record (procstack.top());
 		procstack.pop();
 	}
+	fflush (stderr);
 }
 
 /* Option processing
@@ -622,17 +668,17 @@ int epics_macrofiles_processing::mygetopt (
 		int oldnum = num;
 		// macro file for each structure describing all fields 
 		if (arg == "-mf" || arg == "/mf") {
-			set_macrofile_type (macro_fields);
+			set_macrofile_type (macrofile_type::fields);
 			++num;
 		}
 		// macro file for each structure describing the error messages
 		else if (arg == "-me" || arg == "/me" ) {
-			set_macrofile_type (macro_errors);
+			set_macrofile_type (macrofile_type::errors);
 			++num;
 		}
 		// macro file for each structure for fields and errors (default)
 		else if (arg == "-ma" || arg == "/ma" ) {
-			set_macrofile_type (macro_all);
+			set_macrofile_type (macrofile_type::all);
 			++num;
 		}
 		// now set flag to indicated a processed option
@@ -674,6 +720,9 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 
 	// Add the new field
 	procstack.top().fields.push_back (minfo);
+	if (minfo.type_n == errorstruct) {
+		procstack.top().haserror = true;
+	}
 
 	// check if this is a structure
 	if (!arg.is_atomic()) {
@@ -682,10 +731,13 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 			macro_record mrec;
 			mrec.record = minfo;
 			mrec.back = procstack.top().record;
+			if (minfo.type_n == errorstruct) {
+				mrec.iserror = true;
+			}
 			procstack.push (mrec);
-			rec_num += 1;
-			if (minfo.readonly) rec_num_in += 1;
-			if (!minfo.readonly) rec_num_io += 1;
+			if (!mrec.iserror) {
+				rec_num += 1;
+			}
 			return true;
 		}
 		// found an array: ignore
@@ -696,7 +748,6 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	return true;
 }
 
-
 /** Translate epics name to filename
 ************************************************************************/
 std::stringcase epics_macrofiles_processing::to_filename (
@@ -705,6 +756,17 @@ std::stringcase epics_macrofiles_processing::to_filename (
 	std::stringcase ret (epicsname);
 	std::stringcase::size_type pos;
 	while ((pos = ret.find (':')) != stringcase::npos) ret.erase (pos, 1);
+	if (!get_plcname().empty()) {
+		if ((pos = ret.find ('-')) != stringcase::npos) {
+			ret.insert (pos + 1, get_plcname() + '_');
+		}
+		else if ((pos = ret.find ('.')) != stringcase::npos) {
+			ret.insert (pos, stringcase("_") + get_plcname());
+		}
+		else if (!ret.empty()) {
+			(ret += '_') += get_plcname(); // yah!
+		}
+	}	
 	while ((pos = ret.find ('-')) != stringcase::npos) ret[pos] = '_';
 	return ret;
 }
@@ -730,88 +792,100 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	if (mrec.record.ptype == pt_invalid) {
 		return false;
 	}
-
-	// Check if we have an error struct in the fields list
-	bool haserr = false;
-	for (auto i = mrec.fields.begin(); i != mrec.fields.end(); ++i) {
-		if (i->type_n == errorstruct) {
-			haserr = true;
-			break;
-		}
+	// No processing for erorr records
+	if (mrec.iserror) {
+		return true;
 	}
+
 	// Check if we need to read a _Errors.exp file containing a list of 
 	// error messages
 	bool havelist = false;
 	std::vector<std::stringcase> errlist;
-	if (haserr && open (mrec.record.type_n + errorlistext, "r")) {
-		havelist = true;
-		// read file with list of error messages
-		FILE* fp = get_file();
-		fseek (fp, 0L, SEEK_END);
-		int sz = ftell (fp);
-		fseek (fp, 0L, SEEK_SET);
-		if (sz > 1000000) sz = 1000000; // let's not get too crazy
-		char* buf = new char [sz+1];
-		sz = fread (buf, sizeof (char), sz, fp);
-		buf[sz] = 0;
-		for (int i = 0; i < sz; ++i) {
-			if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
-		}
-		// check if it is formatted correctly
-		std::cmatch match;
-		if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
-				errormatchregex)) {
-			for (auto i = ++match.begin(); i != match.end(); ++i) {
-				std::string found = i->str();
-				// search and iterate over single quote strings
-				std::regex_iterator<std::string::iterator> rit 
-					(found.begin(), found.end(), errorsearchregex);
-				std::regex_iterator<std::string::iterator> rend;
-				while (rit != rend) {
-					// found one
-					std::stringcase msg = rit->str().c_str();
-					// trim single quotes
-					msg.erase (0, 1);
-					msg.erase (msg.length()-1, 1);
-					// trim control characters
-					msg = std::regex_replace (msg, std::regex ("\\$([LlNnPpRr]|\\d\\d?)"), "");
-					// unescape $' and $$
-					msg = std::regex_replace (msg, std::regex ("\\$([\\$'])"), "$1");
-					// unesacpe $t
-					msg = std::regex_replace (msg, std::regex ("\\$([tT])"), " ");
-					//printf ("found an error message `%s`\n", msg.c_str());
-					errlist.push_back (msg);
-					++rit;
-				}
+	if (mrec.haserror && 
+		((get_macrofile_type() == macrofile_type::all) ||
+		(get_macrofile_type() == macrofile_type::errors))) {
+		path inpfile ((mrec.record.type_n + errorlistext).c_str());
+		std::stringcase fname = inpfile.filename().c_str();
+		if (!exists (inpfile) || !open (fname, "r")) {
+			if (missing.find (fname) == missing.end()) {
+				missing.insert (fname);
+				fprintf (stderr, "Cannot open %s\n", fname.c_str());
 			}
 		}
-		delete [] buf;
-		close();
-		file_num_in += 1;
+		else {
+			havelist = true;
+			// read file with list of error messages
+			FILE* fp = get_file();
+			fseek (fp, 0L, SEEK_END);
+			int sz = ftell (fp);
+			fseek (fp, 0L, SEEK_SET);
+			if (sz > 1000000) sz = 1000000; // let's not get too crazy
+			char* buf = new char [sz+1];
+			sz = fread (buf, sizeof (char), sz, fp);
+			buf[sz] = 0;
+			for (int i = 0; i < sz; ++i) {
+				if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
+			}
+			// check if it is formatted correctly
+			std::cmatch match;
+			if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
+				errormatchregex)) {
+				for (auto i = ++match.begin(); i != match.end(); ++i) {
+					std::string found = i->str();
+					// search and iterate over single quote strings
+					std::regex_iterator<std::string::iterator> rit 
+						(found.begin(), found.end(), errorsearchregex);
+					std::regex_iterator<std::string::iterator> rend;
+					while (rit != rend) {
+						// found one
+						std::stringcase msg = rit->str().c_str();
+						// trim single quotes
+						msg.erase (0, 1);
+						msg.erase (msg.length()-1, 1);
+						// trim control characters
+						msg = std::regex_replace (msg, std::regex ("\\$([LlNnPpRr]|\\d\\d?)"), "");
+						// unescape $' and $$
+						msg = std::regex_replace (msg, std::regex ("\\$([\\$'])"), "$1");
+						// unesacpe $t
+						msg = std::regex_replace (msg, std::regex ("\\$([tT])"), " ");
+						//printf ("found an error message `%s`\n", msg.c_str());
+						errlist.push_back (msg);
+						++rit;
+					}
+				}
+			}
+			delete [] buf;
+			close();
+		}
 	}
 
 	// open output file
-	if (!open (mrec.record.type_n + ".aml", "w")) {
+	if (!open (to_filename (mrec.record.name + ".aml"), "w")) {
 		fprintf (stderr, "Failed to process %s.\n", mrec.record.name.c_str());
 		return false;
 	}
 
 	// write output file
 	FILE* fp = get_file();
-	if (get_plcrname().empty()) {
+	if (get_plcname().empty()) {
 		fprintf (fp, "PLC=Unknown\n");
 	}
 	else {
-		fprintf (fp, "PLC=%s,\n", get_plcrname().c_str());
+		fprintf (fp, "PLC=%s,\n", get_plcname().c_str());
 	}
 	fprintf (fp, "CHN=%s,\n", mrec.record.name.c_str());
 
+	// get ifo
 	auto colon = mrec.record.name.find (':');
 	auto dash = mrec.record.name.find ('-');
 	std::stringcase ifo;
 	if (colon != stringcase::npos) {
 		ifo = mrec.record.name.substr (0, colon);
 	}
+	else {
+		ifo = mrec.record.name;
+	}
+	// get sys and sub
 	std::stringcase sys;
 	std::stringcase sub;
 	if (dash != stringcase::npos) {
@@ -824,14 +898,24 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 			sub = mrec.record.name.substr (dash + 1, stringcase::npos);
 		}
 		else {
+			sys = "";
 			sub = mrec.record.name;
+		}
+	}
+	else {
+		sub = "";
+		if (colon != stringcase::npos) {
+			sys = mrec.record.name.substr (colon + 1, stringcase::npos);
+		}
+		else {
+			sys = "";
 		}
 	}
 	fprintf (fp, "IFO=%s,\n", ifo.c_str());
 	for (unsigned int i = 0; i < ifo.length(); ++i) ifo[i] = tolower (ifo[i]);
 	fprintf (fp, "ifo=%s,\n", ifo.c_str());
 	fprintf (fp, "SYS=%s,\n", sys.c_str());
-	fprintf (fp, "sub=%s,\n", sub.c_str());
+	fprintf (fp, "SUB=%s,\n", sub.c_str());
 
 	// screen names
 	fprintf (fp, "Itself=%s,\n", to_filename (mrec.record.name).c_str());
@@ -839,7 +923,8 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	fprintf (fp, "Back=%s,\n", to_filename (mrec.back.name).c_str());
 
 	// Error messages
-	if ((get_macrofile_type() == macro_all) || (get_macrofile_type() == macro_errors)) {
+	if ((get_macrofile_type() == macrofile_type::all) || 
+		(get_macrofile_type() == macrofile_type::errors)) {
 		int num = 0;
 		for (auto i = errlist.begin(); (i != errlist.end()) && (num < 32); ++i, ++num) {
 			// check if we have a field name
@@ -859,23 +944,65 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 					num, num, to_filename (pinfo->name.c_str()));
 			}
 		}
-		// remainder is empty
-		for (; num < 32; ++num) {
-			fprintf (fp, "v%i=0,\n"
-				"e%i=,\n"
-				"vn%i=0,\n"
-				"nt%i=,\n", 
-				num, num, num, num);
-		}
+		// write list length
+		fprintf (fp, "errors=%i,\n", num);
+		//// remainder is empty
+		//for (; num < 32; ++num) {
+		//	fprintf (fp, "v%i=0,\n"
+		//		"e%i=,\n"
+		//		"vn%i=0,\n"
+		//		"nt%i=,\n", 
+		//		num, num, num, num);
+		//}
 	}
 
-	// Error messages
-	if ((get_macrofile_type() == macro_all) || (get_macrofile_type() == macro_fields)) {
-
+	// Fields
+	if ((get_macrofile_type() == macrofile_type::all) || 
+		(get_macrofile_type() == macrofile_type::fields)) {
+		int num = 0;
+		for (auto i = mrec.fields.begin(); i != mrec.fields.end(); ++i, ++num) {
+			bool valid = true;
+			// set field type
+			switch (i->ptype) {
+			case pt_bool:
+				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 0 : 1);
+				break;
+			case pt_enum:
+				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 2 : 3);
+				break;
+			case pt_int:
+				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 4 : 5);
+				break;
+			case pt_real:
+				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 6 : 7);
+				break;
+			case pt_string:
+				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 8 : 9);
+				break;
+			case pt_binary:
+				fprintf (fp, "t%i=%i,\n", num, 10);
+				break;
+			case pt_invalid:
+			default:
+				bool valid = false;
+				break;
+			}
+			if (!valid) {
+				--num;
+				continue;
+			}
+			// set field name
+			if (i->ptype == pt_binary) {
+				fprintf (fp, "f%i=%s,\n", num, to_filename (i->name).c_str());
+			}
+			else {
+				fprintf (fp, "f%i=%s,\n", num, i->name.c_str());
+			}
+		}
+		fprintf (fp, "fields=%i,\n", num);
 	}
 
 	close();
-	file_num_out += 1;
 	return true;
 }
 

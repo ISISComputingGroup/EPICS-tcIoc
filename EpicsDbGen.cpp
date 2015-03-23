@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 	epics_macrofiles_processing	macroproc;
 	if (macros) {
 		macroproc = epics_macrofiles_processing (aliasname, outfilename, argc, argv, argp_macro);
+		macroproc.set_indirname (inpfilename);
 	}
 	else if (listing) {
 		listproc = epics_list_processing (outfilename, argc, argv, argp_list);
@@ -111,11 +112,15 @@ int main(int argc, char *argv[])
 		if (help == 2) return 1; 
 		else return 0;
 	}
-	if ((listing && !listproc) || (macros && !macroproc) || (!listing && !macros && !dbproc)) {
+	if (macros && !macroproc) {
+		fprintf (stderr, "Failed to access directory %s and/or %s.\n", 
+			macroproc.get_outdirname().c_str(), macroproc.get_indirname().c_str());
+		return 1;
+	}
+	if ((listing && !listproc) || (!listing && !macros && !dbproc)) {
 		fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 		return 1;
 	}
-
 
 	// open input file
 	FILE* inpf = stdin;
@@ -178,18 +183,13 @@ int main(int argc, char *argv[])
 
 	// write summary information
 	if (macros) {
-		multi_io_support* summary= &macroproc;
 		fprintf (stdout, "\nSummary:\n");
 		fprintf (stdout, "Total number of processed records = %5d\n", 
-			summary->get_processed_total());
-		fprintf (stdout, "Total number of input records     = %5d\n", 
-			summary->get_processed_readonly());
-		fprintf (stdout, "Total number of in/out records    = %5d\n",  
-			summary->get_processed_io());
+			macroproc.get_processed_total());
 		fprintf (stdout, "Total number files read           = %5d\n",  
-			summary->get_filein_total());
+			macroproc.get_filein_total());
 		fprintf (stdout, "Total number files written        = %5d\n",  
-			summary->get_fileout_total());
+			macroproc.get_fileout_total());
 	}
 	else {
 		split_io_support* summary= listing ? 

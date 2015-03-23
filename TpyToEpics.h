@@ -291,6 +291,16 @@ protected:
 private:
 };
 
+/// enum for file io
+enum class io_filestat {
+	/// file is closed
+	closed,
+	// file is open for reading
+	read,
+	// file is open for writing
+	write
+};
+
 /** Multi file IO support
 Supports a directory argument and opens files within
 ************************************************************************/
@@ -298,13 +308,13 @@ class multi_io_support {
 public:
 	/// Default constructor
 	multi_io_support ()
-		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
-		file_num_out(0) {}
+		: filestat (io_filestat::closed), filehandle(0), 
+		file_num_in(0), file_num_out(0) {}
 
 	/// Constructor
 	explicit multi_io_support (const std::stringcase& dname)
-		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
-		file_num_out(0) { set_dirname (dname); }
+		: filestat (io_filestat::closed), filehandle(0), file_num_in(0), 
+		file_num_out(0) { set_outdirname (dname); set_indirname (dname); }
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -314,9 +324,9 @@ public:
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	multi_io_support (const std::stringcase& dname,
 		int argc, const char* const argv[], bool argp[] = 0)
-		: filehandle(0), rec_num(0), rec_num_in(0), rec_num_io(0), file_num_in(0), 
+		: filestat (io_filestat::closed), filehandle(0), file_num_in(0), 
 		file_num_out(0) { 
-		getopt (argc, argv, argp); set_dirname (dname); }
+		getopt (argc, argv, argp); set_outdirname (dname); set_indirname (dname); }
 	/// Destructor
 	~multi_io_support () {close(); }
 
@@ -329,23 +339,23 @@ public:
 	/// Get file handle
 	FILE* get_file () const {return filehandle; }
 
-	/// Set directory name
-	void set_dirname (const std::stringcase& dname) {
-		dirname = dname; }
-	/// Get directory name
-	const std::stringcase& get_dirname () const { 
-		return dirname; }
+	/// Set output directory name
+	void set_outdirname (const std::stringcase& dname);
+	/// Get output directory name
+	const std::stringcase& get_outdirname () const { 
+		return outdirname; }
+	/// Set input directory name
+	void set_indirname (const std::stringcase& dname);
+	/// Get input directory name
+	const std::stringcase& get_indirname () const { 
+		return indirname; }
 
 	/// Get full filename
 	const std::stringcase& get_filename () const { 
 		return filename; }
+	/// Reading
+	io_filestat fileread () const { return filestat; }
 
-	/// Get number of processed channels
-	int get_processed_total() const { return rec_num; }
-	/// Get number of processed readonly channels
-	int get_processed_readonly() const { return rec_num_in; }
-	/// Get number of processed input/ouput channels
-	int get_processed_io() const { return rec_num_io; }
 	/// Get number of read files
 	int get_filein_total() const { return file_num_in; }
 	/// Get number of written files
@@ -374,18 +384,16 @@ protected:
 		return 0; }
 
 	/// Directory name
-	std::stringcase	dirname;
+	std::stringcase	outdirname;
+	/// Directory name
+	std::stringcase	indirname;
 	/// Current filename
 	std::stringcase	filename;
+	/// reading or writing?
+	io_filestat		filestat;
 	/// Output file
 	mutable FILE*	filehandle;
 
-	/// Current number of processed channels (records)
-	int				rec_num;
-	/// Current number of processed read only channels (records)
-	int				rec_num_in;
-	/// Current number of processed input/output channels (records)
-	int				rec_num_io;
 	/// Current file number of processed read only channels (records)
 	int				file_num_in;
 	/// Current file number of processed input/output channels (records)
@@ -486,13 +494,13 @@ protected:
 
 /** This enum describes the type of macros to produce
  ************************************************************************/
-enum macrofile_type {
+enum class macrofile_type {
 	/// Include all fields and error messages
-	macro_all, 
+	all, 
 	/// Include all fields
-	macro_fields,
+	fields,
 	/// Include error messages
-	macro_errors
+	errors
 };
 
 /** This structure describes a field
@@ -518,8 +526,13 @@ typedef std::vector<macro_info> macro_list;
 /** This structure describes a record/struct
  ************************************************************************/
 struct macro_record {
+	macro_record () : iserror (false), haserror (false) {}
 	/// name of structure
 	macro_info				record;
+	/// is an ErrorStruct
+	bool					iserror;
+	/// contains an ErrorStruct
+	bool					haserror;
 	/// List of fields
 	macro_list				fields;
 	/// name of upper level structure
@@ -529,6 +542,10 @@ struct macro_record {
 /** A stack of records/structs
  ************************************************************************/
 typedef std::stack<macro_record> macro_stack;
+
+/** A set of filenames
+ ************************************************************************/
+typedef std::unordered_set<std::stringcase> filename_set;
 
 /** Class for generatig macro files to be used by medm
 ************************************************************************/
@@ -545,16 +562,17 @@ public:
 	static const std::regex errorsearchregex;
 
 	/// Default constructor
-	epics_macrofiles_processing() : macros (macro_all) {}
+	epics_macrofiles_processing() : macros (macrofile_type::all), rec_num (0) {}
 	/// Constructor
 	/// @param mt Type of macro
-	explicit epics_macrofiles_processing (macrofile_type mt) : macros (mt) {}
+	explicit epics_macrofiles_processing (macrofile_type mt) 
+		: macros (mt), rec_num (0) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
 	/// Processed options with epics_conversion::getopt, 
-	/// split_io_support::getopt and mygetopt().
+	/// multi_io_support::getopt and mygetopt().
 	/// @param pname PLC name
 	/// @param dname Directory name
 	/// @param argc Number of command line arguments
@@ -610,12 +628,15 @@ public:
 	/// Set PLC name
 	void set_plcname (const std::stringcase& name) {
 		plcname = name; }
-	/// Get directory name
-	const std::stringcase& get_plcrname () const { 
+	/// Get PLC name
+	const std::stringcase& get_plcname () const { 
 		return plcname; }
 
 	/// Translate epics name to filename
-	static std::stringcase to_filename (const std::stringcase& epicsname);
+	std::stringcase to_filename (const std::stringcase& epicsname);
+
+	/// Get number of processed channels
+	int get_processed_total() const { return rec_num; }
 
 protected:
 	/// Process top of stack
@@ -627,6 +648,10 @@ protected:
 	std::stringcase	plcname;
 	/// Processing stack
 	macro_stack		procstack;
+	/// Current number of processed channels (records)
+	int				rec_num;
+	/// set of missing input files
+	filename_set	missing;
 };
 
 /** This enum describes the type of listing to produce

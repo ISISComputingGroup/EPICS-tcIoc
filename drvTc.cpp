@@ -40,29 +40,37 @@ static const iocshArg tcSetScanRateArg0	            = {"TC scan rate in ms", ioc
 static const iocshArg tcSetScanRateArg1	            = {"EPICS scan rate in multiples of the TC scan rate", iocshArgString};
 static const iocshArg tcListArg0			        = {"'list' Filename", iocshArgString};
 static const iocshArg tcListArg1		            = {"Conversion rules", iocshArgString};
+static const iocshArg tcMacroArg0			        = {"'mdir' output directory", iocshArgString};
+static const iocshArg tcMacroArg1		            = {"Macro arguments", iocshArgString};
 static const iocshArg tcAliasArg0					= {"Alias name for PLC", iocshArgString};
 static const iocshArg tcPrintValsArg0	            = {"emptyarg", iocshArgString};
 
 static const iocshArg* const  tcLoadRecordsArg[2]   = {&tcLoadRecordsArg0, &tcLoadRecordsArg1};
 static const iocshArg* const  tcSetScanRateArg[2]   = {&tcSetScanRateArg0, &tcSetScanRateArg1};
 static const iocshArg* const  tcListArg[2]		    = {&tcListArg0, &tcListArg1};
+static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
 static const iocshArg* const  tcAliasArg[1]			= {&tcAliasArg0};
 static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
 
 iocshFuncDef tcLoadRecordsFuncDef                   = {"tcLoadRecords", 2, tcLoadRecordsArg};
 iocshFuncDef tcSetScanRateFuncDef		            = {"tcSetScanRate", 2, tcSetScanRateArg};
 iocshFuncDef tcListFuncDef				            = {"tcGenerateList", 2, tcListArg};
+iocshFuncDef tcMacroFuncDef				            = {"tcGenerateMacros", 2, tcMacroArg};
 iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 1, tcAliasArg};
 iocshFuncDef tcPrintValsFuncDef				        = {"tcPrintVals", 1, tcPrintValsArg};
 
 typedef std::tuple<std::stringcase, std::stringcase, 
 				   epics_list_processing*, bool> filename_rule_list_tuple;
 typedef std::vector<filename_rule_list_tuple> tc_listing_def;
+typedef std::tuple<std::stringcase, std::stringcase, 
+				   epics_macrofiles_processing*, const char*> dirname_arg_macro_tuple;
+typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
 static tc_listing_def tc_lists;
+static tc_macro_def tc_macros;
 
 
 /* Class for generating an EPICS database and tc record 
@@ -72,14 +80,18 @@ class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
 public:
 	/// Default constructor
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
-		tc_listing_def* l = nullptr)
-		: plc (&p), invnum (0), lists (l) { init(); }
-	~epics_tc_db_processing() { done(); }
+		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
+		: plc (&p), invnum (0), lists (l), macros (m) { 
+			init_lists(); init_macros(); }
+	~epics_tc_db_processing() { 
+		done_lists(); done_macros(); }
 
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
 	bool operator() (const ParseUtil::process_arg& arg);
+	/// Flush output files
+	void flush();
 
 	/// Get number of EPICS records without tc records
 	int get_invalid_records() const { return invnum; }
@@ -91,34 +103,51 @@ protected:
 	epics_tc_db_processing& operator= (const epics_tc_db_processing&);
 
 	/// Init lists
-	void init();
+	void init_lists();
 	/// Cleanup lists
-	void done();
+	void done_lists();
 	/// Process all listings
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
-	bool process (const ParseUtil::process_arg& arg);
+	bool process_lists (const ParseUtil::process_arg& arg);
 	/// Process a listing
 	/// @param listdef filename/rule pair defining a listing
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
-	bool process (filename_rule_list_tuple& listdef, 
+	bool process_list (filename_rule_list_tuple& listdef, 
+		const ParseUtil::process_arg& arg);
+
+	/// Init macros
+	void init_macros();
+	/// Cleanup macros
+	void done_macros();
+	/// Process all macros
+	/// @param arg Process argument describign the variable and type
+	/// @return True if successful
+	bool process_macros (const ParseUtil::process_arg& arg);
+	/// Process a macro
+	/// @param listdef filename/rule pair defining a macro
+	/// @param arg Process argument describign the variable and type
+	/// @return True if successful
+	bool process_macro (dirname_arg_macro_tuple& macrodef, 
 		const ParseUtil::process_arg& arg);
 
 	/// Pointer to PLC class
 	TcComms::TcPLC*		plc;
 	/// Pointer to a set of listings
 	tc_listing_def*		lists;
+	/// Pointer to macros
+	tc_macro_def*		macros;
 	/// Number of EPICS records without tc records
 	int					invnum;
 };
 
-/* epics_tc_db_processing::init
+/* epics_tc_db_processing::init_lists
  ************************************************************************/
-void epics_tc_db_processing::init()
+void epics_tc_db_processing::init_lists()
 {
 	device_support = device_support_tc_name;
-	if (!lists) return;
+	if (lists) return;
 	for (filename_rule_list_tuple& list : *lists) {
 		optarg options (get<1>(list));
 		epics_list_processing* lproc = new (std::nothrow) epics_list_processing;
@@ -157,9 +186,9 @@ void epics_tc_db_processing::init()
 	}
 }
 
-/* epics_tc_db_processing::done
+/* epics_tc_db_processing::done_lists
  ************************************************************************/
-void epics_tc_db_processing::done()
+void epics_tc_db_processing::done_lists()
 {
 	if (!lists) return;
 	for (filename_rule_list_tuple& list : *lists) {
@@ -171,28 +200,86 @@ void epics_tc_db_processing::done()
 }
 
 /* Process a channel
-   epics_tc_db_processing::operator()
+   epics_tc_db_processing::process_lists()
  ************************************************************************/
-bool epics_tc_db_processing::process (const ParseUtil::process_arg& arg)
+bool epics_tc_db_processing::process_lists (const ParseUtil::process_arg& arg)
 {
 	if (!lists) return true;
 	bool succ = true;
 	for (filename_rule_list_tuple& i : *lists) {
-		if (!process (i, arg)) succ = false;
+		if (!process_list (i, arg)) succ = false;
 	}
 	return succ;
 }
 
 /* Process a channel
-   epics_tc_db_processing::operator()
+   epics_tc_db_processing::process_list()
  ************************************************************************/
-bool epics_tc_db_processing::process (filename_rule_list_tuple& listdef,
+bool epics_tc_db_processing::process_list (filename_rule_list_tuple& listdef,
 									  const ParseUtil::process_arg& arg)
 {
 	epics_list_processing* lptr = std::get<2>(listdef);
 	if (!lptr) return false;
 	if (std::get<3>(listdef) && arg.get_process_type() == pt_string) return false;
 	return (*lptr) (arg);
+}
+
+/* epics_tc_db_processing::init_macros
+ ************************************************************************/
+void epics_tc_db_processing::init_macros()
+{
+	if (!macros) return;
+	for (dirname_arg_macro_tuple& macro : *macros) {
+		optarg options (get<1>(macro));
+		epics_macrofiles_processing* mproc = 
+			new (std::nothrow) epics_macrofiles_processing (
+			plc->get_alias(), std::get<0>(macro), options.argc(), options.argv());
+		if (mproc) {
+			// set input directory to tpy file dir
+			if (get<3>(macro) && *get<3>(macro)) {
+				mproc->set_indirname (get<3>(macro));
+			}
+		}
+		if (std::get<2>(macro)) delete std::get<2>(macro);
+		std::get<2>(macro) = mproc;
+	}
+}
+
+/* epics_tc_db_processing::done_macros
+ ************************************************************************/
+void epics_tc_db_processing::done_macros()
+{
+	if (!macros) return;
+	for (dirname_arg_macro_tuple& list : *macros) {
+		if (std::get<2>(list)) {
+			delete std::get<2>(list);
+			std::get<2>(list) = nullptr;
+		}
+	}
+}
+
+/* Process a channel
+   epics_tc_db_processing::process_macros()
+ ************************************************************************/
+bool epics_tc_db_processing::process_macros (const ParseUtil::process_arg& arg)
+{
+	if (!macros) return true;
+	bool succ = true;
+	for (dirname_arg_macro_tuple& i : *macros) {
+		if (!process_macro (i, arg)) succ = false;
+	}
+	return succ;
+}
+
+/* Process a channel
+   epics_tc_db_processing::process_macro()
+ ************************************************************************/
+bool epics_tc_db_processing::process_macro(dirname_arg_macro_tuple& macrodef,
+									  const ParseUtil::process_arg& arg)
+{
+	epics_macrofiles_processing* mptr = std::get<2>(macrodef);
+	if (!mptr) return false;
+	return (*mptr) (arg);
 }
 
 /* Process a channel
@@ -202,6 +289,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 {
 	// Generate EPICS database record
 	if (!EpicsTpy::epics_db_processing::operator()(arg)) {
+		process_macros (arg); // need to process binaries!
 		return false;
 	}
 
@@ -255,10 +343,29 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		return false;
 	}
 
-	process (arg);
+	process_lists (arg);
+	process_macros (arg);
 	return true;
 }
 
+
+/* Flush output files
+   epics_tc_db_processing::flush()
+ ************************************************************************/
+void epics_tc_db_processing::flush() 
+{
+	EpicsTpy::epics_db_processing::flush();
+	if (lists) {
+		for (filename_rule_list_tuple& list : *lists) {
+			if (get<2>(list)) get<2>(list)->flush();
+		}
+	}
+	if (macros) {
+		for (dirname_arg_macro_tuple& macro : *macros) {
+			if (get<2>(macro)) get<2>(macro)->flush();
+		}
+	}
+}
 
 /** @defgroup iocshfunc Functions called by the EPICS base
  ************************************************************************/
@@ -270,11 +377,13 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
  ************************************************************************/
 void tcLoadRecords (const iocshArgBuf *args) 
 {
-	// save and reset alias name and listings
+	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
 	tc_listing_def listings = tc_lists;
+	tc_macro_def macros = tc_macros;
 	tc_alias = "";
 	tc_lists.clear();
+	tc_macros.clear();
 
 	// Check if Ioc is running
 	if (plc::System::get().is_ioc_running()) {
@@ -293,6 +402,10 @@ void tcLoadRecords (const iocshArgBuf *args)
 		printf ("Failed to open input %s.\n", args[0].sval);
 		return;
 	}
+	for (dirname_arg_macro_tuple& macro : macros) {
+		get<3>(macro) = args[0].sval;
+	}
+
 	// check option arguments
 	optarg options;
 	if (args[1].sval) {
@@ -342,8 +455,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	tcplc->set_alias (alias);
 	
 	// Set up output db generator
-	epics_tc_db_processing dbproc (*tcplc, &listings);
-//+ without listings	epics_tc_db_processing dbproc (*tcplc);
+	epics_tc_db_processing dbproc (*tcplc, &listings, &macros);
 	// option processing
 	dbproc.getopt (options.argc(), options.argv(), options.argp());
 	// force single file
@@ -357,6 +469,9 @@ void tcLoadRecords (const iocshArgBuf *args)
 	// generate db file and tc records
 	if (dbg) tpyfile.set_export_all (TRUE);
 	int num = tpyfile.process_symbols (dbproc);
+	// make sure all file contents is written to file
+	dbproc.flush();
+	// write statistics
 	if (dbproc.get_invalid_records() == 0) {
 		printf ("Loaded %i records from %s.\n", num, args[0].sval);
 	}
@@ -364,8 +479,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 		printf ("Loaded %i valid and %i invaid records from %s.\n", 
 			num, dbproc.get_invalid_records(), args[0].sval);
 	}
-	// make sure all file contents is written to file
-	dbproc.flush();
+
 	
 	// end timer
 	tpyend = clock();
@@ -396,14 +510,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 		path  = outfilename.substr (0, pos);
 	}
 
-	{
-		printf ("Loading record database %s.\n", outfilename.c_str());
-		if (dbLoadRecords (outfilename.c_str(), 0)) {
-			printf ("Unable to laod record database for %s.\n", outfilename.c_str());
-			return;
-		}
-		printf ("Loaded record database %s.\n", outfilename.c_str());
+	printf ("Loading record database %s.\n", outfilename.c_str());
+	if (dbLoadRecords (outfilename.c_str(), 0)) {
+		printf ("Unable to laod record database for %s.\n", outfilename.c_str());
+		return;
 	}
+	printf ("Loaded record database %s.\n", outfilename.c_str());
 	// success!
 
 	return;
@@ -489,6 +601,30 @@ void tcList (const iocshArgBuf *args)
 	tc_lists.push_back (make_tuple (p1, p2, nullptr, false));
 }
 
+/* Macro function to generate macro files
+   @brief macro files
+ ************************************************************************/
+void tcMacro (const iocshArgBuf *args)
+{
+	// Check if Ioc is running
+    if (plc::System::get().is_ioc_running()) {
+        printf ("IOC is already initialized\n");
+        return;
+    }
+	// Check arguments
+	if (!args) {
+        printf("Specify a list filename\n");
+		return;
+	}
+	const char* p1 = args[0].sval;
+	const char* p2 = args[1].sval ? args[1].sval : "";
+	if (!p1) {
+        printf("Specify an output directory for the macro files\n");
+		return;
+	}
+	tc_macros.push_back (dirname_arg_macro_tuple (p1, p2, nullptr, nullptr));
+}
+
 /* Define a nick name or alias
    @brief alias
  ************************************************************************/
@@ -560,6 +696,7 @@ tcRegisterToIocShell::tcRegisterToIocShell ()
     iocshRegister(&tcSetScanRateFuncDef, tcSetScanRate);
     iocshRegister(&tcAliasFuncDef, tcAlias);
     iocshRegister(&tcListFuncDef, tcList);
+    iocshRegister(&tcMacroFuncDef, tcMacro);
 	iocshRegister(&tcPrintValsFuncDef, tcPrintVals);
 	initHookRegister(piniProcessHook);
 }
