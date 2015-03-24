@@ -912,36 +912,60 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 		}
 	}
 	fprintf (fp, "IFO=%s,\n", ifo.c_str());
-	for (unsigned int i = 0; i < ifo.length(); ++i) ifo[i] = tolower (ifo[i]);
-	fprintf (fp, "ifo=%s,\n", ifo.c_str());
+	std::stringcase lifo = ifo;
+	for (unsigned int i = 0; i < lifo.length(); ++i) lifo[i] = tolower (lifo[i]);
+	fprintf (fp, "ifo=%s,\n", lifo.c_str());
 	fprintf (fp, "SYS=%s,\n", sys.c_str());
 	fprintf (fp, "SUB=%s,\n", sub.c_str());
 
 	// screen names
-	fprintf (fp, "Itself=%s,\n", to_filename (mrec.record.name).c_str());
-	fprintf (fp, "Related=%s,\n", to_filename (mrec.record.name).c_str());
-	fprintf (fp, "Back=%s,\n", to_filename (mrec.back.name).c_str());
+	fprintf (fp, "itself=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "related=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "back=%s,\n", to_filename (mrec.back.name).c_str());
+	// write has errors
+	fprintf (fp, "haserrors=%i,\n", mrec.haserror ? 1 : 0);
 
 	// Error messages
 	if ((get_macrofile_type() == macrofile_type::all) || 
 		(get_macrofile_type() == macrofile_type::errors)) {
 		int num = 0;
 		for (auto i = errlist.begin(); (i != errlist.end()) && (num < 32); ++i, ++num) {
+			// write error message
+			fprintf (fp, "v%i=1,\ne%i=\"%s\",\n", num, num, i->c_str());
 			// check if we have a field name
-			const macro_info* pinfo = 0;
-			for (auto j = mrec.fields.begin(); j != mrec.fields.end(); ++j) {
-				if ((j->name == *i) && (j->ptype == pt_binary)) {
-					pinfo = &*j;
-					break;
+			if (mrec.record.name.rfind (get_plcname()) == 
+				mrec.record.name.length() - get_plcname().length()) {
+				// just prepend IFO if all caps
+				std::stringcase suberr = ifo + ":" + mrec.record.name;
+				std::stringcase::size_type pos;
+				if ((pos = suberr.find ('-')) != stringcase::npos) suberr[pos] = '_';
+				bool issuberr = (mrec.record.name.length() > 0) && (isalpha (mrec.record.name[0]));
+				for (const auto& j : mrec.record.name) {
+					if (!isalnum(j) && (j != '_')) {
+						issuberr = false;
+						break;
+					}
+				}
+				if (issuberr) {
+					fprintf (fp, "vn%i=0,\nn%i=%s,\n",
+						num, num, to_filename (suberr.c_str()));
 				}
 			}
-			fprintf (fp, "v%i=1,\n"
-				"e%i=\"%s\",\n", 
-				num, num, i->c_str());
-			if (pinfo) {
-				fprintf (fp, "vn%i=0,\n"
-					"n%i=%s,\n",
-					num, num, to_filename (pinfo->name.c_str()));
+			else {
+				// search among sub fields only
+				const macro_info* pinfo = 0;
+				std::stringcase suberr = mrec.record.name + "_" + *i;
+				for (auto j = mrec.fields.begin(); j != mrec.fields.end(); ++j) {
+					if ((j->name == suberr) && (j->ptype == pt_binary)) {
+						pinfo = &*j;
+						break;
+					}
+				}
+				if (pinfo) {
+					fprintf (fp, "vn%i=0,\n"
+						"n%i=%s,\n",
+						num, num, to_filename (pinfo->name.c_str()));
+				}
 			}
 		}
 		// write list length
