@@ -443,7 +443,7 @@ bool multi_io_support::operator! () const
    multi_io_support::open
 ************************************************************************/
 bool multi_io_support::open (const std::stringcase& fname, 
-							 const std::stringcase& io)
+							 const std::stringcase& io, bool superrmsg)
 {
 	close();
 	if (io.find ('r') != stringcase::npos) {
@@ -457,7 +457,9 @@ bool multi_io_support::open (const std::stringcase& fname,
 	FILE* fio = fopen (newfile.file_string().c_str(), io.c_str());
 	if (!fio) {
 		filestat = io_filestat::closed;
-		fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
+		if (!superrmsg) {
+			fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
+		}
 		return false;
 	}
 	filename = newfile.file_string().c_str();
@@ -804,9 +806,19 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	if (mrec.haserror && 
 		((get_macrofile_type() == macrofile_type::all) ||
 		(get_macrofile_type() == macrofile_type::errors))) {
-		path inpfile ((mrec.record.type_n + errorlistext).c_str());
-		std::stringcase fname = inpfile.filename().c_str();
-		if (!exists (inpfile) || !open (fname, "r")) {
+		std::stringcase fname = mrec.record.type_n + errorlistext;
+		bool succ = open (fname, "r", true);
+		// check if we have a field name
+		if (!get_plcname().empty() &&
+			mrec.record.name.rfind (get_plcname()) == 
+			mrec.record.name.length() - get_plcname().length()) {
+			std::stringcase::size_type pos = fname.rfind ("Struct");
+			if (pos != stringcase::npos) {
+				fname.insert (pos, get_plcname(), 0, 1);
+			}
+			succ = open (fname, "r", true);
+		}
+		if (!succ) {
 			if (missing.find (fname) == missing.end()) {
 				missing.insert (fname);
 				fprintf (stderr, "Cannot open %s\n", fname.c_str());
@@ -933,22 +945,26 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 			// write error message
 			fprintf (fp, "v%i=1,\ne%i=\"%s\",\n", num, num, i->c_str());
 			// check if we have a field name
-			if (mrec.record.name.rfind (get_plcname()) == 
+			if (!get_plcname().empty() &&
+				mrec.record.name.rfind (get_plcname()) == 
 				mrec.record.name.length() - get_plcname().length()) {
 				// just prepend IFO if all caps
-				std::stringcase suberr = ifo + ":" + mrec.record.name;
+				std::stringcase suberr = to_filename (ifo + ":" + *i);
 				std::stringcase::size_type pos;
 				if ((pos = suberr.find ('-')) != stringcase::npos) suberr[pos] = '_';
-				bool issuberr = (mrec.record.name.length() > 0) && (isalpha (mrec.record.name[0]));
-				for (const auto& j : mrec.record.name) {
+				bool issuberr = (suberr.length() > 0) && (isalpha (suberr[0]));
+				for (const auto& j : suberr) {
 					if (!isalnum(j) && (j != '_')) {
 						issuberr = false;
 						break;
 					}
 				}
 				if (issuberr) {
-					fprintf (fp, "vn%i=0,\nn%i=%s,\n",
-						num, num, to_filename (suberr.c_str()));
+					fprintf (fp, "vn%i=1,\nn%i=%s,\n",
+						num, num, suberr.c_str());
+				}
+				else {
+					fprintf (fp, "vn%i=0,\nn%i=,\n", num, num);
 				}
 			}
 			else {
@@ -962,9 +978,12 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 					}
 				}
 				if (pinfo) {
-					fprintf (fp, "vn%i=0,\n"
+					fprintf (fp, "vn%i=1,\n"
 						"n%i=%s,\n",
 						num, num, to_filename (pinfo->name.c_str()));
+				}
+				else {
+					fprintf (fp, "vn%i=0,\nn%i=,\n", num, num);
 				}
 			}
 		}

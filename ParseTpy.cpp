@@ -755,8 +755,12 @@ static void XMLCALL endElement (void *userData, const char *name)
 			--pinfo->types;
 			if (pinfo->rec.get_name_decoration()) {
 				pinfo->rec.set_type_description (pinfo->get_type_description());
-				pinfo->get_types().insert (
-					type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
+				// remove simple type which reference themselves, ie., discard type aliases
+				if ((pinfo->rec.get_type_description() != simple) ||
+					(pinfo->rec.get_name_decoration() != pinfo->rec.get_type_decoration())) {
+					pinfo->get_types().insert (
+						type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
+				}
 			}
 		}
 	}

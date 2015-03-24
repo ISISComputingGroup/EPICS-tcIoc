@@ -333,7 +333,8 @@ public:
 	/// Return error
 	bool operator! () const;
 	/// Open file for reading/writing
-	bool open (const std::stringcase& fname, const std::stringcase& io = "w");
+	bool open (const std::stringcase& fname, const std::stringcase& io = "w",
+			bool superrmsg = false);
 	/// Close file
 	void close();
 	/// Get file handle
