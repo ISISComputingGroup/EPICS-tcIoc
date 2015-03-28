@@ -506,12 +506,11 @@ void multi_io_support::set_indirname (const std::stringcase& dname)
 void multi_io_support::set_outdirname (const std::stringcase& dname) 
 {
 	path fname (dname.c_str());
-	if (is_directory (fname)) {
-		outdirname = fname.directory_string().c_str();
+	outdirname = fname.directory_string().c_str();
+	try {
+		create_directories (fname);
 	}
-	else {
-		outdirname = fname.parent_path().directory_string().c_str();
-	}
+	catch (...) {}
 }
 
 
