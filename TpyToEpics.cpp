@@ -809,7 +809,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 		std::stringcase fname = mrec.record.type_n + errorlistext;
 		bool succ = open (fname, "r", true);
 		// check if we have a field name
-		if (!get_plcname().empty() &&
+		if (!succ && !get_plcname().empty() &&
 			mrec.record.name.rfind (get_plcname()) == 
 			mrec.record.name.length() - get_plcname().length()) {
 			std::stringcase::size_type pos = fname.rfind ("Struct");
