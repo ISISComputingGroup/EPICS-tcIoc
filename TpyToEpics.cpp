@@ -724,6 +724,7 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	procstack.top().fields.push_back (minfo);
 	if (minfo.type_n == errorstruct) {
 		procstack.top().haserror = true;
+		procstack.top().erroridx = procstack.top().fields.size()-1;
 	}
 
 	// check if this is a structure
@@ -936,6 +937,12 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	fprintf (fp, "back=%s,\n", to_filename (mrec.back.name).c_str());
 	// write has errors
 	fprintf (fp, "haserrors=%i,\n", mrec.haserror ? 1 : 0);
+	if (mrec.haserror && (mrec.erroridx >= 0) && (mrec.erroridx < (int)mrec.fields.size())) {
+		fprintf (fp, "errfld=%s,\n", mrec.fields[mrec.erroridx].name.c_str());
+	}
+	else {
+		fprintf (fp, "errfld=,\n");
+	}
 
 	// Error messages
 	if ((get_macrofile_type() == macrofile_type::all) || 
@@ -943,7 +950,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 		int num = 0;
 		for (auto i = errlist.begin(); (i != errlist.end()) && (num < 32); ++i, ++num) {
 			// write error message
-			fprintf (fp, "v%i=1,\ne%i=\"%s\",\n", num, num, i->c_str());
+			fprintf (fp, "err%i=\"%s\",\n", num, i->c_str());
 			// check if we have a field name
 			if (!get_plcname().empty() &&
 				mrec.record.name.rfind (get_plcname()) == 
@@ -960,87 +967,66 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 					}
 				}
 				if (issuberr) {
-					fprintf (fp, "vn%i=1,\nn%i=%s,\n",
-						num, num, suberr.c_str());
-				}
-				else {
-					fprintf (fp, "vn%i=0,\nn%i=,\n", num, num);
+					fprintf (fp, "nxt%i=%s,\n", num, suberr.c_str());
 				}
 			}
 			else {
 				// search among sub fields only
 				const macro_info* pinfo = 0;
 				std::stringcase suberr = mrec.record.name + "_" + *i;
-				for (auto j = mrec.fields.begin(); j != mrec.fields.end(); ++j) {
-					if ((j->name == suberr) && (j->ptype == pt_binary)) {
-						pinfo = &*j;
+				for (const auto& j : mrec.fields) {
+					if ((j.name == suberr) && (j.ptype == pt_binary)) {
+						pinfo = &j;
 						break;
 					}
 				}
 				if (pinfo) {
-					fprintf (fp, "vn%i=1,\n"
-						"n%i=%s,\n",
-						num, num, to_filename (pinfo->name.c_str()));
-				}
-				else {
-					fprintf (fp, "vn%i=0,\nn%i=,\n", num, num);
+					fprintf (fp, "nxt%i=%s,\n", num, to_filename (pinfo->name.c_str()));
 				}
 			}
 		}
 		// write list length
 		fprintf (fp, "errors=%i,\n", num);
-		//// remainder is empty
-		//for (; num < 32; ++num) {
-		//	fprintf (fp, "v%i=0,\n"
-		//		"e%i=,\n"
-		//		"vn%i=0,\n"
-		//		"nt%i=,\n", 
-		//		num, num, num, num);
-		//}
 	}
 
 	// Fields
 	if ((get_macrofile_type() == macrofile_type::all) || 
 		(get_macrofile_type() == macrofile_type::fields)) {
 		int num = 0;
-		for (auto i = mrec.fields.begin(); i != mrec.fields.end(); ++i, ++num) {
-			bool valid = true;
+		for (const auto& i : mrec.fields) {
+			if (mrec.erroridx == num) continue;
 			// set field type
-			switch (i->ptype) {
+			switch (i.ptype) {
 			case pt_bool:
-				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 0 : 1);
+				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "bi" : "bo");
 				break;
 			case pt_enum:
-				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 2 : 3);
+				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "mbbi" : "mbbo");
 				break;
 			case pt_int:
-				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 4 : 5);
+				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "longin" : "longout");
 				break;
 			case pt_real:
-				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 6 : 7);
+				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "ai" : "ao");
 				break;
 			case pt_string:
-				fprintf (fp, "t%i=%i,\n", num, i->readonly ? 8 : 9);
+				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "stringin" : "stringout");
 				break;
 			case pt_binary:
-				fprintf (fp, "t%i=%i,\n", num, 10);
+				fprintf (fp, "fio%i=%s,\n", num, "link");
 				break;
 			case pt_invalid:
 			default:
-				bool valid = false;
-				break;
-			}
-			if (!valid) {
-				--num;
 				continue;
 			}
 			// set field name
-			if (i->ptype == pt_binary) {
-				fprintf (fp, "f%i=%s,\n", num, to_filename (i->name).c_str());
+			if (i.ptype == pt_binary) {
+				fprintf (fp, "fld%i=%s,\n", num, to_filename (i.name).c_str());
 			}
 			else {
-				fprintf (fp, "f%i=%s,\n", num, i->name.c_str());
+				fprintf (fp, "fld%i=%s,\n", num, i.name.c_str());
 			}
+			++num;
 		}
 		fprintf (fp, "fields=%i,\n", num);
 	}

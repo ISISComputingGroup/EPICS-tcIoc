@@ -527,13 +527,15 @@ typedef std::vector<macro_info> macro_list;
 /** This structure describes a record/struct
  ************************************************************************/
 struct macro_record {
-	macro_record () : iserror (false), haserror (false) {}
+	macro_record () : iserror (false), haserror (false), erroridx (-1) {}
 	/// name of structure
 	macro_info				record;
 	/// is an ErrorStruct
 	bool					iserror;
 	/// contains an ErrorStruct
 	bool					haserror;
+	/// index if fileds list to ErrorStruct
+	int						erroridx;
 	/// List of fields
 	macro_list				fields;
 	/// name of upper level structure
