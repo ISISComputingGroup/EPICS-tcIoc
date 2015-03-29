@@ -992,8 +992,10 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	if ((get_macrofile_type() == macrofile_type::all) || 
 		(get_macrofile_type() == macrofile_type::fields)) {
 		int num = 0;
-		for (const auto& i : mrec.fields) {
-			if (mrec.erroridx == num) continue;
+		for (unsigned int idx = 0; idx < mrec.fields.size(); ++idx) {
+			const auto& i = mrec.fields[idx]; 
+			// skip error struct
+			if (mrec.erroridx == idx) continue;
 			// set field type
 			switch (i.ptype) {
 			case pt_bool:
