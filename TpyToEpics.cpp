@@ -699,6 +699,12 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	if (arg.get_process_type() == pt_invalid) {
 		return false;
 	}
+	// ignore arrays
+	if (!arg.is_atomic() &&
+ 		(arg.get_type_name().find ("ARRAY") != stringcase::npos)) {
+		return false;
+	}
+
 	// make sure we have at least one record on the processing stack
 	if (procstack.empty()) {
 		procstack.push (macro_record());
@@ -715,7 +721,7 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	while ((procstack.size() > 1) && 
 		   (minfo.name.compare (0, procstack.top().record.name.length(), 
 		                        procstack.top().record.name) != 0)) {
-		process_record (procstack.top());
+		process_record (procstack.top(), procstack.size() - 1);
 		procstack.pop();
 	}
 
@@ -729,23 +735,17 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	// check if this is a structure
 	if (!arg.is_atomic()) {
 		// found a record: add to processing stack
- 		if (minfo.type_n.find ("ARRAY") == stringcase::npos) {
-			macro_record mrec;
-			mrec.record = minfo;
-			mrec.back = procstack.top().record;
-			if (minfo.type_n == errorstruct) {
-				mrec.iserror = true;
-			}
-			procstack.push (mrec);
-			if (!mrec.iserror) {
-				rec_num += 1;
-			}
-			return true;
+		macro_record mrec;
+		mrec.record = minfo;
+		mrec.back = procstack.top().record;
+		if (minfo.type_n == errorstruct) {
+			mrec.iserror = true;
 		}
-		// found an array: ignore
-		else {
-			return false;
+		procstack.push (mrec);
+		if (!mrec.iserror) {
+			rec_num += 1;
 		}
+		return true;
 	}
 	return true;
 }
@@ -788,7 +788,8 @@ const std::regex epics_macrofiles_processing::errorsearchregex (
 /* Process a record
    epics_macrofiles_processing::process_record()
 ************************************************************************/
-bool epics_macrofiles_processing::process_record (const macro_record& mrec)
+bool epics_macrofiles_processing::process_record (const macro_record& mrec, 
+												  int level)
 {
 	// Check if we have a valid record
 	if (mrec.record.ptype == pt_invalid) {
@@ -929,6 +930,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec)
 	fprintf (fp, "ifo=%s,\n", lifo.c_str());
 	fprintf (fp, "SYS=%s,\n", sys.c_str());
 	fprintf (fp, "SUB=%s,\n", sub.c_str());
+	fprintf (fp, "LVL=%i,\n", level);
 
 	// screen names
 	fprintf (fp, "itself=%s,\n", to_filename (mrec.record.name).c_str());

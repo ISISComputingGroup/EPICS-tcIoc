@@ -643,7 +643,7 @@ public:
 
 protected:
 	/// Process top of stack
-	bool process_record (const macro_record& mrec);
+	bool process_record (const macro_record& mrec, int level = 0);
 
 	/// Listing type
 	macrofile_type	macros;
