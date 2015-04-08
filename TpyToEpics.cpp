@@ -973,16 +973,24 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			}
 			else {
 				// search among sub fields only
-				const macro_info* pinfo = 0;
-				std::stringcase suberr = mrec.record.name + "_" + *i;
+				const macro_info* pinfo = nullptr;
+				//std::stringcase suberr = mrec.record.name + "_" + *i;
+				auto mlen =  mrec.record.name.length();
 				for (const auto& j : mrec.fields) {
-					if ((j.name == suberr) && (j.ptype == pt_binary)) {
+					if ((j.ptype == pt_binary) &&
+						(mlen + i->length() + 1 == j.name.length()) &&
+						!isalnum (j.name[mlen]) &&
+						(j.name.compare (mlen + 1, std::stringcase::npos, *i) == 0)) {
 						pinfo = &j;
 						break;
 					}
+					//if ((j.name == suberr) && (j.ptype == pt_binary)) {
+					//	pinfo = &j;
+					//	break;
+					//}
 				}
 				if (pinfo) {
-					fprintf (fp, "nxt%i=%s,\n", num, to_filename (pinfo->name.c_str()));
+					fprintf (fp, "nxt%i=%s,\n", num, to_filename (pinfo->name).c_str());
 				}
 			}
 		}

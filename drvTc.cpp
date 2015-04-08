@@ -82,6 +82,7 @@ public:
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
 		: plc (&p), invnum (0), lists (l), macros (m) { 
+			device_support = device_support_tc_name; 
 			init_lists(); init_macros(); }
 	~epics_tc_db_processing() { 
 		done_lists(); done_macros(); }
@@ -146,8 +147,7 @@ protected:
  ************************************************************************/
 void epics_tc_db_processing::init_lists()
 {
-	device_support = device_support_tc_name;
-	if (lists) return;
+	if (!lists) return;
 	for (filename_rule_list_tuple& list : *lists) {
 		optarg options (get<1>(list));
 		epics_list_processing* lproc = new (std::nothrow) epics_list_processing;
