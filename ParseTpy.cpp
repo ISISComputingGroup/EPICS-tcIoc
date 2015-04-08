@@ -147,6 +147,7 @@ private:
 	parserinfo_type();
 };
 
+
 /* type:record::init
  ************************************************************************/
  void parserinfo_type::init() 
@@ -262,6 +263,34 @@ bool ads_routing_info::set (const std::stringcase& s)
 		return false;
 	}
 	return true;
+}
+
+
+/* type_map::insert
+ ************************************************************************/
+void type_map::insert (value_type val)
+{
+	type_multipmap::insert (val);
+}
+
+/* type_map::find
+ ************************************************************************/
+const type_map::value_type::second_type* 
+type_map::find (value_type::first_type id, const std::stringcase& typn) const
+{
+	const_iterator t = type_multipmap::find (id);
+	const_iterator i = t;
+	while (i != end()) {
+		if (i->first != id) {
+			break;
+		}
+		if (i->second.get_name() == typn) {
+			t = i;
+			break;
+		}
+		++i;
+	}
+	return (t == end()) ? nullptr : &t->second;
 }
 
 

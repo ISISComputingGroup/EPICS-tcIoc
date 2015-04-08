@@ -137,7 +137,7 @@ namespace ParseTpy {
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
 		Function& process, const ParseUtil::variable_name& varname, int level) const
 	{
-		type_map::const_iterator t;
+		const type_record* t = nullptr;
 
 		if ((typ == "SINT")  || (typ == "INT")  || (typ == "DINT")  || (typ == "LINT")  ||
 			(typ == "USINT") || (typ == "UINT") || (typ == "UDINT") || (typ == "ULINT") ||
@@ -174,8 +174,8 @@ namespace ParseTpy {
 			}
 			else return 0;
 		}
-		else if ((t = type_list.find (id)) != type_list.end()) {
-			return process_type_tree (t->second, defopc, loc, process, varname, level);
+		else if ((t = type_list.find (id, typ)) != nullptr) {
+			return process_type_tree (*t, defopc, loc, process, varname, level);
 		}
 		else {
 			fprintf (stderr, "Unknown type for %s\n", varname.get_name().c_str());

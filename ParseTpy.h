@@ -247,9 +247,26 @@ protected:
 	item_list		struct_subitems;
 };
 
+/** This is a multimap toi store type records
+************************************************************************/
+typedef std::multimap<unsigned int, type_record> type_multipmap;
+
 /** This is a map of type records, index is type number as defined in tpy
 ************************************************************************/
-typedef std::map<unsigned int, type_record> type_map;
+class type_map : protected type_multipmap
+{
+public:
+	/// value type
+	using type_multipmap::value_type;
+
+	/// Constructor
+	type_map() {}
+	/// insert a new element
+	void insert (value_type val);
+	/// find an element
+	const value_type::second_type* 
+	find (value_type::first_type id, const std::stringcase& typn) const;
+};
 
 /** @} */
 
