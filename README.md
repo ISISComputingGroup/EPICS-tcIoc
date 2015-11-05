@@ -105,15 +105,17 @@ While the core functionality of the IOC is already in place and fully
 tested, several additional features are being developed and will be
 implemented soon:
 
-* IOC status records:
-    The idea is to keep track of things related to the IOC itself and export these to EPICS. Possible interesting figures are:
-        Average number of records updated per unit of time
-        Average amount of time per TwinCAT read/write request 
+* IOC status records: The idea is to keep track of things related to
+  the IOC itself and export these to EPICS. Possible interesting
+  figures are:
+  * Average number of records updated per unit of time
+  * Average amount of time per TwinCAT read/write request
 
 Upgrades/Adaptations
 
-* TwinCAT 3 compatibility
-    The code has enough abstraction that it can easily be adapted to work with other non-TwinCAT PLC controllers as well as other non-EPICS industrial control systems. 
+* The code has enough abstraction that it can easily be adapted to
+  work with other non-TwinCAT PLC controllers as well as other
+  non-EPICS industrial control systems.
 
 Code Documentation
 ------------------
@@ -147,9 +149,9 @@ EPICS Commands.
 
 To start the IOC,
 
-    Install using the PowerShell script in SlowControls\Scripts\Common\install_tcioc.ps1
+* Install using the PowerShell script in install.ps1
 
-    Run the start script SlowControls\EPICS\Utilities\Bin\start.bat 
+* Run the start script start.bat 
 
 On some systems it may be required to install the Visual C++
 Redistributable for Visual Studio 2012
@@ -159,38 +161,76 @@ TwinCAT EPICS Commands
 
 The available commands are:
 
-* tcSetAlias:
-    Sets an alias name for a TwinCAT PLC. This name is used to define the info records. The alias name is applied when tcLoadRecords is called. It is reset afterwards.
-      Example: tcSetAlias("C1PLC1")
-    Sets the alias name to "C1PLC1".
+* tcSetAlias: Sets an alias name for a TwinCAT PLC. This name is used
+  to define the info records. The alias name is applied when
+  tcLoadRecords is called. It is reset afterwards.
 
-* tcSetScanRate:
-    Sets the scan rate for the TwinCAT PLC. The first argument is the scan rate in ms for the read or write scanners reading and writing TwinCAT variables. The second number is a multiple which describes the slow down for updating the EPICS read-only channels. The update rate for read/write channels is the same as the TwinCAT scan rate.
-      Example: tcSetScanRate(10,5)
-    Yields a 10ms TwinCAT update rate, and a 50ms EPICS update rate for read-only channels.
+  Example: tcSetAlias("C1PLC1")
 
-* tcGenerateList:
-    Generates an additional listings when the records are loaded. Multiple tcList commands can be called in series to produce different listing. The first argument is a output file name. The second argument is a set of options. The lists are generated when tcLoadRecords is called. The list commands are reset afterwards.
-      Example 1: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
-    This will generate an autoburt request file.
-      Example 2: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
-    This will generate a listing of OPC names.
-      Example 3: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.chn.txt","-l")
-    This will generate a listing of EPICS names.
-      Example 4: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.ini","-l -ns")
-    This will generate an EPICS listing without string channels. The available options are listed on page TwinCAT EPICS Options.
+  Sets the alias name to "C1PLC1".
 
-* tcGenerateMacros:
-    Generates ASCII macro lists (aml files) which can be used to generate ADL files for medm. The first argument is a output directory which is used to store the macro files. The second argument is a set of options. The macro files are generated when tcLoadRecords is called. The list commands are reset afterwards.
-      Example 1: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL")
-    This will generate a macro files for each encountered structure including both fields and error messages. The resulting files are stored in the ADL subdirectory. Error messages require corresponding exp files (see the coding standard, E1200225.
-      Example 2: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL", "-mf")
-    Generates macro files without error messages.
+* tcSetScanRate: Sets the scan rate for the TwinCAT PLC. The first
+  argument is the scan rate in ms for the read or write scanners
+  reading and writing TwinCAT variables. The second number is a
+  multiple which describes the slow down for updating the EPICS
+  read-only channels. The update rate for read/write channels is the
+  same as the TwinCAT scan rate.
 
-* tcLoadRecords:
-    Loads a tpy file, then generates and loads the EPICS database. The first argument is the filename to the tpy file. The generated db file will have the same name but with the extension ".db". The second argument is a set of options.
-      Example: tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy","")
-    This command will parse the specified tpy file, then generate a db file with the name "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db" and the specified options. The available options are listed on page TwinCAT EPICS Options. 
+  Example: tcSetScanRate(10,5)
+
+  Yields a 10ms TwinCAT update rate, and a 50ms EPICS update rate for read-only channels.
+
+* tcGenerateList: Generates an additional listings when the records
+  are loaded. Multiple tcList commands can be called in series to
+  produce different listing. The first argument is a output file
+  name. The second argument is a set of options. The lists are
+  generated when tcLoadRecords is called. The list commands are reset
+  afterwards.
+
+  Example 1: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
+
+  This will generate an autoburt request file.
+
+  Example 2: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
+
+  This will generate a listing of OPC names.
+
+  Example 3: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.chn.txt","-l")
+
+  This will generate a listing of EPICS names.
+
+  Example 4: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.ini","-l -ns")
+
+  This will generate an EPICS listing without string channels. The available options are listed on page TwinCAT EPICS Options.
+
+* tcGenerateMacros: Generates ASCII macro lists (aml files) which can
+  be used to generate ADL files for medm. The first argument is a
+  output directory which is used to store the macro files. The second
+  argument is a set of options. The macro files are generated when
+  tcLoadRecords is called. The list commands are reset afterwards.
+
+  Example 1: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL")
+
+  This will generate a macro files for each encountered structure
+  including both fields and error messages. The resulting files are
+  stored in the ADL subdirectory. Error messages require corresponding
+  exp files (see the coding standard, E1200225.
+
+  Example 2: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL", "-mf")
+
+  Generates macro files without error messages.
+
+* tcLoadRecords: Loads a tpy file, then generates and loads the EPICS
+  database. The first argument is the filename to the tpy file. The
+  generated db file will have the same name but with the extension
+  ".db". The second argument is a set of options.
+
+  Example: tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy","")
+
+  This command will parse the specified tpy file, then generate a db
+  file with the name "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db"
+  and the specified options. The available options are listed on page
+  TwinCAT EPICS Options.
 
 The above commands will only be executed before iocInit() is
 called. Multiple tpy files can be loaded by issuing multiple
@@ -198,6 +238,73 @@ tcLoadRecords commands. However, tcSetAlias and tcGenerateList need to
 be specified anew before each tcLoadRecords command. The rate
 specified with tcSetScanRate will be reused unless a new tcSetScanRate
 command has been issued.
+
+TwinCAT EPICS Options
+---------------------
+
+When generating a db file or a listing, a set of options describing
+the conversion rules is available. Options can be specified either
+Windows or Unix style. Meaning, both /ea and -ea will produce the same
+result.
+
+Channel Processing:
+
+| /eo | Only export variables which are marked by an OPC export directive in the tpy file (default) |
+| /ea | Export all variables regardless of the OPC settings in the tpy file |
+| /ys | String variables are processes (default) |
+| /ns | No string variables are processed |
+| /pa | Process all types (default) |
+| /ps | Process only simple types types, e.g., INT, BOOL, DWORD, etc. |
+| /pc | Process only complex types, e.g., STRUCT, ARRAY |
+
+Channel Name Conversion:
+
+| /rl | LIGO standard conversion rule (default) |
+| /rv | LIGO rules for initial vacuum channel names (version 1.1) |
+| /rd | Replace dots with underscores in channel names |
+| /rn | Do not apply any special conversion rules |
+| /cp | Preserve case in EPICS channel names |
+| /cu | Force upper case in EPICS channel names (default) |
+| /cl | Force lower case in EPICS channel names |
+| /nd | Eliminate leading dot in channel name (default) |
+| /yd | Leave leading dot in channel name |
+| /yi | Leave array indices in channel names |
+| /ni | Replace array brackets with a single leading underscore (default) |
+
+Split File Support:
+
+| /nsio     | Do not split database or listing by record type (default) |
+| /ysio     | Split database or listing into input only and input/ouput recrods |
+| /sn 'num' | Split database or listing into files with no more than 'num' records |
+| /sn 0     | Does not split database or listing into multiple files (default) |
+
+Database Generation:
+
+| /devopc | Use OPC name in INPUT/OUTPUT field (default) |
+| /devtc  | Use TwinCAT name in INPUT/OUTPUT fields instead of OPC |
+
+List Generation:
+
+| /l  | Generate a standard listing, name only (default) |
+| /ll | Generate a long listing, name and opc parameters |
+| /lb | Generate an autoburt save/restore file |
+
+Macro Generation:
+
+| /ma | Generate a macro file for each structure describing fields and errors (default) |
+| /me | Generate a macro file for each structure describing the error messages |
+| /mf | Generate a macro file for each structure describing all fields |
+
+Applicable options are:
+
+| Program/Instruction | Available Options  | Enforced Options |
+| tpyinfo             | channel processing | |
+| EpicsDbGen          | all | |
+| tcLoadRecords       | channel processing, channel name conversion | -ps -nsio -sn 0 -devtc |
+| tcGenerateList      | channel processing, channel name conversion, list generation | -ps -nsio -sn 0 |
+| tcGenerateMacros    | macro generation | |
+| infoLoadRecords     | channel processing, channel name conversion | -ps -nsio -sn 0 -devtc
+| infoGenerateList    | channel processing, channel name conversion, list generation | -ps -nsio -sn 0 |
 
 Performance
 -----------
