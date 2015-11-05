@@ -7,7 +7,7 @@ OPC-EPICS Gateway from HZB.
 
 Further documentation is available at:
 
-  https://dcc.ligo.org/LIGO-T1300690/public
+* https://dcc.ligo.org/LIGO-T1300690/public
 
 Overview
 --------
@@ -136,13 +136,13 @@ The startup requires several user inputs. A set of commands is given
 as a parameter to tcIoc.exe which specifies these inputs. Below is an
 example:
 
-dbLoadDatabase("./tCat.dbd",0,0)             #load database definition file for TwinCAT device support
-tCat_registerRecordDeviceDriver(pdbbase)     #register TwinCAT support with EPICS
-callbackSetQueueSize(5000)                   #set the size of the EPICS callback buffer (default: 2000)
-tcSetScanRate(10, 5)                         #set the time between requests to TwinCAT (10ms here)
-                                             #and the slowdown multiple for pushing values to EPICS (5x here)
-tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy", "")    #load symbols from a tpy file
-iocInit()                                    #initialize the IOC
+    dbLoadDatabase("./tCat.dbd",0,0)             #load database definition file for TwinCAT device support
+    tCat_registerRecordDeviceDriver(pdbbase)     #register TwinCAT support with EPICS
+    callbackSetQueueSize(5000)                   #set the size of the EPICS callback buffer (default: 2000)
+    tcSetScanRate(10, 5)                         #set the time between requests to TwinCAT (10ms here)
+                                                 #and the slowdown multiple for pushing values to EPICS (5x here)
+    tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy", "")    #load symbols from a tpy file
+    iocInit()                                    #initialize the IOC
 
 A complete list of TwinCAT EPICS commands can be found on page TwinCAT
 EPICS Commands.
@@ -249,6 +249,7 @@ result.
 
 Channel Processing:
 
+| --- | - |
 | /eo | Only export variables which are marked by an OPC export directive in the tpy file (default) |
 | /ea | Export all variables regardless of the OPC settings in the tpy file |
 | /ys | String variables are processes (default) |
