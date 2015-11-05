@@ -261,6 +261,8 @@ Channel Processing:
 
 Channel Name Conversion:
 
+| option | description |
+| --- | --- |
 | /rl | LIGO standard conversion rule (default) |
 | /rv | LIGO rules for initial vacuum channel names (version 1.1) |
 | /rd | Replace dots with underscores in channel names |
@@ -275,6 +277,8 @@ Channel Name Conversion:
 
 Split File Support:
 
+| option | description |
+| --- | --- |
 | /nsio     | Do not split database or listing by record type (default) |
 | /ysio     | Split database or listing into input only and input/ouput recrods |
 | /sn 'num' | Split database or listing into files with no more than 'num' records |
@@ -282,17 +286,23 @@ Split File Support:
 
 Database Generation:
 
+| option | description |
+| --- | --- |
 | /devopc | Use OPC name in INPUT/OUTPUT field (default) |
 | /devtc  | Use TwinCAT name in INPUT/OUTPUT fields instead of OPC |
 
 List Generation:
 
+| option | description |
+| --- | --- |
 | /l  | Generate a standard listing, name only (default) |
 | /ll | Generate a long listing, name and opc parameters |
 | /lb | Generate an autoburt save/restore file |
 
 Macro Generation:
 
+| option | description |
+| --- | --- |
 | /ma | Generate a macro file for each structure describing fields and errors (default) |
 | /me | Generate a macro file for each structure describing the error messages |
 | /mf | Generate a macro file for each structure describing all fields |
@@ -300,6 +310,7 @@ Macro Generation:
 Applicable options are:
 
 | Program/Instruction | Available Options  | Enforced Options |
+| ------------------- | ------------------ | ---------------- |
 | tpyinfo             | channel processing | |
 | EpicsDbGen          | all | |
 | tcLoadRecords       | channel processing, channel name conversion | -ps -nsio -sn 0 -devtc |
