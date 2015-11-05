@@ -164,7 +164,8 @@ The available commands are:
 * tcSetAlias: Sets an alias name for a TwinCAT PLC. This name is used
   to define the info records. The alias name is applied when
   tcLoadRecords is called. It is reset afterwards.
-  Example: Sets the alias name to "C1PLC1":
+
+Example: Sets the alias name to "C1PLC1":
 
         tcSetAlias("C1PLC1")
 
@@ -173,9 +174,10 @@ The available commands are:
   reading and writing TwinCAT variables. The second number is a
   multiple which describes the slow down for updating the EPICS
   read-only channels. The update rate for read/write channels is the
-  same as the TwinCAT scan rate.  
-  Example: Yields a 10ms TwinCAT update rate, and a 50ms EPICS update
-  rate for read-only channels.
+  same as the TwinCAT scan rate.
+
+Example: Yields a 10ms TwinCAT update rate, and a 50ms EPICS update
+rate for read-only channels.
 
         tcSetScanRate(10,5)
 
@@ -186,20 +188,21 @@ The available commands are:
   generated when tcLoadRecords is called. The list commands are reset
   afterwards.
     
-  Example 1: This will generate an autoburt request file:
+Example 1: This will generate an autoburt request file:
+
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
     
-  Example 2: This will generate a listing of OPC names:
+Example 2: This will generate a listing of OPC names:
 
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
 
-  Example 3: This will generate a listing of EPICS names:
+Example 3: This will generate a listing of EPICS names:
 
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.chn.txt","-l")
 
-  Example 4: This will generate an EPICS listing without string
-  channels. The available options are listed on page TwinCAT EPICS
-  Options:
+Example 4: This will generate an EPICS listing without string
+channels. The available options are listed on page TwinCAT EPICS
+Options:
 
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.ini","-l -ns")
 
@@ -207,15 +210,16 @@ The available commands are:
   be used to generate ADL files for medm. The first argument is a
   output directory which is used to store the macro files. The second
   argument is a set of options. The macro files are generated when
-  tcLoadRecords is called. The list commands are reset afterwards.  
-  Example 1: This will generate a macro files for each encountered
-  structure including both fields and error messages. The resulting
-  files are stored in the ADL subdirectory. Error messages require
-  corresponding exp files (see the coding standard, E1200225):
+  tcLoadRecords is called. The list commands are reset afterwards.
+
+Example 1: This will generate a macro files for each encountered
+structure including both fields and error messages. The resulting
+files are stored in the ADL subdirectory. Error messages require
+corresponding exp files (see the coding standard, E1200225):
 
         tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL")
 
-  Example 2: Generates macro files without error messages.
+Example 2: Generates macro files without error messages.
 
         tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL", "-mf")
 
@@ -223,11 +227,11 @@ The available commands are:
   database. The first argument is the filename to the tpy file. The
   generated db file will have the same name but with the extension
   ".db". The second argument is a set of options.  
-  Example: This command will parse the specified tpy file, then
-  generate a db file with the name
-  "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db" and the specified
-  options. The available options are listed on page TwinCAT EPICS
-  Options:
+
+Example: This command will parse the specified tpy file, then generate
+a db file with the name "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db"
+and the specified options. The available options are listed on page
+TwinCAT EPICS Options:
 
         tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy","")
 
