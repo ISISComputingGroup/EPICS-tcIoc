@@ -249,7 +249,8 @@ result.
 
 Channel Processing:
 
-| --- | - |
+| option | description |
+| --- | --- |
 | /eo | Only export variables which are marked by an OPC export directive in the tpy file (default) |
 | /ea | Export all variables regardless of the OPC settings in the tpy file |
 | /ys | String variables are processes (default) |
