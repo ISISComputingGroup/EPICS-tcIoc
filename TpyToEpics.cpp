@@ -135,17 +135,17 @@ string epics_conversion::to_epics (const stringcase& name) const
 		break;
 		// ligo standard
 	case ligo_vac:
-		// replace first dot with dash
-		pos = n.find ('.');
-		if (pos != stringcase::npos) {
-			n[pos] = '-';
-		}
-		// replace second dot with colon
-		pos = n.find ('.');
+		// replace first underscore with colon
+		pos = n.find ('_');
 		if (pos != stringcase::npos) {
 			n[pos] = ':';
 		}
-		// replace remaining dots with underscore
+		// replace second underscore with dash
+		pos = n.find ('_');
+		if (pos != stringcase::npos) {
+			n[pos] = '-';
+		}
+		// replace dots with underscore
 		while ((pos = n.find ('.')) != stringcase::npos) {
 			n[pos] = '_';
 		}
