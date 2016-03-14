@@ -129,6 +129,58 @@ Instructions for building the ioc from the source can be found at
 TwinCAT EPICS IOC Source Build.
 
 
+Building the IOC
+================
+
+Requirements
+------------
+
+* Microsoft Visual Studio 2012
+* EPICS (3.14.12.3 was used)
+* Perl
+* Make
+
+Building tcIoc
+--------------
+
+* Open tcIoc.sln in MSVS, then build 'debug' or 'release' version.
+* Run install.ps1 to install.
+
+WARNING: this installs the software in a LIGO-specific verion:
+
+    C:\SlowControls\EPICS\Utilities\Bin
+
+Patches to generalize the install script are welcome.
+
+* Online documentation can be build with doxygen by using the included
+  "Doxyfile".
+
+Miscellenaous
+-------------
+
+* Build expat:
+
+  The expat libraries are provided in
+  C:\SlowControls\EPICS\Utilities\expat. In case a new built is
+  required, download from http://expat.sourceforge.net/. Build static,
+  multithreaded release and debug versions and save them as
+  libexpatMT.lib and libexpatMTD.lib in the above directory.
+
+* Generate tc device support:
+
+  The tc device support files are provided and only need to be
+  regenerated when new records are added. Run
+  createTcDeviceSupport.ps1 in
+  C:\SlowControls\EPICS\Utilities\tcIoc\TCatDeviceSupport.
+
+* Generate info device support:
+
+  The info device support files are provided and only need to be
+  regenerated when new records are added. Run
+  createInfoDeviceSupport.ps1 in
+  C:\SlowControls\EPICS\Utilities\tcIoc\InfoDeviceSupport.
+
+
 Running the IOC
 ===============
 
