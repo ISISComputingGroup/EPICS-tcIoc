@@ -184,11 +184,11 @@ The available commands are:
   produce different listing. The first argument is a output file
   name. The second argument is a set of options. The lists are
   generated when tcLoadRecords is called. The list commands are reset
-  afterwards.  
+  afterwards.
+    
   Example 1: This will generate an autoburt request file:
-
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
-
+    
   Example 2: This will generate a listing of OPC names:
 
         tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
