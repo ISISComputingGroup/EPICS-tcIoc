@@ -164,73 +164,72 @@ The available commands are:
 * tcSetAlias: Sets an alias name for a TwinCAT PLC. This name is used
   to define the info records. The alias name is applied when
   tcLoadRecords is called. It is reset afterwards.
+  Example: Sets the alias name to "C1PLC1":
 
-  Example: tcSetAlias("C1PLC1")
-
-  Sets the alias name to "C1PLC1".
+        tcSetAlias("C1PLC1")
 
 * tcSetScanRate: Sets the scan rate for the TwinCAT PLC. The first
   argument is the scan rate in ms for the read or write scanners
   reading and writing TwinCAT variables. The second number is a
   multiple which describes the slow down for updating the EPICS
   read-only channels. The update rate for read/write channels is the
-  same as the TwinCAT scan rate.
+  same as the TwinCAT scan rate.  
+  Example: Yields a 10ms TwinCAT update rate, and a 50ms EPICS update
+  rate for read-only channels.
 
-  Example: tcSetScanRate(10,5)
-
-  Yields a 10ms TwinCAT update rate, and a 50ms EPICS update rate for read-only channels.
+        tcSetScanRate(10,5)
 
 * tcGenerateList: Generates an additional listings when the records
   are loaded. Multiple tcList commands can be called in series to
   produce different listing. The first argument is a output file
   name. The second argument is a set of options. The lists are
   generated when tcLoadRecords is called. The list commands are reset
-  afterwards.
+  afterwards.  
+  Example 1: This will generate an autoburt request file:
 
-  Example 1: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
+        tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.req","-lb")
 
-  This will generate an autoburt request file.
+  Example 2: This will generate a listing of OPC names:
 
-  Example 2: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
+        tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.opc.txt","-l -rn -yi -cp")
 
-  This will generate a listing of OPC names.
+  Example 3: This will generate a listing of EPICS names:
 
-  Example 3: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.chn.txt","-l")
+        tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.chn.txt","-l")
 
-  This will generate a listing of EPICS names.
+  Example 4: This will generate an EPICS listing without string
+  channels. The available options are listed on page TwinCAT EPICS
+  Options:
 
-  Example 4: tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.ini","-l -ns")
-
-  This will generate an EPICS listing without string channels. The available options are listed on page TwinCAT EPICS Options.
+        tcGenerateList("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.ini","-l -ns")
 
 * tcGenerateMacros: Generates ASCII macro lists (aml files) which can
   be used to generate ADL files for medm. The first argument is a
   output directory which is used to store the macro files. The second
   argument is a set of options. The macro files are generated when
-  tcLoadRecords is called. The list commands are reset afterwards.
+  tcLoadRecords is called. The list commands are reset afterwards.  
+  Example 1: This will generate a macro files for each encountered
+  structure including both fields and error messages. The resulting
+  files are stored in the ADL subdirectory. Error messages require
+  corresponding exp files (see the coding standard, E1200225):
 
-  Example 1: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL")
+        tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL")
 
-  This will generate a macro files for each encountered structure
-  including both fields and error messages. The resulting files are
-  stored in the ADL subdirectory. Error messages require corresponding
-  exp files (see the coding standard, E1200225.
+  Example 2: Generates macro files without error messages.
 
-  Example 2: tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL", "-mf")
-
-  Generates macro files without error messages.
+        tcGenerateMacros("C:\SlowControls\Target\H1ECATX1\ADL", "-mf")
 
 * tcLoadRecords: Loads a tpy file, then generates and loads the EPICS
   database. The first argument is the filename to the tpy file. The
   generated db file will have the same name but with the extension
-  ".db". The second argument is a set of options.
+  ".db". The second argument is a set of options.  
+  Example: This command will parse the specified tpy file, then
+  generate a db file with the name
+  "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db" and the specified
+  options. The available options are listed on page TwinCAT EPICS
+  Options:
 
-  Example: tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy","")
-
-  This command will parse the specified tpy file, then generate a db
-  file with the name "C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.db"
-  and the specified options. The available options are listed on page
-  TwinCAT EPICS Options.
+        tcLoadRecords("C:\SlowControls\Target\H1ECATX1\PLC1\PLC1.tpy","")
 
 The above commands will only be executed before iocInit() is
 called. Multiple tpy files can be loaded by issuing multiple
@@ -319,8 +318,9 @@ Applicable options are:
 | infoLoadRecords     | channel processing, channel name conversion | -ps -nsio -sn 0 -devtc
 | infoGenerateList    | channel processing, channel name conversion, list generation | -ps -nsio -sn 0 |
 
+
 Performance
------------
+===========
 
 Several checks on the performance of the IOC have been made to verify
 that it will be able to reliably handle all ~20,000 Slow Controls
@@ -342,10 +342,13 @@ Software:
     Version: 32-bit operating system
     TwinCAT: 2.11 
 
-Speed tests
+### Speed tests
 
-    TwinCAT (test performed on 6/21/2013)
-    This test was performed to see how much data we can read from TwinCAT in one request before overloading the system.
+#### TwinCAT (test performed on 6/21/2013)
+
+This test was performed to see how much data we can read from TwinCAT
+in one request before overloading the system.
+
         1 channel
             1.076ms to read data
             TwinCAT System Real Time Usage: was not monitored 
@@ -362,8 +365,15 @@ Speed tests
             1.121ms to read data out in one request
             TwinCAT System Real Time Usage: +4-5% 
 
-    TwinCAT (test performed on 6/20/2013)
-    This test was performed to see how generating individual requests for each channel can overload the TwinCAT system. In this example we specified the memory location for each channel, instead of requesting one large memory region as above. This method proved to be too taxing on the TwinCAT system, so we do not use it in our IOC. Compare to the above performance figures.
+#### TwinCAT (test performed on 6/20/2013)
+
+This test was performed to see how generating individual requests for
+each channel can overload the TwinCAT system. In this example we
+specified the memory location for each channel, instead of requesting
+one large memory region as above. This method proved to be too taxing
+on the TwinCAT system, so we do not use it in our IOC. Compare to the
+above performance figures.
+
         1000 channels
             1.306ms to get data for all channels
             TwinCAT System Real Time Usage: +20% 
@@ -371,30 +381,31 @@ Speed tests
             1.483ms to get data for all channels
             TwinCAT System Real Time Usage: +60-80% 
 
-    EPICS (test performed on 7/30/2013)
+#### EPICS (test performed on 7/30/2013)
+
         It takes ~1.33s to process 1,000,000 records
         Thus in a 10ms cycle it can process ~7500 records 
 
-Memory usage
+### Memory usage (test performed on 8/24/2013)
 
-(test performed on 8/24/2013)
+* Running on the corner EtherCAT machine (H1ECATC1) (17000 records)
+  * IOC uses 40MB of memory
+  * 6% of CPU time 
 
-    Running on the corner EtherCAT machine (H1ECATC1) (17000 records)
-        IOC uses 40MB of memory
-        6% of CPU time 
-    Running on the end-X EtherCAT machine (H1ECATX1) (170 records)
-        IOC uses 8.4MB of memory
-        1.3% of CPU time 
+* Running on the end-X EtherCAT machine (H1ECATX1) (170 records)
+  * IOC uses 8.4MB of memory
+  * 1.3% of CPU time 
 
-High volume performance
+### High volume performance (test performed on 8/9/2013)
 
-(test performed on 8/9/2013)
+* The IOC can safely handle a burt restore on the corner station,
+  which restores all the EPICS records that are not read-only (~2000
+  in this case).
 
-    The IOC can safely handle a burt restore on the corner station, which restores all the EPICS records that are not read-only (~2000 in this case).
-    The IOC can safely handle sequences of commands generated at a fast rate by the ezca tool. 
+* The IOC can safely handle sequences of commands generated at a fast
+  rate by the ezca tool.
 
-Performance over time
+### Performance over time (test performed on 8/9/2013)
 
-(test performed on 8/9/2013)
-
-    The IOC has safely run for ~200 hours continuously on H1ECATC1 without any noticeable changes in memory usage or performance. 
+* The IOC has safely run for ~200 hours continuously on H1ECATC1
+  without any noticeable changes in memory usage or performance.
