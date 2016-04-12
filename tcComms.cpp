@@ -384,11 +384,14 @@ bool TcPLC::optimizeRequests()
 {
 	// TODO: THIS FUNCTION NEEDS A NEW NAME
 	if (debug) printf("Forming requests...\n");
+	if (records.empty()) {
+		return true;
+	}
 
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
-	for (auto it = records.begin(); it!= records.end(); ++it) {
-		recordList.push_back( it->second);
+	for (auto& it : records) {
+		recordList.push_back( it.second);
 	}
 
 	// Sort record list by group and offset
