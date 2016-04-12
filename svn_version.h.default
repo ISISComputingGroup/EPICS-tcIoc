@@ -1,0 +1,10 @@
+#pragma once
+ 
+/// True, if there are modifications to the local working copy, false otherwise
+const bool 			svn_local_modifications = true;
+/// Highest committed revision number in the working copy
+const int 			svn_revision = 0;
+/// Current system date &amp; time     
+const char* const 	svn_time_now = "2000/01/01 00:00:00";
+/// Revision number if fully committed, 0 otherwise
+const int			svn_revision_committed = 0;

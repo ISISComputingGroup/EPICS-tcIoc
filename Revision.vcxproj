@@ -70,7 +70,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <PreBuildEvent>
-      <Command>SubWCRev.exe $(SolutionDir) $(ProjectDir)\svn_version.h.tmpl $(ProjectDir)\svn_version.h</Command>
+      <Command>CALL $(SolutionDir)\svn_version.bat</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generate the svn_version.h file with the necessary repo identify info for versioning</Message>
