@@ -25,7 +25,7 @@ int main(int argc,char *argv[])
 {
 	// Start timer
 	begin = clock();
-	printf("Subversion: Committed %s Number %i Date %s.\n",
+	printf("Subversion: Committed %s   Revision %i   Date %s.\n",
 		   svn_local_modifications ? "no" : "yes", svn_revision_committed, svn_time_now);
 
 	// Run initialization
