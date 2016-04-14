@@ -726,7 +726,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 			if (!pinfo->sym.get_name().empty()) {
 				// pointers are readonly!
 				if (pinfo->sym.get_type_pointer()) {
-					pinfo->sym.get_opc().add(property_el(OPC_PROP_RIGHTS, "1"));
+					pinfo->sym.get_opc().get_properties()[OPC_PROP_RIGHTS] = "1";
 				}
 				pinfo->get_symbols().push_back (pinfo->sym);
 			}
