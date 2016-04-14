@@ -32,6 +32,7 @@ const char* const xmlPort = "Port";
 const char* const xmlName = "Name";
 const char* const xmlType = "Type";
 const char* const xmlAttrDecoration = "Decoration";
+const char* const xmlAttrPointer = "Pointer";
 const char* const xmlIGroup = "IGroup";
 const char* const xmlIOffset = "IOffset";
 const char* const xmlBitSize = "BitSize";

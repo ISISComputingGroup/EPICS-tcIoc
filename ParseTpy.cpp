@@ -403,6 +403,20 @@ bool get_decoration (const char **atts, unsigned int& decoration)
 	return false;
 }
 
+/* XML get pointer from attribute
+ ************************************************************************/
+bool get_pointer (const char **atts)
+{
+	unsigned int num = 0;
+	for (const char** pp = atts; pp && pp[0] && pp[1]; pp += 2) {
+		std::stringcase a (pp[0]);
+		if (a.compare (xmlAttrPointer) == 0) {
+			std::stringcase val (pp[1]);
+			return (val == "true") || (val == "t") || (val == "1");
+		}
+	}
+	return false;
+}
    
 /* XML start element function callback
  ************************************************************************/
@@ -473,6 +487,7 @@ static void XMLCALL startElement (void *userData, const char *name,
 			unsigned int decor = 0;
 			get_decoration (atts, decor);
 			pinfo->sym.set_type_decoration (decor);
+			pinfo->sym.set_type_pointer (get_pointer (atts));
 		}
 		// opc properties
 		else if (n.compare (xmlProperties) == 0 && !pinfo->opc_parse &&
@@ -709,6 +724,10 @@ static void XMLCALL endElement (void *userData, const char *name)
 		if (pinfo->symbols == 2) {
 			--pinfo->symbols;
 			if (!pinfo->sym.get_name().empty()) {
+				// pointers are readonly!
+				if (pinfo->sym.get_type_pointer()) {
+					pinfo->sym.get_opc().add(property_el(OPC_PROP_RIGHTS, "1"));
+				}
 				pinfo->get_symbols().push_back (pinfo->sym);
 			}
 		}

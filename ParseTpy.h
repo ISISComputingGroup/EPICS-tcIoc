@@ -114,7 +114,7 @@ public:
 	/// @param td Type decortation or id
 	base_record (const std::stringcase& n, 
 		const std::stringcase& tn, int td = 0) 
-		: name (n), type_n (tn), type_decoration (td) {}
+		: name (n), type_n (tn), type_decoration (td), type_pointer(false) {}
 
 	/// Get name
 	const std::stringcase& get_name() const { return name; }
@@ -132,6 +132,10 @@ public:
 	unsigned int get_type_decoration () const { return type_decoration; }
 	/// Set type decoration 
 	void set_type_decoration (unsigned int id) {type_decoration = id; }
+	/// Get type pointer
+	bool get_type_pointer () const { return type_pointer; }
+	/// Set type pointer 
+	void set_type_pointer (bool isPointer) {type_pointer = isPointer; }
 
 	/// Get OPC list
 	const ParseUtil::opc_list& get_opc() const { return opc; }
@@ -145,6 +149,8 @@ protected:
 	std::stringcase		type_n;
 	/// decoration or type ID of type definition
 	unsigned int		type_decoration;
+	/// this is a pointer
+	bool				type_pointer;
 
 	/// list of opc properties
 	ParseUtil::opc_list	opc;

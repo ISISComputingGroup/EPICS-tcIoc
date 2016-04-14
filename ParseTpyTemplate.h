@@ -29,7 +29,11 @@ namespace ParseTpy {
 	{
 		ParseUtil::variable_name n (prefix);
 		n.append (symbol.get_name(), symbol.get_opc(), "");
-		if (!n.get_name().empty()) {
+		if (symbol.get_type_pointer()) {
+			return process_type_tree ("DINT", 0, 
+				symbol.get_opc(), symbol, process, n, 0);
+		}
+		else if (!n.get_name().empty()) {
 			return process_type_tree (symbol.get_type_name(), 
 				symbol.get_type_decoration(), 
 				symbol.get_opc(), symbol, process, n, 0);
