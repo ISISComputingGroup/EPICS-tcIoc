@@ -253,7 +253,7 @@ protected:
 	item_list		struct_subitems;
 };
 
-/** This is a multimap toi store type records
+/** This is a multimap to store type records
 ************************************************************************/
 typedef std::multimap<unsigned int, type_record> type_multipmap;
 

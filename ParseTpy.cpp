@@ -127,6 +127,8 @@ public:
 	std::stringcase	enum_data;
 	/// temporary enum element
 	enum_pair		enum_element;
+	/// temporary enum comment
+	std::stringcase	enum_comment;
 	/// level indicator for struct parsing
 	int				struct_parse;
 	/// temporary structure element
@@ -273,18 +275,37 @@ void type_map::insert (value_type val)
 	type_multipmap::insert (val);
 }
 
+/* compareNamesWoNamespace
+ ************************************************************************/
+bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
+{
+	int pos = p1.length() - p2.length();
+	if (pos > 0) {
+		return (p1[pos-1] == '.') &&
+			(p1.compare (pos, std::stringcase::npos, p2) == 0);
+	}
+	else if (pos < 0) {
+		pos = -pos;
+		return (p2[pos-1] == '.') &&
+			(p2.compare (pos, std::stringcase::npos, p1) == 0);
+	}
+	else {
+		return p1 == p2;
+	}
+}
+
 /* type_map::find
  ************************************************************************/
 const type_map::value_type::second_type* 
 type_map::find (value_type::first_type id, const std::stringcase& typn) const
 {
-	const_iterator t = type_multipmap::find (id);
-	const_iterator i = t;
+	const_iterator t = end();
+	const_iterator i = type_multipmap::find (id);
 	while (i != end()) {
 		if (i->first != id) {
 			break;
 		}
-		if (i->second.get_name() == typn) {
+		if (compareNamesWoNamespace (i->second.get_name(), typn)) {
 			t = i;
 			break;
 		}
@@ -589,6 +610,7 @@ static void XMLCALL startElement (void *userData, const char *name,
 		else if (n.compare (xmlEnumInfo) == 0) {
 			pinfo->enum_parse = 2;
 			pinfo->enum_element = enum_pair (0, "");
+			pinfo->enum_comment.clear();
 		}
 		// enum tag
 		else if (n.compare (xmlEnumEnum) == 0 && 
@@ -598,6 +620,12 @@ static void XMLCALL startElement (void *userData, const char *name,
 		}
 		// enum text
 		else if (n.compare (xmlEnumText) == 0 && 
+			pinfo->enum_parse == 2) {
+				pinfo->enum_parse = 3;
+				pinfo->enum_data = std::stringcase ("");
+		}
+		// enum comment
+		else if (n.compare (xmlEnumComment) == 0 && 
 			pinfo->enum_parse == 2) {
 				pinfo->enum_parse = 3;
 				pinfo->enum_data = std::stringcase ("");
@@ -801,14 +829,12 @@ static void XMLCALL endElement (void *userData, const char *name)
 	else if (n.compare (xmlDataType) == 0) {
 		if (pinfo->types == 2) {
 			--pinfo->types;
-			if (pinfo->rec.get_name_decoration()) {
-				pinfo->rec.set_type_description (pinfo->get_type_description());
-				// remove simple type which reference themselves, ie., discard type aliases
-				if ((pinfo->rec.get_type_description() != simple) ||
-					(pinfo->rec.get_name_decoration() != pinfo->rec.get_type_decoration())) {
-					pinfo->get_types().insert (
-						type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
-				}
+			pinfo->rec.set_type_description (pinfo->get_type_description());
+			// remove simple type which reference themselves, ie., discard type aliases
+			if ((pinfo->rec.get_type_description() != simple) ||
+				(pinfo->rec.get_name() != pinfo->rec.get_type_name())) {
+				pinfo->get_types().insert (
+				type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
 			}
 		}
 	}
@@ -853,6 +879,10 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlEnumInfo) == 0 && pinfo->enum_parse == 2) {
 			pinfo->enum_parse = 1;
 			pinfo->rec.get_enum_list().insert (pinfo->enum_element);
+			if (!pinfo->enum_comment.empty() && (pinfo->enum_element.first >= 0) &&
+			   (pinfo->enum_element.first < 16)) {
+				pinfo->rec.get_opc().get_properties()[OPC_PROP_ZRST+pinfo->enum_element.first] = pinfo->enum_comment;
+			}
 		}
 		// enum tag
 		else if (n.compare (xmlEnumEnum) == 0 && 
@@ -866,6 +896,13 @@ static void XMLCALL endElement (void *userData, const char *name)
 			pinfo->enum_parse == 3) {
 				trim_space (pinfo->enum_data);
 				pinfo->enum_element.second = pinfo->enum_data;
+				pinfo->enum_parse = 2;
+		}
+		// enum comment
+		else if (n.compare (xmlEnumComment) == 0 && 
+			pinfo->enum_parse == 3) {
+				trim_space (pinfo->enum_data);
+				pinfo->enum_comment = pinfo->enum_data;
 				pinfo->enum_parse = 2;
 		}
 		// parsed a subitem

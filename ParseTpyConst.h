@@ -45,6 +45,7 @@ const char* const xmlFbInfo = "FbInfo";
 const char* const xmlEnumInfo = "EnumInfo";
 const char* const xmlEnumText = "Text";
 const char* const xmlEnumEnum = "Enum";
+const char* const xmlEnumComment = "Comment";
 
 const char* const xmlValue = "Value";
 const char* const xmlDesc = "Desc";

@@ -61,13 +61,14 @@ namespace ParseTpy {
 		// the first implicit one
 		if ((typ.get_type_description() != arraytype) || 
 			(typ.get_name().find ('[') == std::stringcase::npos)) {
-				defopc.add (typ.get_opc());
+			defopc.add (typ.get_opc());
 		}
 		switch (typ.get_type_description()) {
 		case simple :
-			// next level
-			return process_type_tree (typ.get_name(), 
-				typ.get_type_decoration(), defopc, loc, process, varname, level);
+			{
+				return process_type_tree (typ.get_type_name(), 
+					typ.get_type_decoration(), defopc, loc, process, varname, level);
+			}
 		case arraytype :
 			// process array and iterate over all subindices
 			return process_array (typ, typ.get_array_dimensions(), defopc, loc, 
