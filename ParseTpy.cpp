@@ -42,7 +42,7 @@ class parserinfo_type
 public:
 	// Constructor
 	parserinfo_type (project_record& p, symbol_list& s, type_map& t) 
-		: ignore (0), projects (false), routing (0), types (0), 
+		: ignore (0), projects (false), routing (0), compiler (0), types (0), 
 		symbols(0), name_parse (0), type_parse (0), opc_cur (0), 
 		opc_parse (0), opc_cdata (0), igroup_parse (0), 
 		ioffset_parse (0), bitsize_parse (0), 
@@ -64,17 +64,19 @@ public:
 
 	// the very top of the xml tag hierarchy (not within any tag)
 	bool verytop() {
-		return !projects && !ignore && !routing && !types && !symbols; }
+		return !projects && !ignore && !routing && !compiler && !types && !symbols; }
 	// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
 	bool top() {
-		return projects && !ignore && !routing && !types && !symbols; }
+		return projects && !ignore && !routing && !compiler && !types && !symbols; }
 
 	// ignore elements during parsing (with level)
 	int				ignore;
 	// parsing withing PlcProjectInfo tag
 	bool			projects;
-	// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4)
+	// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
 	int				routing;
+	// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
+	int				compiler;
 	// parsing within DataTypes tag (1) or DataType tag (2)
 	int				types;
 	// parsing within Symbols tag (1) or Symbol tag (2)
@@ -267,7 +269,87 @@ bool ads_routing_info::set (const std::stringcase& s)
 	return true;
 }
 
+/* compiler_info::set_cmpl_versionstr
+ ************************************************************************/
+void compiler_info::set_cmpl_versionstr (const std::stringcase& versionstr) 
+{ 
+	cmpl_versionstr = versionstr; 
+	if (is_cmpl_Valid ()) {
+		int v1, v2;
+		sscanf_s (cmpl_versionstr.c_str(), "%*i.%*i.%*s%n", &v1, &v2);
+		if (v2 > 99) {
+			cmpl_version = v1 + (double)v2/1000;
+		} 
+		else if (v2 > 9) {
+			cmpl_version = v1 + (double)v2/100;
+		}
+		else if (v2 > 0) {
+			cmpl_version = v1 + (double)v2/10;
+		}
+		else {
+			cmpl_version = 0;
+		}
+	}
+	else {
+		cmpl_version = 0;
+	}
+}
 
+/* compiler_info::is_cmpl_Valid
+ ************************************************************************/
+bool compiler_info::is_cmpl_Valid() const
+{
+	if (cmpl_versionstr.empty()) {
+		return false;
+	}
+	int end = 0;
+	int num = sscanf_s (cmpl_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	if ((num != 0) || (end != cmpl_versionstr.length())) {
+		return false;
+	}
+	return true;
+}
+
+/* compiler_info::set_tcat_versionstr
+ ************************************************************************/
+void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr) 
+{ 
+	tcat_versionstr = versionstr; 
+	if (is_tcat_Valid ()) {
+		int v1, v2;
+		sscanf_s (tcat_versionstr.c_str(), "%*i.%*i.%*s%n", &v1, &v2);
+		if (v2 > 99) {
+			tcat_version = v1 + (double)v2/1000;
+		} 
+		else if (v2 > 9) {
+			tcat_version = v1 + (double)v2/100;
+		}
+		else if (v2 > 0) {
+			tcat_version = v1 + (double)v2/10;
+		}
+		else {
+			tcat_version = 0;
+		}
+	}
+	else {
+		tcat_version = 0;
+	}
+}
+
+/* compiler_info::is_tcat_Valid
+ ************************************************************************/
+bool compiler_info::is_tcat_Valid() const
+{
+	if (tcat_versionstr.empty()) {
+		return false;
+	}
+	int end = 0;
+	int num = sscanf_s (tcat_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	if ((num != 0) || (end != tcat_versionstr.length())) {
+		return false;
+	}
+	return true;
+}
 /* type_map::insert
  ************************************************************************/
 void type_map::insert (value_type val)
@@ -479,6 +561,36 @@ static void XMLCALL startElement (void *userData, const char *name,
 		else if (n.compare (xmlPort) == 0 && (pinfo->routing == 2)) {
 			pinfo->data = std::stringcase ("");
 			pinfo->routing = 4;
+		}
+		// Target name
+		else if (n.compare (xmlTargetName) == 0 && (pinfo->routing == 2)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->routing = 5;
+		}
+	}
+
+	// Parse compiler information
+	else if (n.compare (xmlCompilerInfo) == 0) {
+		if (pinfo->top()) {
+			++pinfo->compiler;
+		}
+		else ++pinfo->ignore;
+	}
+	else if (pinfo->compiler >= 1) {
+		// Net Id
+		if (n.compare (xmlCompilerVersion) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 2;
+		}
+		// Port
+		else if (n.compare (xmlTwinCATVersion) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 3;
+		}
+		// CPU Family
+		else if (n.compare (xmlCpuFamily) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 4;
 		}
 	}
 
@@ -741,6 +853,37 @@ static void XMLCALL endElement (void *userData, const char *name)
 			pinfo->routing = 2;
 			int num = strtol (pinfo->data.c_str(), NULL, 10);
 			pinfo->get_projectinfo().set_port (num);
+		}
+		// Target name
+		else if (n.compare (xmlTargetName) == 0 && (pinfo->routing == 5)) {
+			pinfo->routing = 2;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_targetname(pinfo->data);
+		}
+	}
+
+	// Parse compiler information
+	else if (n.compare (xmlCompilerInfo) == 0) {
+		if (pinfo->compiler == 1) --pinfo->compiler;
+	}
+	else if (pinfo->compiler >= 1) {
+		// compiler version
+		if (n.compare (xmlCompilerVersion) == 0 && (pinfo->compiler == 2)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_cmpl_versionstr(pinfo->data);
+		}
+		// twincat version
+		else if (n.compare (xmlTwinCATVersion) == 0 && (pinfo->compiler == 3)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_tcat_versionstr (pinfo->data);
+		}
+		// CPU family
+		else if (n.compare (xmlCpuFamily) == 0 && (pinfo->compiler == 4)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_tcat_versionstr (pinfo->data);
 		}
 	}
 
@@ -1031,6 +1174,10 @@ static void XMLCALL dataElement (void *userData, const char *data, int len)
 
 	// get data from routing
 	if (pinfo->routing >= 2) {
+		pinfo->data.append (data, len);
+	}
+	// get data from compiler
+	else if (pinfo->compiler >= 1) {
 		pinfo->data.append (data, len);
 	}
 

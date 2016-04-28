@@ -640,7 +640,7 @@ public:
 		return plcname; }
 
 	/// Translate epics name to filename
-	std::stringcase to_filename (const std::stringcase& epicsname);
+	std::stringcase to_filename (const std::stringcase& epicsname, bool isTwinCAT3);
 
 	/// Get number of processed channels
 	int get_processed_total() const { return rec_num; }

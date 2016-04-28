@@ -21,10 +21,14 @@ namespace ParseTpy {
 class ads_routing_info {
 public:
 	/// Default constructor
-	ads_routing_info() : ads_port () {}
+	ads_routing_info() : ads_port (0) {}
 	/// Constructor
 	explicit ads_routing_info (const std::stringcase& netid, int port = 801)
 		: ads_netid (netid), ads_port (port) {}
+	/// Constructor
+	explicit ads_routing_info (const std::stringcase& netid, int port,
+							   const std::stringcase& targetname)
+		: ads_netid (netid), ads_port (port), ads_targetname(targetname) {}
 
 	/// Get ADS net id
 	const std::stringcase& get_netid() const { return ads_netid; }
@@ -34,6 +38,10 @@ public:
 	int get_port() const { return ads_port; }
 	/// Set ADS port
 	void set_port (int port) { ads_port = port; }
+	/// Get ADS target name
+	const std::stringcase& get_targetname() const { return ads_targetname; }
+	/// Set ADS target name
+	void set_targetname (const std::stringcase& targetname) { ads_targetname = targetname; }
 
 	/// Checks, if net id is of the form n.n.n.n.n.n
 	bool isValid() const;
@@ -60,17 +68,60 @@ protected:
 	std::stringcase	ads_netid;
 	/// ADS port
 	int				ads_port;
+	/// ADS target name
+	std::stringcase	ads_targetname;
 };
 
-/* This is a base class for storing the target information
+/* This is a base class for storing the compiler information
 ************************************************************************/
+class compiler_info {
+public:
+	/// Default constructor
+	compiler_info() : cmpl_version (0), tcat_version (0) {}
+
+	/// Get compiler version string
+	const std::stringcase& get_cmpl_versionstr() const { return cmpl_versionstr; }
+	/// Set compiler version string
+	void set_cmpl_versionstr (const std::stringcase& versionstr);
+	/// Get compiler version
+	double get_cmpl_version() const { return cmpl_version; }
+
+	/// Get twincat version string
+	const std::stringcase& get_tcat_versionstr() const { return tcat_versionstr; }
+	/// Set twincat version string
+	void set_tcat_versionstr (const std::stringcase& versionstr);
+	/// Get twincat version
+	double get_tcat_version() const { return tcat_version; }
+
+	/// Get cpu familiy string
+	const std::stringcase& get_cpu_family() const { return cpu_family; }
+	/// Set cpu familiy string
+	void set_cpu_family (const std::stringcase& family) {cpu_family = family; };
+
+	/// Checks, if version is of the form n.n...
+	bool is_cmpl_Valid() const;
+	/// Checks, if twincat version is of the form n.n...
+	bool is_tcat_Valid() const;
+
+protected:
+	/// version string
+	std::stringcase	cmpl_versionstr;
+	/// version number
+	double			cmpl_version;
+	/// twincat version string
+	std::stringcase	tcat_versionstr;
+	/// twincat version number
+	double			tcat_version;
+	/// cpu family string
+	std::stringcase	cpu_family;
+};
 
 /* This is a base class for storing the task information
 ************************************************************************/
 
-/** This is a base class for storing name, type, type id and opc list
+/** This is a base class for storing the project information
 ************************************************************************/
-class project_record : public ads_routing_info {
+class project_record : public ads_routing_info, public compiler_info {
 public:
 	/// Default constructor
 	project_record () {}
