@@ -727,7 +727,10 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 
 	// Add the new field
 	procstack.top().fields.push_back (minfo);
-	if (minfo.type_n == errorstruct) {
+	int pos = minfo.type_n.length() - errorstruct.length();
+	if ((minfo.type_n == errorstruct) ||
+		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
+		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0))) {
 		procstack.top().haserror = true;
 		procstack.top().erroridx = procstack.top().fields.size()-1;
 	}
@@ -778,12 +781,16 @@ std::stringcase epics_macrofiles_processing::to_filename (
    epics_macrofiles_processing::errorlistext
 ************************************************************************/
 const std::stringcase epics_macrofiles_processing::errorstruct = "ErrorStruct";
-const std::stringcase epics_macrofiles_processing::errorlistext = "_Errors.exp";
-const std::regex epics_macrofiles_processing::errormatchregex (
+const std::stringcase epics_macrofiles_processing::errorlistext2 = "_Errors.exp";
+const std::regex epics_macrofiles_processing::errormatchregex2 (
 	"[^:]*:\\s*ErrorMessagesArray\\s*:=\\s*([^;]*);[^;]*", 
 	std::regex_constants::icase);
 const std::regex epics_macrofiles_processing::errorsearchregex ( 
 	"'((\\$[\\$'LlNnPpRrTt\\d])|[^'\\$])*'", std::regex_constants::icase);
+const std::stringcase epics_macrofiles_processing::errorlistext31 = "_Errors.TcGVL";
+const std::regex epics_macrofiles_processing::errormatchregex31 (
+	"[^:]*:\\s*ErrorMessagesArray\\s*:=\\s*\\[\\s*([^\\]]*)\\]\\s*;[^;]*", 
+	std::regex_constants::icase);
 
 /* Process a record
    epics_macrofiles_processing::process_record()
@@ -807,7 +814,8 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	if (mrec.haserror && 
 		((get_macrofile_type() == macrofile_type::all) ||
 		(get_macrofile_type() == macrofile_type::errors))) {
-		std::stringcase fname = mrec.record.type_n + errorlistext;
+		bool isTwinCAT3 = false;
+		std::stringcase fname = mrec.record.type_n + errorlistext2;
 		bool succ = open (fname, "r", true);
 		// check if we have a field name
 		if (!succ && !get_plcname().empty() &&
@@ -818,6 +826,28 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 				fname.insert (pos, get_plcname(), 0, 1);
 			}
 			succ = open (fname, "r", true);
+		}
+		if (!succ) {
+			fname = "ADL\\";
+			std::stringcase::size_type pos = mrec.record.type_n.find('.');
+			if (pos == std::stringcase::npos) {
+				fname += mrec.record.type_n + errorlistext31;
+			}
+			else {
+				fname += mrec.record.type_n.substr(pos+1) + errorlistext31;
+			}
+			succ = open (fname, "r", true);
+			// check if we have a field name
+			if (!succ && !get_plcname().empty() &&
+				mrec.record.name.rfind (get_plcname()) == 
+				mrec.record.name.length() - get_plcname().length()) {
+				std::stringcase::size_type pos = fname.rfind ("Struct");
+				if (pos != stringcase::npos) {
+					fname.insert (pos, get_plcname(), 0, 1);
+				}
+				succ = open (fname, "r", true);
+			}
+			if (succ) isTwinCAT3 = true;
 		}
 		if (!succ) {
 			if (missing.find (fname) == missing.end()) {
@@ -833,7 +863,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			int sz = ftell (fp);
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
-			char* buf = new char [sz+1];
+			unsigned char* buf = new unsigned char [sz+1];
 			sz = fread (buf, sizeof (char), sz, fp);
 			buf[sz] = 0;
 			for (int i = 0; i < sz; ++i) {
@@ -842,7 +872,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			// check if it is formatted correctly
 			std::cmatch match;
 			if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
-				errormatchregex)) {
+				isTwinCAT3 ? errormatchregex31 : errormatchregex2)) {
 				for (auto i = ++match.begin(); i != match.end(); ++i) {
 					std::string found = i->str();
 					// search and iterate over single quote strings

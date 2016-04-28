@@ -557,11 +557,15 @@ class epics_macrofiles_processing :
 public:
 	/// Type name identifying an error struct ("ErrorStruct")
 	static const std::stringcase errorstruct;
-	/// File extension identifying a list of error msgs ("_Errors.exp")
-	static const std::stringcase errorlistext;
-	/// Regular expression to match the entire error record defintition
-	static const std::regex errormatchregex;
-	/// Regular expression to search for the actual error messages
+	/// TwinCAT 2.11: File extension identifying a list of error msgs ("_Errors.exp")
+	static const std::stringcase errorlistext2;
+	/// TwinCAT 2.11: Regular expression to match the entire error record defintition
+	static const std::regex errormatchregex2;
+	/// TwinCAT 3.1: File extension identifying a list of error msgs ("_Errors.TcGVL")
+	static const std::stringcase errorlistext31;
+	/// TwinCAT 3.1: Regular expression to match the entire error record defintition
+	static const std::regex errormatchregex31;
+	/// TwinCAT 2.11/3.1: Regular expression to search for the actual error messages
 	static const std::regex errorsearchregex;
 
 	/// Default constructor
