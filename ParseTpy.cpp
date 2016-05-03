@@ -276,7 +276,7 @@ void compiler_info::set_cmpl_versionstr (const std::stringcase& versionstr)
 	cmpl_versionstr = versionstr; 
 	if (is_cmpl_Valid ()) {
 		int v1, v2;
-		sscanf_s (cmpl_versionstr.c_str(), "%*i.%*i.%*s%n", &v1, &v2);
+		sscanf_s (cmpl_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
 		if (v2 > 99) {
 			cmpl_version = v1 + (double)v2/1000;
 		} 
@@ -317,7 +317,7 @@ void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr)
 	tcat_versionstr = versionstr; 
 	if (is_tcat_Valid ()) {
 		int v1, v2;
-		sscanf_s (tcat_versionstr.c_str(), "%*i.%*i.%*s%n", &v1, &v2);
+		sscanf_s (tcat_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
 		if (v2 > 99) {
 			tcat_version = v1 + (double)v2/1000;
 		} 
@@ -883,7 +883,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlCpuFamily) == 0 && (pinfo->compiler == 4)) {
 			pinfo->compiler = 1;
 			trim_space (pinfo->data);
-			pinfo->get_projectinfo().set_tcat_versionstr (pinfo->data);
+			pinfo->get_projectinfo().set_cpu_family (pinfo->data);
 		}
 	}
 

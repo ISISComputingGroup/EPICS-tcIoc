@@ -518,7 +518,7 @@ void multi_io_support::set_outdirname (const std::stringcase& dname)
    epics_list_processing::epics_list_processing
 ************************************************************************/
 epics_list_processing::epics_list_processing (
-		const std::stringcase& fname,
+		const std::stringcase& fname, 
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  split_io_support (fname, argc, argv, argp) 
@@ -621,11 +621,11 @@ bool epics_list_processing::operator() (const process_arg& arg)
    epics_macrofiles_processing::epics_macrofiles_processing
 ************************************************************************/
 epics_macrofiles_processing::epics_macrofiles_processing (
-		const std::stringcase& pname, const std::stringcase& dname,
+		const std::stringcase& pname, const std::stringcase& dname, bool tcat3,
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  multi_io_support (dname, argc, argv, argp),
-	  plcname (pname), macros (macrofile_type::all), rec_num (0)
+	   plcname (pname), macros (macrofile_type::all), isTwinCAT3 (tcat3), rec_num (0)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -728,20 +728,21 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	// Add the new field
 	procstack.top().fields.push_back (minfo);
 	int pos = minfo.type_n.length() - errorstruct.length();
-	if ((minfo.type_n == errorstruct) ||
+	bool iserror = (minfo.type_n == errorstruct) ||
 		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
-		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0))) {
+		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
+	if (iserror) {
 		procstack.top().haserror = true;
 		procstack.top().erroridx = procstack.top().fields.size()-1;
 	}
 
-	// check if this is a structure
+	// check, if this is a structure
 	if (!arg.is_atomic()) {
 		// found a record: add to processing stack
 		macro_record mrec;
 		mrec.record = minfo;
 		mrec.back = procstack.top().record;
-		if (minfo.type_n == errorstruct) {
+		if (iserror) {
 			mrec.iserror = true;
 		}
 		procstack.push (mrec);
@@ -756,15 +757,23 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 /** Translate epics name to filename
 ************************************************************************/
 std::stringcase epics_macrofiles_processing::to_filename (
-	const std::stringcase& epicsname, bool isTwinCAT3)
+	const std::stringcase& epicsname)
 {
 	std::stringcase ret (epicsname);
 	std::stringcase::size_type pos;
 	if (isTwinCAT3) {
-		if ((pos = ret.find ('.')) == 1) ret.erase (1, 1);
-		if ((pos = ret.find (':')) != stringcase::npos) ret.erase (1, pos);
+		if ((pos = ret.find ('.')) == 0) ret.erase (0, 1);
+		if ((pos = ret.find (':')) != stringcase::npos) ret.erase (0, pos+1);
 		if (!get_plcname().empty()) {
-			ret.insert (1, get_plcname() + '_');
+			if (ret.empty()) {
+				// nothing
+			}
+			else if ((ret.length() == 2) && (get_plcname().compare (0, 2, ret) == 0)) {
+				ret = get_plcname();
+			}
+			else {
+				ret.insert (0, get_plcname() + '_');
+			}
 		}
 		while ((pos = ret.find_first_of ("-:.")) != stringcase::npos) ret[pos] = '_';
 	}
@@ -821,23 +830,12 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	// error messages
 	bool havelist = false;
 	std::vector<std::stringcase> errlist;
-	bool isTwinCAT3 = false;
 	if (mrec.haserror && 
 		((get_macrofile_type() == macrofile_type::all) ||
 		(get_macrofile_type() == macrofile_type::errors))) {
-		std::stringcase fname = mrec.record.type_n + errorlistext2;
-		bool succ = open (fname, "r", true);
-		// check if we have a field name
-		if (!succ && !get_plcname().empty() &&
-			mrec.record.name.rfind (get_plcname()) == 
-			mrec.record.name.length() - get_plcname().length()) {
-			std::stringcase::size_type pos = fname.rfind ("Struct");
-			if (pos != stringcase::npos) {
-				fname.insert (pos, get_plcname(), 0, 1);
-			}
-			succ = open (fname, "r", true);
-		}
-		if (!succ) {
+		bool succ = false;
+		std::stringcase fname;
+		if (isTwinCAT3) {
 			fname = "ADL\\";
 			std::stringcase::size_type pos = mrec.record.type_n.find('.');
 			if (pos == std::stringcase::npos) {
@@ -857,7 +855,20 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 				}
 				succ = open (fname, "r", true);
 			}
-			if (succ) isTwinCAT3 = true;
+		}
+		else {
+			fname = mrec.record.type_n + errorlistext2;
+			succ = open (fname, "r", true);
+			// check if we have a field name
+			if (!succ && !get_plcname().empty() &&
+				mrec.record.name.rfind (get_plcname()) == 
+					mrec.record.name.length() - get_plcname().length()) {
+				std::stringcase::size_type pos = fname.rfind ("Struct");
+				if (pos != stringcase::npos) {
+					fname.insert (pos, get_plcname(), 0, 1);
+				}
+				succ = open (fname, "r", true);
+			}
 		}
 		if (!succ) {
 			if (missing.find (fname) == missing.end()) {
@@ -913,7 +924,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	}
 
 	// open output file
-	if (!open (to_filename (mrec.record.name + ".aml", isTwinCAT3), "w")) {
+	if (!open (to_filename (mrec.record.name) + ".aml", "w")) {
 		fprintf (stderr, "Failed to process %s.\n", mrec.record.name.c_str());
 		return false;
 	}
@@ -973,9 +984,9 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	fprintf (fp, "LVL=%i,\n", level);
 
 	// screen names
-	fprintf (fp, "itself=%s,\n", to_filename (mrec.record.name, isTwinCAT3).c_str());
-	fprintf (fp, "related=%s,\n", to_filename (mrec.record.name, isTwinCAT3).c_str());
-	fprintf (fp, "back=%s,\n", to_filename (mrec.back.name, isTwinCAT3).c_str());
+	fprintf (fp, "itself=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "related=%s,\n", to_filename (mrec.record.name).c_str());
+	fprintf (fp, "back=%s,\n", to_filename (mrec.back.name).c_str());
 	// write has errors
 	fprintf (fp, "haserrors=%i,\n", mrec.haserror ? 1 : 0);
 	if (mrec.haserror && (mrec.erroridx >= 0) && (mrec.erroridx < (int)mrec.fields.size())) {
@@ -997,7 +1008,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 				mrec.record.name.rfind (get_plcname()) == 
 				mrec.record.name.length() - get_plcname().length()) {
 				// just prepend IFO if all caps
-				std::stringcase suberr = to_filename (ifo + ":" + *i, isTwinCAT3);
+				std::stringcase suberr = to_filename (ifo + ":" + *i);
 				std::stringcase::size_type pos;
 				if ((pos = suberr.find ('-')) != stringcase::npos) suberr[pos] = '_';
 				bool issuberr = (suberr.length() > 0) && (isalpha (suberr[0]));
@@ -1030,7 +1041,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 					//}
 				}
 				if (pinfo) {
-					fprintf (fp, "nxt%i=%s,\n", num, to_filename (pinfo->name, isTwinCAT3).c_str());
+					fprintf (fp, "nxt%i=%s,\n", num, to_filename (pinfo->name).c_str());
 				}
 			}
 		}
@@ -1072,7 +1083,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			}
 			// set field name
 			if (i.ptype == pt_binary) {
-				fprintf (fp, "fld%i=%s,\n", num, to_filename (i.name, isTwinCAT3).c_str());
+				fprintf (fp, "fld%i=%s,\n", num, to_filename (i.name).c_str());
 			}
 			else {
 				fprintf (fp, "fld%i=%s,\n", num, i.name.c_str());

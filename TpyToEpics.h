@@ -569,11 +569,11 @@ public:
 	static const std::regex errorsearchregex;
 
 	/// Default constructor
-	epics_macrofiles_processing() : macros (macrofile_type::all), rec_num (0) {}
+	epics_macrofiles_processing() : macros (macrofile_type::all), isTwinCAT3 (false), rec_num (0) {}
 	/// Constructor
 	/// @param mt Type of macro
 	explicit epics_macrofiles_processing (macrofile_type mt) 
-		: macros (mt), rec_num (0) {}
+		: macros (mt), isTwinCAT3 (false), rec_num (0) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -586,7 +586,7 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	epics_macrofiles_processing (const std::stringcase& pname, 
-		const std::stringcase& dname,
+		const std::stringcase& dname, bool tcat3,
 		int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Destructor
@@ -639,8 +639,13 @@ public:
 	const std::stringcase& get_plcname () const { 
 		return plcname; }
 
+	/// Is this twincat 3?
+	bool is_twincat3() const { return isTwinCAT3; }
+	/// Set twincat 3 version?
+	void set_twincat3 (bool tcat3 = true) {isTwinCAT3 = tcat3; }
+
 	/// Translate epics name to filename
-	std::stringcase to_filename (const std::stringcase& epicsname, bool isTwinCAT3);
+	std::stringcase to_filename (const std::stringcase& epicsname);
 
 	/// Get number of processed channels
 	int get_processed_total() const { return rec_num; }
@@ -653,6 +658,8 @@ protected:
 	macrofile_type	macros;
 	/// PLC name
 	std::stringcase	plcname;
+	/// TwinCAT version
+	bool			isTwinCAT3;
 	/// Processing stack
 	macro_stack		procstack;
 	/// Current number of processed channels (records)

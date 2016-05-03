@@ -233,7 +233,7 @@ void epics_tc_db_processing::init_macros()
 		optarg options (get<1>(macro));
 		epics_macrofiles_processing* mproc = 
 			new (std::nothrow) epics_macrofiles_processing (
-			plc->get_alias(), std::get<0>(macro), options.argc(), options.argv());
+			plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
 		if (mproc) {
 			// set input directory to tpy file dir
 			if (get<3>(macro) && *get<3>(macro)) {
@@ -465,6 +465,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 		return;
 	}
 	(split_io_support&)(dbproc) = iosupp;
+	// setup macro processing
+	for (dirname_arg_macro_tuple& macro : macros) {
+		if (get<2>(macro)) get<2>(macro)->set_twincat3 (
+				tpyfile.get_project_info().get_tcat_version() > 3);
+	}
+
 
 	// generate db file and tc records
 	if (dbg) tpyfile.set_export_all (TRUE);
