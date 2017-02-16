@@ -569,6 +569,12 @@ int epics_list_processing::mygetopt (int argc, const char* const argv[],
 			set_verbose (false);
 			++num;
 		}
+		// generate a LIGO DAQ ini listing
+		else if (arg == "-li" || arg == "/li") {
+			set_listing(listing_daqini);
+			set_verbose(false);
+			++num;
+		}
 		// now set flag to indicated a processed option
 		if (argp && (num > oldnum)) {
 			argp[i] = true;
@@ -595,13 +601,78 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		stringcase ro = arg.get_opc().is_readonly() ? "RO " : "";
 		fprintf (get_file(), "%s%s", ro.c_str(), epicsname.c_str());
 	}
+	// LIGO DAQ ini listing
+	else if (listing == listing_daqini) {
+		// get unit string and datatype value
+		// we support float (4) and int32 (3)
+		std::stringcase s;
+		std::stringcase sep;
+		std::stringcase unit;
+		int datatype = LIGODAQ_DATATYPE_FLOAT;
+		arg.get_opc().get_property(OPC_PROP_UNIT, unit);
+		trim_space(unit);
+		switch (arg.get_process_type()) {
+		case pt_int:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			break;
+		case pt_bool:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			if (arg.get_opc().get_property(OPC_PROP_OPEN, s)) {
+				trim_space(s);
+				unit = s;
+			}
+			unit += '|';
+			if (arg.get_opc().get_property(OPC_PROP_CLOSE, s)) {
+				trim_space(s);
+				unit += s;
+			}
+			break;
+		case pt_enum:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			unit = "";
+			sep = "";
+			for (int opcidx = OPC_PROP_ZRST; opcidx <= OPC_PROP_FFST; opcidx++) {
+				if (arg.get_opc().get_property(opcidx, s)) {
+					trim_space(s);
+					unit += sep + s;
+					sep = "";
+				}
+				sep += '|';
+			}
+			break;
+		}
+		if (unit == "") {
+			unit = LIGODAQ_UNIT_NONE;
+		}
+		// write header 
+		if (get_processed_total() == 1) {
+			fprintf(get_file(), LIGODAQ_INI_HEADER, LIGODAQ_DATATYPE_DEFAULT, LIGODAQ_UNIT_DEFAULT);
+			fprintf(get_file(), "\n\n");
+		}
+		// write entry for channel
+		fprintf(get_file(), "[%s]", epicsname.c_str());
+		if (datatype != LIGODAQ_DATATYPE_DEFAULT) {
+			fprintf(get_file(), "\n%s=%i", LIGODAQ_DATATYPE_NAME, datatype);
+		}
+		s = unit;
+		unit = "";
+		for (auto& c : s) {
+			unsigned char uc = c;
+			if (isprint(uc)) {
+				unit += isspace(uc) ? '_' : uc;
+			}
+		}
+		if (unit != LIGODAQ_UNIT_DEFAULT) {
+			fprintf(get_file(), "\n%s=%s", LIGODAQ_UNIT_NAME, unit.c_str());
+		}
+	}
 	// standard listing
 	else {
 		fprintf (get_file(), "%s", epicsname.c_str());
 	}
 
 	// long listing?
-	if (verbose && (listing != listing_autoburt)) {
+	if (verbose && (listing != listing_autoburt) && (listing != listing_daqini)) {
 		fprintf (get_file(), " (%s", arg.get_process_string().c_str());
 		fprintf (get_file(), ", opc %c", arg.get_opc().is_published() ? '1' : '0');
 		for (property_map::const_iterator i = arg.get_opc().get_properties().begin();

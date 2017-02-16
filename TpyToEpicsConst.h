@@ -93,4 +93,31 @@ const char* const EPICS_DB_NUMVAL[] = {EPICS_DB_TSE, EPICS_DB_HOPR, EPICS_DB_LOP
                              "ZRVL", "ONVL", "TWVL", "THVL", "FRVL", "FVVL", "SXVL", "SVVL", "EIVL", "NIVL", "TEVL", "ELVL",
 							 "TVVL", "TTVL", "FTVL", "FFVL", NULL};
 /** @} */
+
+/** @defgroup tpytoepicsconstligo LIGO related constants
+************************************************************************/
+/** @{ */
+
+const char* const LIGODAQ_DATATYPE_NAME = "datatype";	/* DAQ datatype name */
+const int LIGODAQ_DATATYPE_FLOAT = 4;	/* DAQ datatype is float */
+const int LIGODAQ_DATATYPE_INT32 = 2;	/* DAQ datatype is int32 */
+const int LIGODAQ_DATATYPE_DEFAULT = LIGODAQ_DATATYPE_FLOAT;	/* default DAQ datatype is float */
+
+const char* const LIGODAQ_UNIT_NAME = "units";	/* DAQ unit name */
+const char* const LIGODAQ_UNIT_NONE = "none";	/*  DAQ unit for no unit */
+const char* const LIGODAQ_UNIT_DEFAULT = LIGODAQ_UNIT_NONE;	/* default DAQ unit is none */
+
+const char* const LIGODAQ_INI_HEADER = 	/* DAQ ini file header: substitute defaults */
+"[default]\n"
+"gain=1.00\n"
+"datatype=%i\n"
+"ifoid=0\n"
+"slope=6.1028e-05\n"
+"acquire=3\n"
+"offset=0\n"
+"units=%s\n"
+"dcuid=4\n"
+"datarate=16";
+
+/** @} */
 }

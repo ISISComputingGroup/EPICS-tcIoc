@@ -414,7 +414,9 @@ enum listing_type {
 	/// Standard listing using TwinCAT/OPC names
 	listing_standard, 
 	/// Autoburt listing
-	listing_autoburt
+	listing_autoburt,
+	/// LIGO DAQ ini listing
+	listing_daqini
 };
 
 /** Class for generatig a channel list
@@ -462,6 +464,7 @@ public:
 	/// /l: Generates a standard listing (default)
 	/// /ll: Generates a long listing
 	/// /lb: Generates an autoburt save/restore file
+	/// /li: Generates a LIGO DAQ ini file
 	///
 	/// Command line arguments can use '-' instead of a '/'. Capitalization does
 	/// not matter. getopt will only override arguments that are specifically 
