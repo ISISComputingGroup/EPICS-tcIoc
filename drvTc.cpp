@@ -43,22 +43,25 @@ static const iocshArg tcListArg1		            = {"Conversion rules", iocshArgStr
 static const iocshArg tcMacroArg0			        = {"'mdir' output directory", iocshArgString};
 static const iocshArg tcMacroArg1		            = {"Macro arguments", iocshArgString};
 static const iocshArg tcAliasArg0					= {"Alias name for PLC", iocshArgString};
-static const iocshArg tcPrintValsArg0	            = {"emptyarg", iocshArgString};
+static const iocshArg tcAliasArg1					= {"Replacement rules", iocshArgString};
+static const iocshArg tcPrintValsArg0				= {"emptyarg", iocshArgString};
 
 static const iocshArg* const  tcLoadRecordsArg[2]   = {&tcLoadRecordsArg0, &tcLoadRecordsArg1};
 static const iocshArg* const  tcSetScanRateArg[2]   = {&tcSetScanRateArg0, &tcSetScanRateArg1};
 static const iocshArg* const  tcListArg[2]		    = {&tcListArg0, &tcListArg1};
 static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
-static const iocshArg* const  tcAliasArg[1]			= {&tcAliasArg0};
+static const iocshArg* const  tcAliasArg[2]			= {&tcAliasArg0, &tcAliasArg1};
 static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
 
 iocshFuncDef tcLoadRecordsFuncDef                   = {"tcLoadRecords", 2, tcLoadRecordsArg};
 iocshFuncDef tcSetScanRateFuncDef		            = {"tcSetScanRate", 2, tcSetScanRateArg};
 iocshFuncDef tcListFuncDef				            = {"tcGenerateList", 2, tcListArg};
 iocshFuncDef tcMacroFuncDef				            = {"tcGenerateMacros", 2, tcMacroArg};
-iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 1, tcAliasArg};
+iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 2, tcAliasArg};
 iocshFuncDef tcPrintValsFuncDef				        = {"tcPrintVals", 1, tcPrintValsArg};
 
+typedef std::pair<std::stringcase, std::stringcase> replacement_rules_pair;
+typedef std::vector<replacement_rules_pair> tc_replacement_rules_def;
 typedef std::tuple<std::stringcase, std::stringcase, 
 				   epics_list_processing*, bool> filename_rule_list_tuple;
 typedef std::vector<filename_rule_list_tuple> tc_listing_def;
@@ -69,6 +72,7 @@ typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
+static tc_replacement_rules_def tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 
@@ -379,9 +383,11 @@ void tcLoadRecords (const iocshArgBuf *args)
 {
 	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
+	tc_replacement_rules_def replacement_rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
 	tc_alias = "";
+	tc_replacement_rules.clear();
 	tc_lists.clear();
 	tc_macros.clear();
 
@@ -646,12 +652,38 @@ void tcAlias (const iocshArgBuf *args)
         printf("Specify an alias\n");
 		return;
 	}
+	// Check alias name
 	const char* p1 = args[0].sval;
 	if (!p1) {
         printf("Specify an alias name for a tc PLC\n");
 		return;
 	}
 	tc_alias = p1;
+	// Check replacement rules
+	tc_replacement_rules.clear();
+	const char* p2 = args[1].sval;
+	if (p2) {
+		std::regex e ("([^=,]+)=([^=,]+)");
+		std::cmatch m;
+		while (std::regex_search (p2, m, e)) {
+			if (m.size() == 3) {
+				std::stringcase var (m[1].str().c_str());
+				trim_space (var);
+				std::stringcase val (m[2].str().c_str());
+				trim_space (val);
+				tc_replacement_rules.push_back (replacement_rules_pair (var,val));
+			}
+			p2 += m.length();
+        }
+		std::stringcase msg = "Replacement rules are: ";
+		for (auto i : tc_replacement_rules) {
+			msg += i.first + "=" + i.second + ",";
+		}
+		if (!msg.empty()) {
+			msg.erase (msg.length()-1, std::stringcase::npos);
+		}
+		printf("%s\n", msg.c_str());
+	}
 }
 
 
