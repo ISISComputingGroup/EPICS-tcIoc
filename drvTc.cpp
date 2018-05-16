@@ -60,8 +60,6 @@ iocshFuncDef tcMacroFuncDef				            = {"tcGenerateMacros", 2, tcMacroArg}
 iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 2, tcAliasArg};
 iocshFuncDef tcPrintValsFuncDef				        = {"tcPrintVals", 1, tcPrintValsArg};
 
-typedef std::pair<std::stringcase, std::stringcase> replacement_rules_pair;
-typedef std::vector<replacement_rules_pair> tc_replacement_rules_def;
 typedef std::tuple<std::stringcase, std::stringcase, 
 				   epics_list_processing*, bool> filename_rule_list_tuple;
 typedef std::vector<filename_rule_list_tuple> tc_listing_def;
@@ -72,7 +70,7 @@ typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
-static tc_replacement_rules_def tc_replacement_rules;
+static EpicsTpy::replacement_table tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 
@@ -84,9 +82,11 @@ class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
 public:
 	/// Default constructor
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
+		EpicsTpy::replacement_table& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
 		: plc (&p), invnum (0), lists (l), macros (m) { 
 			device_support = device_support_tc_name; 
+			set_rule_table (rules);
 			init_lists(); init_macros(); }
 	~epics_tc_db_processing() { 
 		done_lists(); done_macros(); }
@@ -173,6 +173,8 @@ void epics_tc_db_processing::init_lists()
 			}
 			// option processing
 			lproc->getopt (options.argc(), options.argv(), options.argp());
+			// set replacement rules
+			lproc->set_rule_table (get_rule_table());
 			// force single file
 			split_io_support iosupp (std::get<0>(list), false, 0);
 			if (!iosupp) {
@@ -239,6 +241,8 @@ void epics_tc_db_processing::init_macros()
 			new (std::nothrow) epics_macrofiles_processing (
 			plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
 		if (mproc) {
+			// set replacement rules
+			mproc->set_rule_table (get_rule_table());
 			// set input directory to tpy file dir
 			if (get<3>(macro) && *get<3>(macro)) {
 				mproc->set_indirname (get<3>(macro));
@@ -383,7 +387,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 {
 	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
-	tc_replacement_rules_def replacement_rules = tc_replacement_rules;
+	EpicsTpy::replacement_table rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
 	tc_alias = "";
@@ -461,7 +465,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	tcplc->set_alias (alias);
 	
 	// Set up output db generator
-	epics_tc_db_processing dbproc (*tcplc, &listings, &macros);
+	epics_tc_db_processing dbproc (*tcplc, rules, &listings, &macros);
 	// option processing
 	dbproc.getopt (options.argc(), options.argv(), options.argp());
 	// force single file
@@ -671,7 +675,9 @@ void tcAlias (const iocshArgBuf *args)
 				trim_space (var);
 				std::stringcase val (m[2].str().c_str());
 				trim_space (val);
-				tc_replacement_rules.push_back (replacement_rules_pair (var,val));
+				if (!var.empty()) {
+					tc_replacement_rules [var] = val;
+				}
 			}
 			p2 += m.length();
         }

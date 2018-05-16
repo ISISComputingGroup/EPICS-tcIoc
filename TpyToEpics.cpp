@@ -19,6 +19,47 @@ using namespace ParseUtil;
 
 namespace EpicsTpy {
 
+/* Static const variables
+ ************************************************************************/
+const char* const replacement_rules::prefix = "${";
+const char* const replacement_rules::suffix = "}";
+
+/* Static const variables
+ ************************************************************************/
+std::stringcase replacement_rules::apply_replacement_rules (const std::stringcase& arg) const
+{
+	stringcase ret (arg);
+	stringcase var;
+	stringcase val;
+	stringcase::size_type pos1;
+	stringcase::size_type pos2;
+	stringcase::size_type prefixlen = strlen (prefix);
+	stringcase::size_type suffixlen = strlen (suffix);
+	replacement_table::const_iterator rep;
+
+	// look for prefix
+	while ((pos1 = ret.find (prefix)) != stringcase::npos) {
+		// look for suffix
+		pos2 = ret.find (suffix, pos1 + prefixlen);
+		// no suffix? What's up? remove prefix and move on
+		if (pos2 == stringcase::npos) {
+			ret.erase (pos1, prefixlen);
+			continue;
+		}
+		// determine variable name
+		var = ret.substr (pos1 + prefixlen, pos2 - (pos1 + prefixlen));
+		trim_space (var);
+		// check for value in table
+		if (!var.empty() &&
+			(rep = table.find (var)) != table.end()) {
+			var = rep->second;
+		}
+		// replace var with value
+		ret.replace (pos1, pos2 - pos1 + 1, var);
+	}
+	return ret;
+}
+
 /* Parse command line arguments
  ************************************************************************/
 int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
@@ -101,6 +142,11 @@ string epics_conversion::to_epics (const stringcase& name) const
 {
 	stringcase n (name);
 	stringcase::size_type pos;
+
+	// apply replacement rules
+	if (HasRules()) {
+		n = apply_replacement_rules (n);
+	}
 
 	// eliminate leading dot
 	if (no_leading_dot || (conv_rule == ligo_std) || (conv_rule == ligo_vac)) {
