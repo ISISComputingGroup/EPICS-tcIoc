@@ -235,6 +235,9 @@ namespace ParseTpy {
 			}
 			// loop through first array dimension and call process_array for next dimension
 			int el_bitsize = typ.get_bit_size() / d.second;
+			// create a type with bit size = row size
+			type_record ntyp (typ);
+			ntyp.set_bit_size (el_bitsize);
 			for (int i = d.first; i < d.first + d.second; ++i) {
 				memory_location el_loc = loc;
 				bit_location el ((i - d.first) * el_bitsize, el_bitsize);
@@ -245,7 +248,7 @@ namespace ParseTpy {
 				sprintf_s (buf, sizeof (buf), "[%i]", i);
 				ParseUtil::variable_name narr (varname);
 				narr.append (buf, "");
-				num += process_array (typ, dim, defopc, el_loc, process, narr, level);
+				num += process_array (ntyp, dim, defopc, el_loc, process, narr, level);
 			}
 			return num;
 		}
