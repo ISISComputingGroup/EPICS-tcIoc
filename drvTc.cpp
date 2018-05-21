@@ -667,7 +667,7 @@ void tcAlias (const iocshArgBuf *args)
 	tc_replacement_rules.clear();
 	const char* p2 = args[1].sval;
 	if (p2) {
-		std::regex e ("([^=,]+)=([^=,]+)");
+		std::regex e ("([^=,]+)=([^=,]*)");
 		std::cmatch m;
 		while (std::regex_search (p2, m, e)) {
 			if (m.size() == 3) {
