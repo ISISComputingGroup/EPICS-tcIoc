@@ -1418,8 +1418,10 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ZRST + 13 :
 		case OPC_PROP_ZRST + 14 :
 		case OPC_PROP_FFST :
-			process_field_numeric (EPICS_DB_ZRVL[f->first-OPC_PROP_ZRST], f->first-OPC_PROP_ZRST);
-			process_field_string (EPICS_DB_ZRST[f->first-OPC_PROP_ZRST], f->second);
+			if ((tname == "mbbi") || (tname == "mbbo")) {
+				process_field_numeric (EPICS_DB_ZRVL[f->first-OPC_PROP_ZRST], f->first-OPC_PROP_ZRST);
+				process_field_string (EPICS_DB_ZRST[f->first-OPC_PROP_ZRST], f->second);
+			}
 			break;
 		case OPC_PROP_RECTYPE :
 		case OPC_PROP_INOUT :

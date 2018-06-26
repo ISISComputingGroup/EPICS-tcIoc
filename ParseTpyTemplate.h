@@ -78,20 +78,36 @@ namespace ParseTpy {
 				get_process_tags() == process_all) {
 				// check if enum is contained with 0 to 15
 				bool withinhex = true;
+				int min = 0;
+				int max = -1;
 				for (enum_map::const_iterator e = typ.get_enum_list().begin(); 
 					e != typ.get_enum_list().end(); ++e) {
 						if ((e->first < 0) || (e->first >= 16)) {
 							withinhex = false;
-							break;
+						}
+						if (min > max) {
+							min = max = e->first;
+						}
+						else if (e->first < min) {
+							min = e->first;
+						}
+						else if (e->first > max) {
+							max = e->first;
 						}
 				}
 				// if not, treat as int
 				if (!withinhex) {
+					// add HOPR/LOPR
+					if (max >= min) {
+						defopc.get_properties().insert (property_el (102, std::to_string (max).c_str()));
+						defopc.get_properties().insert (property_el (103, std::to_string (min).c_str()));
+					}
 					process_arg arg (loc, varname, pt_int, defopc, typ.get_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 				// add opc property for enum values
 				else {
+ 					// add opc property for enum values
 					for (enum_map::const_iterator e = typ.get_enum_list().begin(); 
 						e != typ.get_enum_list().end(); ++e) {
 							defopc.get_properties().insert (

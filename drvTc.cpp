@@ -415,7 +415,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	for (dirname_arg_macro_tuple& macro : macros) {
 		get<3>(macro) = args[0].sval;
 	}
-
+	
 	// check option arguments
 	optarg options;
 	if (args[1].sval) {

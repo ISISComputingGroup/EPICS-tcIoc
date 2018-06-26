@@ -6,6 +6,7 @@
 #include "TpyToEpics.h"
 #include "TcAdsAPI.h"
 #include <memory>
+#include <filesystem>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -13,6 +14,7 @@
  ************************************************************************/
 
 using namespace std;
+using namespace std::tr2::sys;
 using namespace plc;
 
 bool debug = false;
@@ -378,6 +380,40 @@ bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 	return ((a->get_indexGroup() <= b->get_indexGroup()) && (a->get_indexOffset() < b->get_indexOffset()));
 }
 
+/* TcPLC::TcPLC constructor
+ ************************************************************************/
+TcPLC::TcPLC (std::string tpyPath)
+: pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRTS(0), nRequest(0),
+scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
+nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
+ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false)
+{
+	// modification time
+	path fpath(pathTpy);
+	timeTpy = last_write_time(fpath);
+};
+
+/* Checks is tpy file is valid, ie. hasn't changed
+ ************************************************************************/
+bool TcPLC::is_valid_tpy()
+{
+	if (validTpy && checkTpy.load()) {
+		checkTpy = false;
+		path fpath (pathTpy);
+		if (exists (fpath)) {
+			time_t modtime = last_write_time(fpath);
+			validTpy = (modtime == timeTpy);
+		}
+		else {
+			validTpy = false;
+		}
+		if (!validTpy) {
+			printf ("ABORT! Invalid tpy file for PLC %s\n", name.c_str());
+		}
+	}
+	return validTpy;
+}
+
 /* Build TCat read request groups: TcPLC::optimizeRequests
  ************************************************************************/
 bool TcPLC::optimizeRequests()
@@ -510,6 +546,7 @@ void TcPLC::set_ads_state(ADSSTATE state)
 {
 	if (ads_state.exchange (state) != state) {
 		printf ("%s PLC %s\n", state == ADSSTATE_RUN ? "Online" : "Offline", name.c_str());
+		checkTpy = (state == ADSSTATE_RUN);
 	} 
 }
 

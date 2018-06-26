@@ -268,13 +268,12 @@ public:
 	typedef std::shared_ptr<buffer_type> buffer_ptr;
 
 	/// Constructor
-	TcPLC(std::string tpyPath) 
-		: pathTpy(tpyPath), nRTS(0), nRequest(0), 
-		scanRateMultiple(default_multiple), cyclesLeft(default_multiple), 
-		nReadPort(0), nWritePort(0), nNotificationPort (0), read_active (false),
-		ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false) {};
+	TcPLC(std::string tpyPath);
 	/// Destructor
 	~TcPLC() { remove_ads_notification(); };
+
+	/// Is typ still valid? Meaning, it hasn't changed
+	bool is_valid_tpy();
 
 	/// Get AMS netID of TwinCAT system and port number for this PLC
 	AmsAddr	get_addr() { return addr; };
@@ -344,6 +343,12 @@ protected:
 	int	nRTS;
 	/// The path of the tpy file
 	std::string	pathTpy;
+	/// Modification time of file
+	time_t timeTpy;
+	/// need to check modifcation time to make sure tpy file hasn't changed
+	std::atomic<bool> checkTpy;
+	/// tpy file is valid and hasn't changed
+	bool validTpy;
 
 	/// Number of read request groups
 	int	nRequest;
