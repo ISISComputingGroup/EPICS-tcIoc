@@ -606,7 +606,7 @@ void TcPLC::read_scanner()
 {	
 	std::lock_guard<std::mutex>	lockit (sync);
 	bool read_success = false;
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
@@ -674,7 +674,7 @@ void TcPLC::read_scanner()
 void TcPLC::write_scanner()
 {
 	std::lock_guard<std::mutex>	lockit (sync);
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for_each (tcProcWrite (addr, nWritePort));
 	}
 }
