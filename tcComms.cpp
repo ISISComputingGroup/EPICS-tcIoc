@@ -408,7 +408,7 @@ bool TcPLC::is_valid_tpy()
 			validTpy = false;
 		}
 		if (!validTpy) {
-			printf ("ABORT! Invalid tpy file for PLC %s\n", name.c_str());
+			printf ("ABORT! Updated tpy file for PLC %s\nRESTART tcioc!\n", name.c_str());
 		}
 	}
 	return validTpy;
