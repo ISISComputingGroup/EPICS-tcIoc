@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -11,9 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="info_registerRecordDeviceDriver.cpp" />
+    <ClCompile Include="info_registerRecordDeviceDriver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="iocMain.cpp" />
-    <ClCompile Include="tCat_registerRecordDeviceDriver.cpp" />
+    <ClCompile Include="tCat_registerRecordDeviceDriver.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="setEPICSenv.bat" />
@@ -23,20 +27,21 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{D63BABF7-8745-477C-8710-30B116886C99}</ProjectGuid>
     <RootNamespace>tcIoc</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -54,18 +59,20 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IntDir>$(Configuration)\tcIoc\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EPICS_BASE)\include\os\WIN32;$(EPICS_BASE)\include\compiler\msvc;$(EPICS_BASE)\include;C:\TwinCAT\AdsApi\TcAdsDll\Include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>_MBCS;EPICS_BUILD_DLL;EPICS_CALL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86-debug;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86-debug</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tcIocSupport.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;testDevIoc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(EPICS_BASE)\lib\$(EPICS_HOST_ARCH)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tcIocSupport.lib;ca.lib;cas.lib;Com.lib;dbCore.lib;dbRecStd.lib;gdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -74,13 +81,15 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EPICS_BASE)\include\os\WIN32;$(EPICS_BASE)\include\compiler\msvc;$(EPICS_BASE)\include;C:\TwinCAT\AdsApi\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <PreprocessorDefinitions>_MBCS;EPICS_BUILD_DLL;EPICS_CALL_DLL;EPICS_BUILD_DLL;EPICS_CALL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tcIocSupport.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;testDevIoc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(EPICS_BASE)\lib\$(EPICS_HOST_ARCH)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tcIocSupport.lib;dbRecStd.lib;dbCore.lib;ca.lib;Com.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

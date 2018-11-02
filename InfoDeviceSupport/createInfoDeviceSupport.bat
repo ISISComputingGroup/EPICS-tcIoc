@@ -1,11 +1,10 @@
 set DEVICE=info
-set perlpath=C:\Perl64\bin
-set makepath=%ProgramFiles(x86)%\GnuWin32\bin
-set EPICS_BASE=C:\SlowControls\EPICS\base-3.14.12.3
-set PATH=%EPICS_BASE%\bin\win32-x86;%perlpath%;%makepath%;%PATH%
+set EPICS_BASE=C:\instrument\apps\epics\base\master
 set EPICS_HOST_ARCH=win32-x86
+set PATH=%EPICS_BASE%\bin\%EPICS_HOST_ARCH%;%PATH%
 %EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -t ioc %DEVICE%
 %EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -a %EPICS_HOST_ARCH% -p %DEVICE% -i -t ioc %DEVICE%
+pause
 make
 copy %DEVICE%Support.dbd %DEVICE%App\src\O.Common
 echo include "%DEVICE%Support.dbd" >> "%DEVICE%App\src\O.Common\%DEVICE%Include.dbd"

@@ -273,7 +273,8 @@ bool DataValue::Read (atomic_bool& dirty, type_string& data) const
 {
 	switch (mytype) {
 	case dtString:
-		return reset_and_read (dirty, data, (atomic_string*)mydata);
+		//plc::DataValueTraits<type_string>::traits_atomic
+		return reset_and_read(dirty, data, (atomic_string*)mydata);
 	default:
 		return false;
 	}

@@ -454,15 +454,15 @@ bool multi_io_support::open (const std::stringcase& fname,
 	}
 	path newfile ((filestat == io_filestat::read ? indirname : outdirname).c_str());
 	newfile /= fname.c_str();
-	FILE* fio = fopen (newfile.file_string().c_str(), io.c_str());
+	FILE* fio = fopen (newfile.string().c_str(), io.c_str());
 	if (!fio) {
 		filestat = io_filestat::closed;
 		if (!superrmsg) {
-			fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
+			fprintf (stderr, "Failed to open %s.\n", newfile.string().c_str());
 		}
 		return false;
 	}
-	filename = newfile.file_string().c_str();
+	filename = newfile.string().c_str();
 	filehandle = fio;
 	if (filestat == io_filestat::read) {
 		file_num_in += 1;
@@ -493,10 +493,10 @@ void multi_io_support::set_indirname (const std::stringcase& dname)
 {
 	path fname (dname.c_str());
 	if (is_directory (fname)) {
-		indirname = fname.directory_string().c_str();
+		indirname = fname.string().c_str();
 	}
 	else {
-		indirname = fname.parent_path().directory_string().c_str();
+		indirname = fname.parent_path().string().c_str();
 	}
 }
 
@@ -506,7 +506,7 @@ void multi_io_support::set_indirname (const std::stringcase& dname)
 void multi_io_support::set_outdirname (const std::stringcase& dname) 
 {
 	path fname (dname.c_str());
-	outdirname = fname.directory_string().c_str();
+	outdirname = fname.string().c_str();
 	try {
 		create_directories (fname);
 	}

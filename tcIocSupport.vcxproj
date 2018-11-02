@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -13,20 +13,21 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{20AD3257-8FA8-4C1F-88DF-B96343404C6A}</ProjectGuid>
     <RootNamespace>tcIocSupport</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -48,13 +49,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EPICS_BASE)\include\os\WIN32;$(EPICS_BASE)\include\compiler\msvc;$(EPICS_BASE)\include;C:\TwinCAT\AdsApi\TcAdsDll\Include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>_WINDLL;EPICS_BUILD_DLL;EPICS_CALL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86-debug;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86-debug</AdditionalLibraryDirectories>
-      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMTD.lib;TcAdsDll.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\AdsApi\TcAdsDll\Lib;$(EPICS_BASE)\lib\$(EPICS_HOST_ARCH)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMTD.lib;TcAdsDll.lib;ca.lib;cas.lib;Com.lib;dbCore.lib;dbRecStd.lib;gdd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -64,13 +66,14 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\base-3.14.12.3\include\os\WIN32;$(ProjectDir)..\..\base-3.14.12.3\include;C:\TwinCAT\Ads Api\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(EPICS_BASE)\include\os\WIN32;$(EPICS_BASE)\include\compiler\msvc;$(EPICS_BASE)\include;C:\TwinCAT\AdsApi\TcAdsDll\Include</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WINDLL;EPICS_BUILD_DLL;EPICS_CALL_DLL;EPICS_BUILD_DLL;EPICS_CALL_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMT.lib;TcAdsDll.lib;asIoc.lib;ca.lib;cas.lib;Com.lib;dbIoc.lib;dbStaticHost.lib;dbStaticIoc.lib;dbtoolsIoc.lib;gdd.lib;miscIoc.lib;recIoc.lib;registryIoc.lib;rsrvIoc.lib;softDevIoc.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\Ads Api\TcAdsDll\Lib;$(ProjectDir)..\..\base-3.14.12.3\src\as\O.win32-x86;$(ProjectDir)..\..\base-3.14.12.3\lib\win32-x86</AdditionalLibraryDirectories>
+      <AdditionalDependencies>tpylib.lib;EpicsDbLib.lib;libexpatMT.lib;TcAdsDll.lib;ca.lib;cas.lib;Com.lib;dbCore.lib;dbRecStd.lib;gdd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(OutDir);Expat;C:\TwinCAT\AdsApi\TcAdsDll\Lib;$(EPICS_BASE)\lib\$(EPICS_HOST_ARCH)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libcmtd.lib;libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>

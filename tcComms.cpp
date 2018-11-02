@@ -396,6 +396,8 @@ bool TcPLC::optimizeRequests()
 
 	bool gap;
 	int nextOffs;
+	if (recordList.size() == 0)
+		return false;
 	auto it = recordList.begin();
 	TCatInterface* rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
 	if (!rec) return false;

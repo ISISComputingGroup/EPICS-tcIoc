@@ -1,6 +1,8 @@
-set EPICS_BASE=C:\SlowControls\EPICS\base-3.14.12.3
-set PATH=%EPICS_BASE%\bin\win32-x86;%PATH%
-set EPICS_HOST_ARCH=win32-x86
+setlocal
+set EPICS_BASE=C:\Instrument\Apps\EPICS\base\master
+set EPICS_HOST_ARCH=win32-x86-debug
+set "PATH=%EPICS_BASE%\bin\%EPICS_HOST_ARCH%;%PATH%"
 
 cd %~dp0
-tcIoc.exe st.cmd
+rem Release\tcIoc.exe st-isis.cmd
+Debug\tcIoc.exe 

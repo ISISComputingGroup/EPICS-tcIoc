@@ -19,7 +19,7 @@ template <typename T>
  ************************************************************************/
 template<typename T, typename U>
 bool reset_and_read (DataValueTypeDef::atomic_bool& dirty, 
-					 T& dest, U* source)
+					 T& dest, U source)
 {
 	// must be before read
 	dirty.store (false, DataValueTypeDef::memory_order); 
@@ -48,7 +48,7 @@ template<typename T, typename U>
 bool write_and_test (DataValueTypeDef::atomic_bool& dirty, 
 					 const DataValueTypeDef::atomic_bool& read_pending,
 					 DataValueTypeDef::atomic_bool& valid, 
-					 U* dest, const T& source)
+					 U dest, const T& source)
 {
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
 	auto old = dest->exchange (source, DataValueTypeDef::memory_order);

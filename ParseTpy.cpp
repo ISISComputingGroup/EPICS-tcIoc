@@ -247,7 +247,7 @@ bool ads_routing_info::set (const std::stringcase& s)
 	int p = 0;
 	int end = 0;
 	int num = sscanf_s (s.c_str(), " tc://%255s:%i%n", 
-		buf, sizeof (buf), p, &end);
+		buf, sizeof (buf), &p, &end);
 	if ((num != 2) || (end != s.length())) {
 		ads_netid = "";
 		ads_port = 0;
