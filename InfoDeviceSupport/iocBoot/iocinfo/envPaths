@@ -1,0 +1,3 @@
+epicsEnvSet("IOC","iocinfo")
+epicsEnvSet("TOP","C:/devel/github/tcIoc/InfoDeviceSupport")
+epicsEnvSet("EPICS_BASE","C:/Instrument/Apps/EPICS/base/master")
