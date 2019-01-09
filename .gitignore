@@ -4,3 +4,7 @@ Debug/
 dbd/
 Release/
 O.*/
+*.vcxproj.user
+*.sdf
+*.VC.db
+*.suo
