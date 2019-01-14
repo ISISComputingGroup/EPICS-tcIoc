@@ -1,3 +1,4 @@
+//#include "stdafx.h"
 #include "stringcase.h"
 
 /** @file stringcase.cpp
@@ -61,7 +62,7 @@ void trim_space (wstringcase& s)
 // FNV prime for 64 bits
 static const size_t FNV_64_PRIME = (size_t)0x100000001B3;
 // FNV start value for 64 bits
-static const size_t FNV_64_INIT = (size_t)14695981039346656037;
+static const size_t FNV1_64_INIT = (size_t)14695981039346656037;
 #else 
 // FNV prime for 32 bits
 static const size_t FNV_32_PRIME = (size_t)0x01000193;
@@ -100,7 +101,7 @@ std::size_t std::hash<wstringcase>::operator()(const wstringcase& str) const
 	while (*s) {
 		c = towlower (*s++);
 		hval *= FNV_64_PRIME;
-		hval ^= (size_t)(c & 0cFF);
+		hval ^= (size_t)(c & 0xFF);
 		hval *= FNV_64_PRIME;
 		hval ^= (size_t)(c >> 8);
 	}

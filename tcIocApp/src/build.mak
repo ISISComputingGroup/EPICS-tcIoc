@@ -3,70 +3,69 @@ TOP=../..
 include $(TOP)/configure/CONFIG
 
 SRC_DIRS += $(TOP)
+EXPAT = $(TOP)/Expat
+ifneq ($(findstring windows,$(EPICS_HOST_ARCH)),)
+EXPATLIB = $(EXPAT)/x64/libexpatMT
+else
+EXPATLIB = $(EXPAT)/libexpatMT
+endif
 
-PROD_LIB += tcIocSupport
+ifneq ($(findstring debug,$(EPICS_HOST_ARCH)),)
+EXPATLIB := $(EXPATLIB)D
+endif
+
+ADSROOT = C:/TwinCAT/AdsApi/TcAdsDll
+ADSLIBROOT = $(ADSROOT)
+ADSLIBROOT = $(ADSROOT)/x64
+ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
+USR_DBDFLAGS += -I$(TOP)/InfoDeviceSupport -I$(TOP)/TCatDeviceSupport
+USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include
+
+TYPLIBSRC = ParseTpy.cpp ParseUtil.cpp stringcase.cpp
+EPICSDBLIBSRC = TpyToEpics.cpp
+
+LIBRARY_IOC += tcIocSupport
+
 tcIocSupport_SRCS += devInfo.cpp
 tcIocSupport_SRCS += devTc.cpp
 tcIocSupport_SRCS += drvInfo.cpp
 tcIocSupport_SRCS += drvTc.cpp
 tcIocSupport_SRCS += infoPlc.cpp
 tcIocSupport_SRCS += plcBase.cpp
-tcIocSupport_SRCS += devInfo.cpp
-tcIocSupport_SRCS += stdafx.cpp
 tcIocSupport_SRCS += tcComms.cpp
+tcIocSupport_SRCS += $(EPICSDBLIBSRC)
+tcIocSupport_SRCS += $(TYPLIBSRC)
 
-PROD_IOC = tcIoc
-# tcIoc.dbd will be created and installed
-DBD += $(APPNAME).dbd
+tcIocSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
+tcIocSupport_SYS_LIBS_WIN32 += $(EXPATLIB)
+tcIocSupport_SYS_LIBS_WIN32 += $(ADSLIB)
 
-# tcIoc.dbd will be made up from these files:
-$(APPNAME)_DBD += base.dbd
-## ISIS standard dbd ##
-$(APPNAME)_DBD += devSequencer.dbd
-$(APPNAME)_DBD += icpconfig.dbd
-$(APPNAME)_DBD += pvdump.dbd
-$(APPNAME)_DBD += asSupport.dbd
-$(APPNAME)_DBD += devIocStats.dbd
-$(APPNAME)_DBD += caPutLog.dbd
-$(APPNAME)_DBD += utilities.dbd
-## Stream device support ##
-$(APPNAME)_DBD += stream.dbd
-$(APPNAME)_DBD += asyn.dbd
-$(APPNAME)_DBD += drvAsynSerialPort.dbd
-$(APPNAME)_DBD += drvAsynIPPort.dbd
-$(APPNAME)_DBD += calcSupport.dbd
-## add other dbd here ##
-#$(APPNAME)_DBD += xxx.dbd
+PROD_IOC = tpyinfo epicsdbgen tcIoc
 
-# Add all the support libraries needed by this IOC
-## ISIS standard libraries ##
-$(APPNAME)_LIBS += seqDev seq pv
-$(APPNAME)_LIBS += devIocStats 
-$(APPNAME)_LIBS += pvdump $(MYSQLLIB) easySQLite sqlite 
-$(APPNAME)_LIBS += caPutLog
-$(APPNAME)_LIBS += icpconfig pugixml
-$(APPNAME)_LIBS += autosave
-$(APPNAME)_LIBS += utilities pcre libjson zlib
-## Stream device libraries ##
-$(APPNAME)_LIBS += stream
-$(APPNAME)_LIBS += pcre
-$(APPNAME)_LIBS += asyn
-## Add other libraries here ##
-$(APPNAME)_LIBS += calc
-#$(APPNAME)_LIBS += xxx
+DBD += tcIocSupport.dbd tcIoc.dbd
+tcIocSupport_DBD += infoSupport.dbd
+tcIocSupport_DBD += tcatSupport.dbd
+tcIoc_DBD += base.dbd
+tcIoc_DBD += tcIocSupport.dbd
+
+tpyinfo_SRCS += ParseTpyInfo.cpp
+tpyinfo_SRCS += $(TYPLIBSRC)
+tpyinfo_SYS_LIBS_WIN32 += $(EXPATLIB)
+
+epicsdbgen_SRCS += EpicsDbGen.cpp
+epicsdbgen_SRCS += $(EPICSDBLIBSRC)
+epicsdbgen_SRCS += $(TYPLIBSRC)
+epicsdbgen_SYS_LIBS_WIN32 += $(EXPATLIB)
 
 # tcIoc_registerRecordDeviceDriver.cpp derives from tcIoc.dbd
-$(APPNAME)_SRCS += $(APPNAME)_registerRecordDeviceDriver.cpp
-
-# Build the main IOC entry point on workstation OSs.
-$(APPNAME)_SRCS_DEFAULT += $(APPNAME)Main.cpp
-$(APPNAME)_SRCS_vxWorks += -nil-
-
-# Add support from base/src/vxWorks if needed
-#$(APPNAME)_OBJS_vxWorks += $(EPICS_BASE_BIN)/vxComLibrary
+tcIoc_SRCS += iocMain.cpp
+tcIoc_SRCS += tcIoc_registerRecordDeviceDriver.cpp
 
 # Finally link to the EPICS Base libraries
-$(APPNAME)_LIBS += $(EPICS_BASE_IOC_LIBS)
+tcIoc_LIBS += tcIocSupport
+tcIoc_LIBS += $(EPICS_BASE_IOC_LIBS)
+tcIoc_SYS_LIBS_WIN32 += $(EXPATLIB)
+tcIoc_SYS_LIBS_WIN32 += $(ADSLIB)
 
 #===========================
 
