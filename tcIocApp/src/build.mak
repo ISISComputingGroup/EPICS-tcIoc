@@ -43,8 +43,6 @@ tcIocSupport_SYS_LIBS_WIN32 += $(ADSLIB)
 PROD_IOC = tpyinfo epicsdbgen tcIoc
 
 DBD += tcIocSupport.dbd tcIoc.dbd
-tcIocSupport_DBD += infoSupport.dbd
-tcIocSupport_DBD += tcatSupport.dbd
 tcIoc_DBD += base.dbd
 tcIoc_DBD += tcIocSupport.dbd
 
