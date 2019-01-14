@@ -4,19 +4,19 @@ include $(TOP)/configure/CONFIG
 
 SRC_DIRS += $(TOP)
 EXPAT = $(TOP)/Expat
+ADSROOT = C:/TwinCAT/AdsApi/TcAdsDll
 ifneq ($(findstring windows,$(EPICS_HOST_ARCH)),)
 EXPATLIB = $(EXPAT)/x64/libexpatMT
+ADSLIBROOT = $(ADSROOT)/x64
 else
 EXPATLIB = $(EXPAT)/libexpatMT
+ADSLIBROOT = $(ADSROOT)
 endif
 
 ifneq ($(findstring debug,$(EPICS_HOST_ARCH)),)
 EXPATLIB := $(EXPATLIB)D
 endif
 
-ADSROOT = C:/TwinCAT/AdsApi/TcAdsDll
-ADSLIBROOT = $(ADSROOT)
-ADSLIBROOT = $(ADSROOT)/x64
 ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
 USR_DBDFLAGS += -I$(TOP)/InfoDeviceSupport -I$(TOP)/TCatDeviceSupport
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include
