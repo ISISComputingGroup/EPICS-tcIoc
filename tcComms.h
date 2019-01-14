@@ -259,6 +259,9 @@ private:
  ************************************************************************/
 class TcPLC	:	public plc::BasePLC
 {
+	static std::vector<TcPLC*> plcVec;
+	static std::mutex plcVecMutex;
+	unsigned plcId;
 	/// Notification callback is a friend
 	friend void __stdcall ADScallback (AmsAddr*, AdsNotificationHeader*, unsigned long);
 public:
@@ -272,7 +275,12 @@ public:
 		: pathTpy(tpyPath), nRTS(0), nRequest(0), 
 		scanRateMultiple(default_multiple), cyclesLeft(default_multiple), 
 		nReadPort(0), nWritePort(0), nNotificationPort (0), read_active (false),
-		ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false) {};
+		ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false)
+		{
+			std::lock_guard<std::mutex> lock(plcVecMutex);
+			plcVec.push_back(this);
+			plcId = plcVec.size() - 1;
+		};
 	/// Destructor
 	~TcPLC() { remove_ads_notification(); };
 

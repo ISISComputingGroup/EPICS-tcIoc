@@ -498,7 +498,11 @@ void TcPLC::printAllRecords()
 void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
 							ULONG hUser)
 {
-	TcPLC* tCatPlcUser = (TcPLC*) hUser; 
+	TcPLC* tCatPlcUser = NULL;
+	{
+	    std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
+	    tCatPlcUser = TcPLC::plcVec[hUser];
+	}
 	ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
 	tCatPlcUser->set_ads_state(state);
 }
@@ -528,7 +532,7 @@ void TcPLC::setup_ads_notification()
 	nNotificationPort = openPort ();
 	nErr = AdsSyncAddDeviceNotificationReqEx (nNotificationPort, &addr, 
 		ADSIGRP_DEVICE_DATA, ADSIOFFS_DEVDATA_ADSSTATE, 
-		&adsNotificationAttrib, ADScallback, (LONG)this, &ads_handle);
+		&adsNotificationAttrib, ADScallback, plcId, &ads_handle);
 	if (nErr) {
 		printf ("Unable to establish ADS notifications for %s\n", name.c_str());
 		set_ads_state (ADSSTATE_RUN);
@@ -681,6 +685,8 @@ void TcPLC::closePort(long nPort)
 	AdsPortCloseEx(nPort);
 }
 
+std::vector<TcPLC*> TcPLC::plcVec;
+std::mutex TcPLC::plcVecMutex;
 
 /************************************************************************ 
   AmsRouterNotification

@@ -1149,7 +1149,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	string epicsname = to_epics (arg.get_alias());
 	if (epicsname.size() > MAX_EPICS_CHANNEL) {
 		fprintf (stderr, "Warning: channel name %s too long by %i\n", 
-			epicsname.c_str(), epicsname.size() - MAX_EPICS_CHANNEL);
+			epicsname.c_str(), static_cast<int>(epicsname.size() - MAX_EPICS_CHANNEL));
 		return false;
 	}
 	// now print header
@@ -1159,7 +1159,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	if (arg.get_opc().get_property (OPC_PROP_DESC, s)) {
 		if (s.size() > MAX_EPICS_DESC) {
 			fprintf (stderr, "Warning: DESC for %s too long by %i\n", 
-				arg.get_name().c_str(), s.size() - MAX_EPICS_DESC);
+				arg.get_name().c_str(), static_cast<int>(s.size() - MAX_EPICS_DESC));
 		}
 		process_field_string (EPICS_DB_DESC, s);
 	}
