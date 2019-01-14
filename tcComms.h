@@ -259,6 +259,7 @@ private:
  ************************************************************************/
 class TcPLC	:	public plc::BasePLC
 {
+    /// Map PLC instance to an integer for use in ADScallback
 	static std::vector<TcPLC*> plcVec;
 	static std::mutex plcVecMutex;
 	unsigned plcId;
