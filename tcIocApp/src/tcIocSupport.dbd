@@ -1,2 +1,2 @@
 include "infoSupport.dbd"
-include "tcatSupport.dbd"
+include "tCatSupport.dbd"
