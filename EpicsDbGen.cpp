@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 	epics_db_processing		dbproc;
 	epics_macrofiles_processing	macroproc;
 	if (macros) {
-		macroproc = epics_macrofiles_processing (aliasname, outfilename, argc, argv, argp_macro);
+		macroproc = epics_macrofiles_processing (aliasname, outfilename, false, argc, argv, argp_macro);
 		macroproc.set_indirname (inpfilename);
 	}
 	else if (listing) {
@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
 
 	// generate macro files
 	if (macros) {
+		macroproc.set_twincat3 (tpyfile.get_project_info().get_tcat_version() > 3);
 		if (!tpyfile.process_symbols (macroproc)) {
 			fprintf (stderr, "Unable to generate listing.\n");
 			return 1;

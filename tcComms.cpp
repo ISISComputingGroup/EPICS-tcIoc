@@ -6,6 +6,7 @@
 #include "TpyToEpics.h"
 #include "TcAdsAPI.h"
 #include <memory>
+#include <filesystem>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -13,6 +14,7 @@
  ************************************************************************/
 
 using namespace std;
+using namespace std::tr2::sys;
 using namespace plc;
 
 bool debug = false;
@@ -378,17 +380,54 @@ bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 	return ((a->get_indexGroup() <= b->get_indexGroup()) && (a->get_indexOffset() < b->get_indexOffset()));
 }
 
+/* TcPLC::TcPLC constructor
+ ************************************************************************/
+TcPLC::TcPLC (std::string tpyPath)
+: pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRTS(0), nRequest(0),
+scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
+nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
+ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false)
+{
+	// modification time
+	path fpath(pathTpy);
+	timeTpy = last_write_time(fpath);
+};
+
+/* Checks is tpy file is valid, ie. hasn't changed
+ ************************************************************************/
+bool TcPLC::is_valid_tpy()
+{
+	if (validTpy && checkTpy.load()) {
+		checkTpy = false;
+		path fpath (pathTpy);
+		if (exists (fpath)) {
+			time_t modtime = last_write_time(fpath);
+			validTpy = (modtime == timeTpy);
+		}
+		else {
+			validTpy = false;
+		}
+		if (!validTpy) {
+			printf ("ABORT! Updated tpy file for PLC %s\nRESTART tcioc!\n", name.c_str());
+		}
+	}
+	return validTpy;
+}
+
 /* Build TCat read request groups: TcPLC::optimizeRequests
  ************************************************************************/
 bool TcPLC::optimizeRequests()
 {
 	// TODO: THIS FUNCTION NEEDS A NEW NAME
 	if (debug) printf("Forming requests...\n");
+	if (records.empty()) {
+		return true;
+	}
 
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
-	for (auto it = records.begin(); it!= records.end(); ++it) {
-		recordList.push_back( it->second);
+	for (auto& it : records) {
+		recordList.push_back( it.second);
 	}
 
 	// Sort record list by group and offset
@@ -507,6 +546,7 @@ void TcPLC::set_ads_state(ADSSTATE state)
 {
 	if (ads_state.exchange (state) != state) {
 		printf ("%s PLC %s\n", state == ADSSTATE_RUN ? "Online" : "Offline", name.c_str());
+		checkTpy = (state == ADSSTATE_RUN);
 	} 
 }
 
@@ -566,7 +606,7 @@ void TcPLC::read_scanner()
 {	
 	std::lock_guard<std::mutex>	lockit (sync);
 	bool read_success = false;
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
@@ -634,7 +674,7 @@ void TcPLC::read_scanner()
 void TcPLC::write_scanner()
 {
 	std::lock_guard<std::mutex>	lockit (sync);
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for_each (tcProcWrite (addr, nWritePort));
 	}
 }

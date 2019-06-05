@@ -52,8 +52,6 @@ copy-item $source\tcIocSupport.dll $destination
 copy-item $source\EpicsDbLib.lib $destination
 copy-item $source\tcIocSupport.lib $destination
 copy-item $source\tpylib.lib $destination
-copy-item $source\ControlState.lib $destination
-copy-item $source\csdinfo.exe $destination
 
 write "Copying EPICS libraries"
 copy-Item $epicsbin\asHost.dll $destination

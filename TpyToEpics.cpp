@@ -19,6 +19,47 @@ using namespace ParseUtil;
 
 namespace EpicsTpy {
 
+/* Static const variables
+ ************************************************************************/
+const char* const replacement_rules::prefix = "${";
+const char* const replacement_rules::suffix = "}";
+
+/* Static const variables
+ ************************************************************************/
+std::stringcase replacement_rules::apply_replacement_rules (const std::stringcase& arg) const
+{
+	stringcase ret (arg);
+	stringcase var;
+	stringcase val;
+	stringcase::size_type pos1;
+	stringcase::size_type pos2;
+	stringcase::size_type prefixlen = strlen (prefix);
+	stringcase::size_type suffixlen = strlen (suffix);
+	replacement_table::const_iterator rep;
+
+	// look for prefix
+	while ((pos1 = ret.find (prefix)) != stringcase::npos) {
+		// look for suffix
+		pos2 = ret.find (suffix, pos1 + prefixlen);
+		// no suffix? What's up? remove prefix and move on
+		if (pos2 == stringcase::npos) {
+			ret.erase (pos1, prefixlen);
+			continue;
+		}
+		// determine variable name
+		var = ret.substr (pos1 + prefixlen, pos2 - (pos1 + prefixlen));
+		trim_space (var);
+		// check for value in table
+		if (!var.empty() &&
+			(rep = table.find (var)) != table.end()) {
+			var = rep->second;
+		}
+		// replace var with value
+		ret.replace (pos1, pos2 - pos1 + 1, var);
+	}
+	return ret;
+}
+
 /* Parse command line arguments
  ************************************************************************/
 int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
@@ -102,6 +143,11 @@ string epics_conversion::to_epics (const stringcase& name) const
 	stringcase n (name);
 	stringcase::size_type pos;
 
+	// apply replacement rules
+	if (HasRules()) {
+		n = apply_replacement_rules (n);
+	}
+
 	// eliminate leading dot
 	if (no_leading_dot || (conv_rule == ligo_std) || (conv_rule == ligo_vac)) {
 		std::stringcase::size_type pos;
@@ -135,17 +181,17 @@ string epics_conversion::to_epics (const stringcase& name) const
 		break;
 		// ligo standard
 	case ligo_vac:
-		// replace first dot with dash
-		pos = n.find ('.');
-		if (pos != stringcase::npos) {
-			n[pos] = '-';
-		}
-		// replace second dot with colon
-		pos = n.find ('.');
+		// replace first underscore with colon
+		pos = n.find ('_');
 		if (pos != stringcase::npos) {
 			n[pos] = ':';
 		}
-		// replace remaining dots with underscore
+		// replace second underscore with dash
+		pos = n.find ('_');
+		if (pos != stringcase::npos) {
+			n[pos] = '-';
+		}
+		// replace dots with underscore
 		while ((pos = n.find ('.')) != stringcase::npos) {
 			n[pos] = '_';
 		}
@@ -518,7 +564,7 @@ void multi_io_support::set_outdirname (const std::stringcase& dname)
    epics_list_processing::epics_list_processing
 ************************************************************************/
 epics_list_processing::epics_list_processing (
-		const std::stringcase& fname,
+		const std::stringcase& fname, 
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  split_io_support (fname, argc, argv, argp) 
@@ -569,6 +615,12 @@ int epics_list_processing::mygetopt (int argc, const char* const argv[],
 			set_verbose (false);
 			++num;
 		}
+		// generate a LIGO DAQ ini listing
+		else if (arg == "-li" || arg == "/li") {
+			set_listing(listing_daqini);
+			set_verbose(false);
+			++num;
+		}
 		// now set flag to indicated a processed option
 		if (argp && (num > oldnum)) {
 			argp[i] = true;
@@ -595,13 +647,78 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		stringcase ro = arg.get_opc().is_readonly() ? "RO " : "";
 		fprintf (get_file(), "%s%s", ro.c_str(), epicsname.c_str());
 	}
+	// LIGO DAQ ini listing
+	else if (listing == listing_daqini) {
+		// get unit string and datatype value
+		// we support float (4) and int32 (3)
+		std::stringcase s;
+		std::stringcase sep;
+		std::stringcase unit;
+		int datatype = LIGODAQ_DATATYPE_FLOAT;
+		arg.get_opc().get_property(OPC_PROP_UNIT, unit);
+		trim_space(unit);
+		switch (arg.get_process_type()) {
+		case pt_int:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			break;
+		case pt_bool:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			if (arg.get_opc().get_property(OPC_PROP_OPEN, s)) {
+				trim_space(s);
+				unit = s;
+			}
+			unit += '|';
+			if (arg.get_opc().get_property(OPC_PROP_CLOSE, s)) {
+				trim_space(s);
+				unit += s;
+			}
+			break;
+		case pt_enum:
+			datatype = LIGODAQ_DATATYPE_INT32;
+			unit = "";
+			sep = "";
+			for (int opcidx = OPC_PROP_ZRST; opcidx <= OPC_PROP_FFST; opcidx++) {
+				if (arg.get_opc().get_property(opcidx, s)) {
+					trim_space(s);
+					unit += sep + s;
+					sep = "";
+				}
+				sep += '|';
+			}
+			break;
+		}
+		if (unit == "") {
+			unit = LIGODAQ_UNIT_NONE;
+		}
+		// write header 
+		if (get_processed_total() == 1) {
+			fprintf(get_file(), LIGODAQ_INI_HEADER, LIGODAQ_DATATYPE_DEFAULT, LIGODAQ_UNIT_DEFAULT);
+			fprintf(get_file(), "\n\n");
+		}
+		// write entry for channel
+		fprintf(get_file(), "[%s]", epicsname.c_str());
+		if (datatype != LIGODAQ_DATATYPE_DEFAULT) {
+			fprintf(get_file(), "\n%s=%i", LIGODAQ_DATATYPE_NAME, datatype);
+		}
+		s = unit;
+		unit = "";
+		for (auto& c : s) {
+			unsigned char uc = c;
+			if (isprint(uc)) {
+				unit += isspace(uc) ? '_' : uc;
+			}
+		}
+		if (unit != LIGODAQ_UNIT_DEFAULT) {
+			fprintf(get_file(), "\n%s=%s", LIGODAQ_UNIT_NAME, unit.c_str());
+		}
+	}
 	// standard listing
 	else {
 		fprintf (get_file(), "%s", epicsname.c_str());
 	}
 
 	// long listing?
-	if (verbose && (listing != listing_autoburt)) {
+	if (verbose && (listing != listing_autoburt) && (listing != listing_daqini)) {
 		fprintf (get_file(), " (%s", arg.get_process_string().c_str());
 		fprintf (get_file(), ", opc %c", arg.get_opc().is_published() ? '1' : '0');
 		for (property_map::const_iterator i = arg.get_opc().get_properties().begin();
@@ -621,11 +738,11 @@ bool epics_list_processing::operator() (const process_arg& arg)
    epics_macrofiles_processing::epics_macrofiles_processing
 ************************************************************************/
 epics_macrofiles_processing::epics_macrofiles_processing (
-		const std::stringcase& pname, const std::stringcase& dname,
+		const std::stringcase& pname, const std::stringcase& dname, bool tcat3,
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  multi_io_support (dname, argc, argv, argp),
-	  plcname (pname), macros (macrofile_type::all), rec_num (0)
+	   plcname (pname), macros (macrofile_type::all), isTwinCAT3 (tcat3), rec_num (0)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -727,18 +844,22 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 
 	// Add the new field
 	procstack.top().fields.push_back (minfo);
-	if (minfo.type_n == errorstruct) {
+	int pos = minfo.type_n.length() - errorstruct.length();
+	bool iserror = (minfo.type_n == errorstruct) ||
+		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
+		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
+	if (iserror) {
 		procstack.top().haserror = true;
 		procstack.top().erroridx = procstack.top().fields.size()-1;
 	}
 
-	// check if this is a structure
+	// check, if this is a structure
 	if (!arg.is_atomic()) {
 		// found a record: add to processing stack
 		macro_record mrec;
 		mrec.record = minfo;
 		mrec.back = procstack.top().record;
-		if (minfo.type_n == errorstruct) {
+		if (iserror) {
 			mrec.iserror = true;
 		}
 		procstack.push (mrec);
@@ -757,19 +878,37 @@ std::stringcase epics_macrofiles_processing::to_filename (
 {
 	std::stringcase ret (epicsname);
 	std::stringcase::size_type pos;
-	while ((pos = ret.find (':')) != stringcase::npos) ret.erase (pos, 1);
-	if (!get_plcname().empty()) {
-		if ((pos = ret.find ('-')) != stringcase::npos) {
-			ret.insert (pos + 1, get_plcname() + '_');
+	if (isTwinCAT3) {
+		if ((pos = ret.find ('.')) == 0) ret.erase (0, 1);
+		if ((pos = ret.find (':')) != stringcase::npos) ret.erase (0, pos+1);
+		if (!get_plcname().empty()) {
+			if (ret.empty()) {
+				// nothing
+			}
+			else if ((ret.length() == 2) && (get_plcname().compare (0, 2, ret) == 0)) {
+				ret = get_plcname();
+			}
+			else {
+				ret.insert (0, get_plcname() + '_');
+			}
 		}
-		else if ((pos = ret.find ('.')) != stringcase::npos) {
-			ret.insert (pos, stringcase("_") + get_plcname());
-		}
-		else if (!ret.empty()) {
-			(ret += '_') += get_plcname(); // yah!
-		}
-	}	
-	while ((pos = ret.find ('-')) != stringcase::npos) ret[pos] = '_';
+		while ((pos = ret.find_first_of ("-:.")) != stringcase::npos) ret[pos] = '_';
+	}
+	else {
+		while ((pos = ret.find (':')) != stringcase::npos) ret.erase (pos, 1);
+		if (!get_plcname().empty()) {
+			if ((pos = ret.find ('-')) != stringcase::npos) {
+				ret.insert (pos + 1, get_plcname() + '_');
+			}
+			else if ((pos = ret.find ('.')) != stringcase::npos) {
+				ret.insert (pos, stringcase("_") + get_plcname());
+			}
+			else if (!ret.empty()) {
+				(ret += '_') += get_plcname(); // yah!
+			}
+		}	
+		while ((pos = ret.find ('-')) != stringcase::npos) ret[pos] = '_';
+	}
 	return ret;
 }
 
@@ -778,12 +917,16 @@ std::stringcase epics_macrofiles_processing::to_filename (
    epics_macrofiles_processing::errorlistext
 ************************************************************************/
 const std::stringcase epics_macrofiles_processing::errorstruct = "ErrorStruct";
-const std::stringcase epics_macrofiles_processing::errorlistext = "_Errors.exp";
-const std::regex epics_macrofiles_processing::errormatchregex (
+const std::stringcase epics_macrofiles_processing::errorlistext2 = "_Errors.exp";
+const std::regex epics_macrofiles_processing::errormatchregex2 (
 	"[^:]*:\\s*ErrorMessagesArray\\s*:=\\s*([^;]*);[^;]*", 
 	std::regex_constants::icase);
 const std::regex epics_macrofiles_processing::errorsearchregex ( 
 	"'((\\$[\\$'LlNnPpRrTt\\d])|[^'\\$])*'", std::regex_constants::icase);
+const std::stringcase epics_macrofiles_processing::errorlistext31 = "_Errors.TcGVL";
+const std::regex epics_macrofiles_processing::errormatchregex31 (
+	"[^:]*:\\s*ErrorMessagesArray\\s*:=\\s*\\[\\s*([^\\]]*)\\]\\s*;[^;]*", 
+	std::regex_constants::icase);
 
 /* Process a record
    epics_macrofiles_processing::process_record()
@@ -807,17 +950,42 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	if (mrec.haserror && 
 		((get_macrofile_type() == macrofile_type::all) ||
 		(get_macrofile_type() == macrofile_type::errors))) {
-		std::stringcase fname = mrec.record.type_n + errorlistext;
-		bool succ = open (fname, "r", true);
-		// check if we have a field name
-		if (!succ && !get_plcname().empty() &&
-			mrec.record.name.rfind (get_plcname()) == 
-			mrec.record.name.length() - get_plcname().length()) {
-			std::stringcase::size_type pos = fname.rfind ("Struct");
-			if (pos != stringcase::npos) {
-				fname.insert (pos, get_plcname(), 0, 1);
+		bool succ = false;
+		std::stringcase fname;
+		if (isTwinCAT3) {
+			fname = "ADL\\";
+			std::stringcase::size_type pos = mrec.record.type_n.find('.');
+			if (pos == std::stringcase::npos) {
+				fname += mrec.record.type_n + errorlistext31;
+			}
+			else {
+				fname += mrec.record.type_n.substr(pos+1) + errorlistext31;
 			}
 			succ = open (fname, "r", true);
+			// check if we have a field name
+			if (!succ && !get_plcname().empty() &&
+				mrec.record.name.rfind (get_plcname()) == 
+				mrec.record.name.length() - get_plcname().length()) {
+				std::stringcase::size_type pos = fname.rfind ("Struct");
+				if (pos != stringcase::npos) {
+					fname.insert (pos, get_plcname(), 0, 1);
+				}
+				succ = open (fname, "r", true);
+			}
+		}
+		else {
+			fname = mrec.record.type_n + errorlistext2;
+			succ = open (fname, "r", true);
+			// check if we have a field name
+			if (!succ && !get_plcname().empty() &&
+				mrec.record.name.rfind (get_plcname()) == 
+					mrec.record.name.length() - get_plcname().length()) {
+				std::stringcase::size_type pos = fname.rfind ("Struct");
+				if (pos != stringcase::npos) {
+					fname.insert (pos, get_plcname(), 0, 1);
+				}
+				succ = open (fname, "r", true);
+			}
 		}
 		if (!succ) {
 			if (missing.find (fname) == missing.end()) {
@@ -833,7 +1001,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			int sz = ftell (fp);
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
-			char* buf = new char [sz+1];
+			unsigned char* buf = new unsigned char [sz+1];
 			sz = fread (buf, sizeof (char), sz, fp);
 			buf[sz] = 0;
 			for (int i = 0; i < sz; ++i) {
@@ -842,7 +1010,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			// check if it is formatted correctly
 			std::cmatch match;
 			if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
-				errormatchregex)) {
+				isTwinCAT3 ? errormatchregex31 : errormatchregex2)) {
 				for (auto i = ++match.begin(); i != match.end(); ++i) {
 					std::string found = i->str();
 					// search and iterate over single quote strings
@@ -873,7 +1041,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	}
 
 	// open output file
-	if (!open (to_filename (mrec.record.name + ".aml"), "w")) {
+	if (!open (to_filename (mrec.record.name) + ".aml", "w")) {
 		fprintf (stderr, "Failed to process %s.\n", mrec.record.name.c_str());
 		return false;
 	}
@@ -1250,8 +1418,10 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ZRST + 13 :
 		case OPC_PROP_ZRST + 14 :
 		case OPC_PROP_FFST :
-			process_field_numeric (EPICS_DB_ZRVL[f->first-OPC_PROP_ZRST], f->first-OPC_PROP_ZRST);
-			process_field_string (EPICS_DB_ZRST[f->first-OPC_PROP_ZRST], f->second);
+			if ((tname == "mbbi") || (tname == "mbbo")) {
+				process_field_numeric (EPICS_DB_ZRVL[f->first-OPC_PROP_ZRST], f->first-OPC_PROP_ZRST);
+				process_field_string (EPICS_DB_ZRST[f->first-OPC_PROP_ZRST], f->second);
+			}
 			break;
 		case OPC_PROP_RECTYPE :
 		case OPC_PROP_INOUT :

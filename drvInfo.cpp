@@ -262,7 +262,7 @@ void infoLoadRecords (const iocshArgBuf *args)
 	{
 		printf ("Loading record database %s.\n", outfilename.c_str());
 		if (dbLoadRecords (outfilename.c_str(), 0)) {
-			printf ("Unable to laod record database for %s.\n", outfilename.c_str());
+			printf ("\nUnable to laod record database for %s.\n", outfilename.c_str());
 			return;
 		}
 		printf ("Loaded record database %s.\n", outfilename.c_str());

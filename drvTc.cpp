@@ -43,20 +43,21 @@ static const iocshArg tcListArg1		            = {"Conversion rules", iocshArgStr
 static const iocshArg tcMacroArg0			        = {"'mdir' output directory", iocshArgString};
 static const iocshArg tcMacroArg1		            = {"Macro arguments", iocshArgString};
 static const iocshArg tcAliasArg0					= {"Alias name for PLC", iocshArgString};
-static const iocshArg tcPrintValsArg0	            = {"emptyarg", iocshArgString};
+static const iocshArg tcAliasArg1					= {"Replacement rules", iocshArgString};
+static const iocshArg tcPrintValsArg0				= {"emptyarg", iocshArgString};
 
 static const iocshArg* const  tcLoadRecordsArg[2]   = {&tcLoadRecordsArg0, &tcLoadRecordsArg1};
 static const iocshArg* const  tcSetScanRateArg[2]   = {&tcSetScanRateArg0, &tcSetScanRateArg1};
 static const iocshArg* const  tcListArg[2]		    = {&tcListArg0, &tcListArg1};
 static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
-static const iocshArg* const  tcAliasArg[1]			= {&tcAliasArg0};
+static const iocshArg* const  tcAliasArg[2]			= {&tcAliasArg0, &tcAliasArg1};
 static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
 
 iocshFuncDef tcLoadRecordsFuncDef                   = {"tcLoadRecords", 2, tcLoadRecordsArg};
 iocshFuncDef tcSetScanRateFuncDef		            = {"tcSetScanRate", 2, tcSetScanRateArg};
 iocshFuncDef tcListFuncDef				            = {"tcGenerateList", 2, tcListArg};
 iocshFuncDef tcMacroFuncDef				            = {"tcGenerateMacros", 2, tcMacroArg};
-iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 1, tcAliasArg};
+iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 2, tcAliasArg};
 iocshFuncDef tcPrintValsFuncDef				        = {"tcPrintVals", 1, tcPrintValsArg};
 
 typedef std::tuple<std::stringcase, std::stringcase, 
@@ -69,6 +70,7 @@ typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
+static EpicsTpy::replacement_table tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 
@@ -80,9 +82,11 @@ class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
 public:
 	/// Default constructor
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
+		EpicsTpy::replacement_table& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
 		: plc (&p), invnum (0), lists (l), macros (m) { 
 			device_support = device_support_tc_name; 
+			set_rule_table (rules);
 			init_lists(); init_macros(); }
 	~epics_tc_db_processing() { 
 		done_lists(); done_macros(); }
@@ -169,6 +173,8 @@ void epics_tc_db_processing::init_lists()
 			}
 			// option processing
 			lproc->getopt (options.argc(), options.argv(), options.argp());
+			// set replacement rules
+			lproc->set_rule_table (get_rule_table());
 			// force single file
 			split_io_support iosupp (std::get<0>(list), false, 0);
 			if (!iosupp) {
@@ -233,8 +239,10 @@ void epics_tc_db_processing::init_macros()
 		optarg options (get<1>(macro));
 		epics_macrofiles_processing* mproc = 
 			new (std::nothrow) epics_macrofiles_processing (
-			plc->get_alias(), std::get<0>(macro), options.argc(), options.argv());
+			plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
 		if (mproc) {
+			// set replacement rules
+			mproc->set_rule_table (get_rule_table());
 			// set input directory to tpy file dir
 			if (get<3>(macro) && *get<3>(macro)) {
 				mproc->set_indirname (get<3>(macro));
@@ -379,9 +387,11 @@ void tcLoadRecords (const iocshArgBuf *args)
 {
 	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
+	EpicsTpy::replacement_table rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
 	tc_alias = "";
+	tc_replacement_rules.clear();
 	tc_lists.clear();
 	tc_macros.clear();
 
@@ -405,7 +415,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	for (dirname_arg_macro_tuple& macro : macros) {
 		get<3>(macro) = args[0].sval;
 	}
-
+	
 	// check option arguments
 	optarg options;
 	if (args[1].sval) {
@@ -455,7 +465,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	tcplc->set_alias (alias);
 	
 	// Set up output db generator
-	epics_tc_db_processing dbproc (*tcplc, &listings, &macros);
+	epics_tc_db_processing dbproc (*tcplc, rules, &listings, &macros);
 	// option processing
 	dbproc.getopt (options.argc(), options.argv(), options.argp());
 	// force single file
@@ -465,6 +475,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 		return;
 	}
 	(split_io_support&)(dbproc) = iosupp;
+	// setup macro processing
+	for (dirname_arg_macro_tuple& macro : macros) {
+		if (get<2>(macro)) get<2>(macro)->set_twincat3 (
+				tpyfile.get_project_info().get_tcat_version() > 3);
+	}
+
 
 	// generate db file and tc records
 	if (dbg) tpyfile.set_export_all (TRUE);
@@ -512,7 +528,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	printf ("Loading record database %s.\n", outfilename.c_str());
 	if (dbLoadRecords (outfilename.c_str(), 0)) {
-		printf ("Unable to laod record database for %s.\n", outfilename.c_str());
+		printf ("\nUnable to laod record database for %s.\n", outfilename.c_str());
 		return;
 	}
 	printf ("Loaded record database %s.\n", outfilename.c_str());
@@ -640,12 +656,40 @@ void tcAlias (const iocshArgBuf *args)
         printf("Specify an alias\n");
 		return;
 	}
+	// Check alias name
 	const char* p1 = args[0].sval;
 	if (!p1) {
         printf("Specify an alias name for a tc PLC\n");
 		return;
 	}
 	tc_alias = p1;
+	// Check replacement rules
+	tc_replacement_rules.clear();
+	const char* p2 = args[1].sval;
+	if (p2) {
+		std::regex e ("([^=,]+)=([^=,]*)");
+		std::cmatch m;
+		while (std::regex_search (p2, m, e)) {
+			if (m.size() == 3) {
+				std::stringcase var (m[1].str().c_str());
+				trim_space (var);
+				std::stringcase val (m[2].str().c_str());
+				trim_space (val);
+				if (!var.empty()) {
+					tc_replacement_rules [var] = val;
+				}
+			}
+			p2 += m.length();
+        }
+		std::stringcase msg = "Replacement rules are: ";
+		for (auto i : tc_replacement_rules) {
+			msg += i.first + "=" + i.second + ",";
+		}
+		if (!msg.empty()) {
+			msg.erase (msg.length()-1, std::stringcase::npos);
+		}
+		printf("%s\n", msg.c_str());
+	}
 }
 
 

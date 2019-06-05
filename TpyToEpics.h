@@ -18,6 +18,47 @@ namespace EpicsTpy {
  ************************************************************************/
 /** @{ */
 
+/** Table of replacement rules
+ ************************************************************************/
+typedef std::map <std::stringcase, std::stringcase> replacement_table;
+
+/** Epics channel conversion arguments
+ Epics channels are generated from opc through a conversion rule
+ ************************************************************************/
+class replacement_rules {
+public:
+	/// Default constructor
+	replacement_rules() {}
+	/// Constructor
+	replacement_rules (const replacement_table& t) 
+		: table (t) {}
+	/// Add a rule
+	void add_rule (const std::stringcase& var, const std::stringcase& val) {
+		table[var] = val; }
+	/// set table
+	void set_rule_table (const replacement_table& t) {
+		table = t; }
+	/// get table
+	replacement_table& get_rule_table() { 
+		return table; }
+	/// get table
+	const replacement_table& get_rule_table() const { 
+		return table; }
+	/// replace
+	std::stringcase apply_replacement_rules (const std::stringcase& s) const;
+	/// Has rules
+	bool HasRules() const {
+		return !table.empty(); }
+
+	/// prefix for replacement rule: $(
+	static const char* const prefix;
+	/// suffix for replacement rule: )
+	static const char* const suffix;
+protected:
+	/// Replacement table
+	replacement_table		table;
+};
+
 /** This enum describes the TwinCAT/opc to EPICS conversion rule
  ************************************************************************/
 enum tc_epics_conv {
@@ -53,7 +94,7 @@ enum case_type {
 /** Epics channel conversion arguments
 Epics channels are generated from opc through a conversion rule
 ************************************************************************/
-class epics_conversion {
+class epics_conversion : public replacement_rules {
 public:
 	/// Default constructor
 	epics_conversion()
@@ -414,7 +455,9 @@ enum listing_type {
 	/// Standard listing using TwinCAT/OPC names
 	listing_standard, 
 	/// Autoburt listing
-	listing_autoburt
+	listing_autoburt,
+	/// LIGO DAQ ini listing
+	listing_daqini
 };
 
 /** Class for generatig a channel list
@@ -462,6 +505,7 @@ public:
 	/// /l: Generates a standard listing (default)
 	/// /ll: Generates a long listing
 	/// /lb: Generates an autoburt save/restore file
+	/// /li: Generates a LIGO DAQ ini file
 	///
 	/// Command line arguments can use '-' instead of a '/'. Capitalization does
 	/// not matter. getopt will only override arguments that are specifically 
@@ -557,19 +601,23 @@ class epics_macrofiles_processing :
 public:
 	/// Type name identifying an error struct ("ErrorStruct")
 	static const std::stringcase errorstruct;
-	/// File extension identifying a list of error msgs ("_Errors.exp")
-	static const std::stringcase errorlistext;
-	/// Regular expression to match the entire error record defintition
-	static const std::regex errormatchregex;
-	/// Regular expression to search for the actual error messages
+	/// TwinCAT 2.11: File extension identifying a list of error msgs ("_Errors.exp")
+	static const std::stringcase errorlistext2;
+	/// TwinCAT 2.11: Regular expression to match the entire error record defintition
+	static const std::regex errormatchregex2;
+	/// TwinCAT 3.1: File extension identifying a list of error msgs ("_Errors.TcGVL")
+	static const std::stringcase errorlistext31;
+	/// TwinCAT 3.1: Regular expression to match the entire error record defintition
+	static const std::regex errormatchregex31;
+	/// TwinCAT 2.11/3.1: Regular expression to search for the actual error messages
 	static const std::regex errorsearchregex;
 
 	/// Default constructor
-	epics_macrofiles_processing() : macros (macrofile_type::all), rec_num (0) {}
+	epics_macrofiles_processing() : macros (macrofile_type::all), isTwinCAT3 (false), rec_num (0) {}
 	/// Constructor
 	/// @param mt Type of macro
 	explicit epics_macrofiles_processing (macrofile_type mt) 
-		: macros (mt), rec_num (0) {}
+		: macros (mt), isTwinCAT3 (false), rec_num (0) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -582,7 +630,7 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	epics_macrofiles_processing (const std::stringcase& pname, 
-		const std::stringcase& dname,
+		const std::stringcase& dname, bool tcat3,
 		int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Destructor
@@ -635,6 +683,11 @@ public:
 	const std::stringcase& get_plcname () const { 
 		return plcname; }
 
+	/// Is this twincat 3?
+	bool is_twincat3() const { return isTwinCAT3; }
+	/// Set twincat 3 version?
+	void set_twincat3 (bool tcat3 = true) {isTwinCAT3 = tcat3; }
+
 	/// Translate epics name to filename
 	std::stringcase to_filename (const std::stringcase& epicsname);
 
@@ -649,6 +702,8 @@ protected:
 	macrofile_type	macros;
 	/// PLC name
 	std::stringcase	plcname;
+	/// TwinCAT version
+	bool			isTwinCAT3;
 	/// Processing stack
 	macro_stack		procstack;
 	/// Current number of processed channels (records)

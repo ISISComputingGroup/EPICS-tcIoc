@@ -18,6 +18,7 @@ namespace ParseTpy {
 const char* const xmlPlcProjectInfo = "PlcProjectInfo";
 const char* const xmlProjectInfo = "ProjectInfo";
 const char* const xmlRoutingInfo = "RoutingInfo";
+const char* const xmlCompilerInfo = "CompilerInfo";
 const char* const xmlAdsInfo = "AdsInfo";
 const char* const xmlDataTypes = "DataTypes";
 const char* const xmlDataType = "DataType";
@@ -26,12 +27,17 @@ const char* const xmlSymbol = "Symbol";
 const char* const xmlProperties = "Properties";
 const char* const xmlProperty = "Property";
 
+const char* const xmlCompilerVersion = "CompilerVersion";
+const char* const xmlTwinCATVersion = "TwinCATVersion";
+const char* const xmlCpuFamily = "CpuFamily";
 const char* const xmlNetId = "NetId";
 const char* const xmlPort = "Port";
+const char* const xmlTargetName = "TargetName";
 
 const char* const xmlName = "Name";
 const char* const xmlType = "Type";
 const char* const xmlAttrDecoration = "Decoration";
+const char* const xmlAttrPointer = "Pointer";
 const char* const xmlIGroup = "IGroup";
 const char* const xmlIOffset = "IOffset";
 const char* const xmlBitSize = "BitSize";
@@ -44,6 +50,7 @@ const char* const xmlFbInfo = "FbInfo";
 const char* const xmlEnumInfo = "EnumInfo";
 const char* const xmlEnumText = "Text";
 const char* const xmlEnumEnum = "Enum";
+const char* const xmlEnumComment = "Comment";
 
 const char* const xmlValue = "Value";
 const char* const xmlDesc = "Desc";
