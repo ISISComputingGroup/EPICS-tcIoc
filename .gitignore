@@ -1,0 +1,15 @@
+.vs/
+/bin/
+/lib/
+Debug/
+/dbd/
+Release/
+O.*/
+*.vcxproj.user
+*.sdf
+*.VC.db
+*.suo
+dllPath.bat
+envPaths
+relPaths.sh
+runIOC.bat
