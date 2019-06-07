@@ -2,7 +2,7 @@
 #include "drvInfo.h"
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
-#include "InfoPlc.h"
+#include "infoPlc.h"
 #include "gdd.h"
 #include "dbStaticLib.h"
 #include "dbAccess.h"

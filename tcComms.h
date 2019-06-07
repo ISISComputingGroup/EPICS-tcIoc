@@ -380,6 +380,13 @@ protected:
 	long nNotificationPort;
 	/// read active and successful
 	bool read_active;
+private:
+	/// Map PLC instance to an integer for use in ADScallback
+	static std::vector<TcPLC*> plcVec;
+	/// Mutex for PLC instance vector
+	static std::mutex plcVecMutex;
+	/// PLC ID
+	unsigned plcId;
 };
 
 /** Class for a AMS router notifications

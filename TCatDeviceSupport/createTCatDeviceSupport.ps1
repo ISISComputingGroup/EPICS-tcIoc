@@ -1,8 +1,8 @@
 # Make the device support for info
 #
 # Device name
-$devicepath="C:\SlowControlsMaggie\EPICS\Utilities\tcIoc\InfoDeviceSupport"
-$DEVICE="info"
+$devicepath="C:\SlowControlsMaggie\EPICS\Utilities\tcIoc\TCatDeviceSupport"
+$DEVICE="tCat"
 # 
 # Windows program directory
 if ("${env:ProgramFiles(x86)}" -eq "") {

@@ -464,7 +464,7 @@ protected:
 
 /** Enum for access rights of a record
 ************************************************************************/
-typedef enum access_rights_enum 
+enum access_rights_enum 
 {
 	/// Read only
 	read_only, 

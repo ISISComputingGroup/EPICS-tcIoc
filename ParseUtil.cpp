@@ -225,7 +225,7 @@ std::stringcase memory_location::get() const
 bool memory_location::set (const std::stringcase& s)
 {
 	int ig (0), io (0), sz (0), n (0);
-	int num = sscanf_s (s.c_str(), "%i/%i:%i%n", ig, io, sz, &n);
+	int num = sscanf_s (s.c_str(), "%i/%i:%i%n", &ig, &io, &sz, &n);
 	if ((num != 3) || (n != s.length())) {
 		igroup = -1;
 		ioffset = -1;

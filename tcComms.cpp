@@ -14,7 +14,7 @@
  ************************************************************************/
 
 using namespace std;
-using namespace std::tr2::sys;
+using namespace std::experimental::filesystem::v1;
 using namespace plc;
 
 bool debug = false;
@@ -386,11 +386,17 @@ TcPLC::TcPLC (std::string tpyPath)
 : pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRTS(0), nRequest(0),
 scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
 nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
-ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false)
+ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false), plcId (0)
 {
 	// modification time
 	path fpath(pathTpy);
-	timeTpy = last_write_time(fpath);
+	timeTpy = last_write_time(fpath).time_since_epoch().count();
+	// Set PLC ID and initialize list of PLC instances
+	{
+		std::lock_guard<std::mutex> lock(plcVecMutex);
+		plcVec.push_back(this);
+		plcId = plcVec.size() - 1;
+	};
 };
 
 /* Checks is tpy file is valid, ie. hasn't changed
@@ -401,7 +407,7 @@ bool TcPLC::is_valid_tpy()
 		checkTpy = false;
 		path fpath (pathTpy);
 		if (exists (fpath)) {
-			time_t modtime = last_write_time(fpath);
+			time_t modtime = last_write_time(fpath).time_since_epoch().count();
 			validTpy = (modtime == timeTpy);
 		}
 		else {
@@ -427,14 +433,16 @@ bool TcPLC::optimizeRequests()
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
 	for (auto& it : records) {
-		recordList.push_back( it.second);
+		recordList.push_back(it.second);
 	}
 
 	// Sort record list by group and offset
-	recordList.sort( compByOffset );
-
+	recordList.sort(compByOffset);
 	bool gap;
 	int nextOffs;
+	if (recordList.size() == 0) {
+		return false;
+	}
 	auto it = recordList.begin();
 	TCatInterface* rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
 	if (!rec) return false;
@@ -535,7 +543,11 @@ void TcPLC::printAllRecords()
 void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
 							ULONG hUser)
 {
-	TcPLC* tCatPlcUser = (TcPLC*) hUser; 
+	TcPLC* tCatPlcUser = NULL;
+	{
+		std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
+		tCatPlcUser = TcPLC::plcVec[hUser];
+	}
 	ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
 	tCatPlcUser->set_ads_state(state);
 }
@@ -566,7 +578,7 @@ void TcPLC::setup_ads_notification()
 	nNotificationPort = openPort ();
 	nErr = AdsSyncAddDeviceNotificationReqEx (nNotificationPort, &addr, 
 		ADSIGRP_DEVICE_DATA, ADSIOFFS_DEVDATA_ADSSTATE, 
-		&adsNotificationAttrib, ADScallback, (LONG)this, &ads_handle);
+		&adsNotificationAttrib, ADScallback, plcId, &ads_handle);
 	if (nErr) {
 		printf ("Unable to establish ADS notifications for %s\n", name.c_str());
 		set_ads_state (ADSSTATE_RUN);
@@ -719,6 +731,13 @@ void TcPLC::closePort(long nPort)
 	AdsPortCloseEx(nPort);
 }
 
+/* TcPLC::plcVec
+ ************************************************************************/
+std::vector<TcPLC*> TcPLC::plcVec;
+
+/* TcPLC::closePort
+ ************************************************************************/
+std::mutex TcPLC::plcVecMutex;
 
 /************************************************************************ 
   AmsRouterNotification
