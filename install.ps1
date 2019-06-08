@@ -19,25 +19,41 @@
 #
 #####################################################################
 [CmdletBinding()]
-param ([switch] $d)
+param ([switch] $d,
+       [switch] $x64)
 
 write "Install tcIoc Binaries"
 
+$version = "2_0"
 # Path
-$parent = "C:\SlowControls"
-$destination = "$parent\EPICS\Utilities\Bin"
-if ($d) {
-    $source = "$parent\EPICS\Utilities\tcIoc\Debug"
-    $epicsbin = "$parent\EPICS\base-3.14.12.3\bin\win32-x86-debug"
+$parent = "$PSScriptRoot"
+$download = "$parent\Download"
+$epicsbase = "..\..\base-3.15.6"
+if ($x64) {
+    $platform = "x64"
+    $epicstarget = "windows-x64"
 }
 else {
-    $source = "$parent\EPICS\Utilities\tcIoc\Release"
-    $epicsbin = "$parent\EPICS\base-3.14.12.3\bin\win32-x86"
+    $platform = "win32"
+    $epicstarget = "win32-x86"
+}
+$destination = "$PSScriptRoot\$platform\Bin"
+if ($d) {
+    $source = "$parent\$platform\Debug"
+    $epicsbin = "$parent\$epicsbase\bin\$epicstarget-debug"
+}
+else {
+    $source = "$parent\$platform\Release"
+    $epicsbin = "$parent\$epicsbase\bin\$epicstarget"
 }
 
 # create target path if it doesn't exists
 if (-not $(test-path $destination)) {
     new-item $destination -type directory > $null
+}
+# create Download path if it doesn't exists
+if (-not $(test-path $download)) {
+    new-item $download -type directory > $null
 }
 
 write "Epics libraries:   $epicsbin"
@@ -46,16 +62,14 @@ write "Install to:        $destination"
 
 write "Copying tcIoc.exe"
 copy-item $source\tcIoc.exe $destination
-copy-item $source\EpicsDbGen.exe $destination
+#copy-item $source\EpicsDbGen.exe $destination
 copy-item $source\tpyinfo.exe $destination
 copy-item $source\tcIocSupport.dll $destination
-copy-item $source\EpicsDbLib.lib $destination
-copy-item $source\tcIocSupport.lib $destination
-copy-item $source\tpylib.lib $destination
+#copy-item $source\EpicsDbLib.lib $destination
+#copy-item $source\tcIocSupport.lib $destination
+#copy-item $source\tpylib.lib $destination
 
 write "Copying EPICS libraries"
-copy-Item $epicsbin\asHost.dll $destination
-copy-Item $epicsbin\asIoc.dll $destination
 copy-Item $epicsbin\ca.dll $destination
 copy-Item $epicsbin\caget.exe $destination
 copy-Item $epicsbin\cainfo.exe $destination
@@ -63,19 +77,12 @@ copy-Item $epicsbin\camonitor.exe $destination
 copy-Item $epicsbin\caput.exe $destination
 copy-Item $epicsbin\caRepeater.exe $destination
 copy-Item $epicsbin\cas.dll $destination
-copy-Item $epicsbin\ca_test.exe $destination
 copy-Item $epicsbin\Com.dll $destination
-copy-Item $epicsbin\dbIoc.dll $destination
-copy-Item $epicsbin\dbStaticHost.dll $destination
-copy-Item $epicsbin\dbStaticIoc.dll $destination
-copy-Item $epicsbin\dbtoolsIoc.dll $destination
-copy-Item $epicsbin\gdd.dll $destination
+copy-Item $epicsbin\dbCore.dll $destination
+copy-Item $epicsbin\dbRecStd.dll $destination
+#copy-Item $epicsbin\gdd.dll $destination
 copy-Item $epicsbin\iocLogServer.exe $destination
-copy-Item $epicsbin\miscIoc.dll $destination
-copy-Item $epicsbin\recIoc.dll $destination
-copy-Item $epicsbin\registryIoc.dll $destination
-copy-Item $epicsbin\rsrvIoc.dll $destination
-copy-Item $epicsbin\softDevIoc.dll $destination
-copy-Item $epicsbin\testDevIoc.dll $destination
+
+Compress-Archive -Path $destination\* -DestinationPath $download\tcIoc_${platform}_${version}.zip -Force
 
 write-verbose "Done"

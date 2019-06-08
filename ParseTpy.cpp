@@ -361,7 +361,7 @@ void type_map::insert (value_type val)
  ************************************************************************/
 bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
 {
-	int pos = p1.length() - p2.length();
+	int pos = static_cast<int>(p1.length() - p2.length());
 	if (pos > 0) {
 		return (p1[pos-1] == '.') &&
 			(p1.compare (pos, std::stringcase::npos, p2) == 0);

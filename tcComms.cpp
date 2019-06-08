@@ -300,8 +300,10 @@ void tcProcWrite::tcwrite()
 	char* ret = new char [4 * count];
 	if (!ret) return;
 	unsigned long read;
-	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, count,
-		sizeof(long)*count, ret, 3*sizeof(long)*count + size, ptr, &read);
+	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
+		static_cast<unsigned long>(count),
+		static_cast<unsigned long>(sizeof(long)*count), ret, 
+		static_cast<unsigned long>(3*sizeof(long)*count + size), ptr, &read);
 	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf (nErr);
 	// ready for next transfer
 	count = 0;
@@ -395,7 +397,7 @@ ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false), plcId (0)
 	{
 		std::lock_guard<std::mutex> lock(plcVecMutex);
 		plcVec.push_back(this);
-		plcId = plcVec.size() - 1;
+		plcId = (unsigned int)plcVec.size() - 1;
 	};
 };
 

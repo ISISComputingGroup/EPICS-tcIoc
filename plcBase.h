@@ -385,12 +385,12 @@ protected:
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pchar Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_string_value* data, int max) const;
+	bool Read (atomic_bool& dirty, type_string_value* data, size_type max) const;
 	/// Read character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pchar Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_wstring_value* data, int max) const;
+	bool Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const;
 
 	/// Write data
 	/// @param dirty Reference to dirty flag (user or plc)
@@ -416,14 +416,14 @@ protected:
 	/// @param pchar Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_string_value* data, int max);
+		const type_string_value* data, size_type max);
 	/// Write character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param pchar Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_wstring_value* data, int max);
+		const type_wstring_value* data, size_type max);
 
 	/// Read data as binary
 	/// @param dirty Reference to dirty flag (user or plc)

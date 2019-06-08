@@ -16,11 +16,11 @@ int optarg::parse (const std::stringcase& arg)
 	vector<stringcase> list;
 	split_string (list, stringcase ("optarg ") + arg, 
 		[] (char c)->bool { return isspace (c) != 0; }, true);
-	setup (list.size());
-	myargc = list.size();
+	setup (static_cast<int>(list.size()));
+	myargc = static_cast<int>(list.size());
 	if (list.empty()) return 0;
 	for (size_t i = 0; i < list.size(); ++i) {
-		int len = list[i].size() + 4;
+		size_t len = list[i].size() + 4;
 		myargv[i] = new (std::nothrow) char[len];
 		if (myargv[i]) 
 			strncpy_s (myargv[i], len, list[i].c_str(), list[i].size());

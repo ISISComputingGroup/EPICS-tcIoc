@@ -326,8 +326,7 @@ void split_io_support::set_filename (const stringcase& fn)
 	// check for non-empty (no stdout) filename
 	if (!outfilename.empty()) {
 		if (split_io || (split_n > 0)) {
-			int nn = -123;
-			if ((nn = outfilename.rfind (".db")) == outfilename.size() - 3) {
+			if (outfilename.rfind (".db") == outfilename.size() - 3) {
 				outfilename.erase (outfilename.size() - 3);
 			}
 			if (split_n > 0) {
@@ -838,19 +837,19 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	while ((procstack.size() > 1) && 
 		   (minfo.name.compare (0, procstack.top().record.name.length(), 
 		                        procstack.top().record.name) != 0)) {
-		process_record (procstack.top(), procstack.size() - 1);
+		process_record (procstack.top(), static_cast<int>(procstack.size()) - 1);
 		procstack.pop();
 	}
 
 	// Add the new field
 	procstack.top().fields.push_back (minfo);
-	int pos = minfo.type_n.length() - errorstruct.length();
+	int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
 	bool iserror = (minfo.type_n == errorstruct) ||
 		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
 		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
 	if (iserror) {
 		procstack.top().haserror = true;
-		procstack.top().erroridx = procstack.top().fields.size()-1;
+		procstack.top().erroridx = static_cast<int>(procstack.top().fields.size()-1);
 	}
 
 	// check, if this is a structure
@@ -1002,7 +1001,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
 			unsigned char* buf = new unsigned char [sz+1];
-			sz = fread (buf, sizeof (char), sz, fp);
+			sz = (int)fread (buf, sizeof (char), sz, fp);
 			buf[sz] = 0;
 			for (int i = 0; i < sz; ++i) {
 				if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR

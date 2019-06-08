@@ -296,7 +296,7 @@ bool DataValue::Read (atomic_bool& dirty, type_wstring& data) const
 
 /* DataValue::Read (type_string_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_string_value* data, int max) const
+bool DataValue::Read (atomic_bool& dirty, type_string_value* data, size_type max) const
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -310,7 +310,7 @@ bool DataValue::Read (atomic_bool& dirty, type_string_value* data, int max) cons
 
 /* DataValue::Read (type_wstring_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, int max) const
+bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -354,7 +354,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_string_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_string_value* data, int max)
+					   const type_string_value* data, size_type max)
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -367,7 +367,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_wstring_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_wstring_value* data, int max)
+					   const type_wstring_value* data, size_type max)
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -617,7 +617,7 @@ void BasePLC::update_timestamp()
 int BasePLC::count()
 {
 	guard lock (mux);
-	return records.size();
+	return (int)records.size();
 }
 
 /* BasePLC::test

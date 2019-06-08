@@ -19,7 +19,7 @@ namespace std {
     @brief case insensitive compare with maximum length
  ************************************************************************/
 inline
-int strncasecmp (const char *s1, const char *s2, int n) {
+int strncasecmp (const char *s1, const char *s2, size_t n) {
 	return _strnicmp (s1, s2, n); }
 
 /** Case insensitive compare for unicode string.
@@ -29,7 +29,7 @@ int strncasecmp (const char *s1, const char *s2, int n) {
     @brief case insensitive unicode compare with maximum length
  ************************************************************************/
 inline
-int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, int n) {
+int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, size_t n) {
 	return _wcsnicmp (s1, s2, n); }
 
 /** This traits class is not case sensitive.
@@ -38,13 +38,13 @@ int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, int n) {
 struct case_char_traits : public std::char_traits<char> 
 {
 	static bool eq (const char_type& c1, const char_type& c2) { 
-		return tolower (c1) == tolower (c2); 
+		return ::tolower (c1) == ::tolower (c2); 
 	}
 	static bool ne (const char_type& c1, const char_type& c2) { 
-		return !(tolower (c1) == tolower (c2));
+		return !(::tolower (c1) == ::tolower (c2));
 	}
 	static bool lt (const char_type& c1, const char_type& c2) { 
-		return tolower (c1) < tolower (c2);
+		return ::tolower (c1) < ::tolower (c2);
 	}
 	static int compare (const char_type* s1, const char_type* s2, size_t n) { 
 		return strncasecmp (s1, s2, n); 
