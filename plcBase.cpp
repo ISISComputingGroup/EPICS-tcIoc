@@ -15,43 +15,43 @@ System System::tCat;
  ************************************************************************/
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_bool>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = dtBool;
+	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = dtBool; ///< Bool specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = dtInt8;
+	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = dtInt8; ///< Int8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = dtUInt8;
+	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = dtUInt8; ///< UInt8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = dtInt16;
+	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = dtInt16; ///< Int16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = dtInt16;
+	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = dtInt16; ///< UInt16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = dtInt32;
+	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = dtInt32; ///< Int32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = dtInt32;
+	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = dtInt32; ///< UInt32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_float>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_float>::data_enum = dtFloat;
+	DataValueTraits<DataValueTypeDef::type_float>::data_enum = dtFloat; ///< Float specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_double>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_double>::data_enum = dtDouble;
+	DataValueTraits<DataValueTypeDef::type_double>::data_enum = dtDouble; ///< Double specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_string>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_string>::data_enum = dtString;
+	DataValueTraits<DataValueTypeDef::type_string>::data_enum = dtString; ///< String specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_wstring>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = dtWString;
+	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = dtWString; ///< WString specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_binary>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = dtBinary;
+	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = dtBinary; ///< Binary specialization for DataValueTraits
 
 
-/* Will read the value and reset the dirty flag (wstring from string).
+/** Will read the value and reset the dirty flag (wstring from string).
    @brief Reset and read
  ************************************************************************/
 template<>
@@ -67,7 +67,7 @@ bool reset_and_read (DataValueTypeDef::atomic_bool& dirty,
 	return true;
 }
 
-/* Will set the dirty bit, when the newly written value is different 
+/** Will set the dirty bit, when the newly written value is different 
    from the old one (string to wstring).
    @brief Write and test
  ************************************************************************/
@@ -640,7 +640,7 @@ void BasePLC::plc_data_set_valid (bool valid)
 	});
 }
 
-/* Structure for arguments sent to a scanner thread
+/** Structure for arguments sent to a scanner thread
  ************************************************************************/
 typedef struct 
 { 
@@ -652,11 +652,7 @@ typedef struct
 	plc::BasePLC::scanner_func scanner; 
 } scanner_thread_args;
 
-/* Scanner thread with periodic timer
-	This function uses the windows waitable timer which will call a 
-	completion routine at a regular interval. The completion routine in 
-	this case is one of either read_scanner, write_scanner, or 
-	update_scanner.
+/** Scanner thread callback with periodic timer
  ************************************************************************/
 VOID CALLBACK ScannerProc (
    LPVOID lpArg,               // Data value
@@ -670,6 +666,12 @@ VOID CALLBACK ScannerProc (
 	}
 }
 
+/** Scanner thread with periodic timer
+	This function uses the windows waitable timer which will call a
+	completion routine at a regular interval. The completion routine in
+	this case is one of either read_scanner, write_scanner, or
+	update_scanner.
+ ************************************************************************/
 DWORD WINAPI scannerThread (scanner_thread_args args)
 {
 	HANDLE				hTimer;
@@ -820,6 +822,7 @@ void System::stop()
 }
 
 extern "C" {
+	/// Stop TwinCAT
 	void stopTc(void) {
 		plc::System::get().stop();
 	}

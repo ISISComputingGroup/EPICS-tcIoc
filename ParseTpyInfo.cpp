@@ -15,11 +15,15 @@ using namespace ParseUtil;
  ************************************************************************/
 class syminfo_processing {
 public:
+	/// Constructor
 	explicit syminfo_processing (FILE* outfile = 0, bool atomic = true)
 		: outf (outfile ? outfile : stdout), firstline (true) {}
+	/// Process
 	bool operator() (const process_arg& arg);
 protected:
+	/// Ouptut file
 	FILE*		outf;
+	/// Firstline?
 	bool		firstline;
 };
 
@@ -80,7 +84,8 @@ bool syminfo_processing::operator() (const process_arg& arg)
 }
 
 
-/** Main program
+/** Main program for tpyinfo
+    @brief tpyinfo
  ************************************************************************/
 int main (int argc, char *argv[])
 {

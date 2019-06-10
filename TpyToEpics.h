@@ -217,6 +217,7 @@ public:
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
+	/// @param fname Filename for output
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
@@ -360,6 +361,7 @@ public:
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
+	/// @param dname Name of output directory
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
@@ -626,6 +628,7 @@ public:
 	/// multi_io_support::getopt and mygetopt().
 	/// @param pname PLC name
 	/// @param dname Directory name
+	/// @param tcat3 True if we are processing TwinCAT 3.1 files
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc

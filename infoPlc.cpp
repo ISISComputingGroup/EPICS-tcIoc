@@ -4,6 +4,10 @@ using namespace std;
 using namespace ParseUtil;
 using namespace plc;
 
+/** @file InfoPlc.cpp
+	Defines methods for the info PLC.
+ ************************************************************************/
+
 namespace InfoPlc {
 
 /** BaseInfoItem::get_info

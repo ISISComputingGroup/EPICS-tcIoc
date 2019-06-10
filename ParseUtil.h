@@ -66,7 +66,7 @@ protected:
 
 /** @} */
 
-/** @defgroup parsetpyopc OPC related functions and classes
+/** @defgroup parseutilopc OPC related functions and classes
     These function and classes are generally used to describe channel 
 	properties
  ************************************************************************/
@@ -137,7 +137,7 @@ protected:
 
 /** @} */
 
-/** @defgroup parsetpyparseinfo Classes for describing a parser argument
+/** @defgroup parseutilparseinfo Classes for describing a parser argument
  ************************************************************************/
 /** @{ */
 

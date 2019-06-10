@@ -39,7 +39,9 @@ const int maximum_scanrate = 10000;
  ************************************************************************/
 struct stat_value
 {
+	/// Record
 	plc::BaseRecordPtr		rec;
+	/// OPC list
 	ParseUtil::opc_list		opc;
 };
 
@@ -54,26 +56,37 @@ typedef std::vector<stat_value> stat_list;
 class BaseInfoItem
 {
 public:
+	/// Default constructor
 	BaseInfoItem () {};
+	/// Initialize from OPC list
 	explicit BaseInfoItem (const ParseUtil::opc_list& opc) : defopc (opc) {};
+	/// Destructor
 	virtual ~BaseInfoItem() {};
+	/// Setup
+	/// @param tagname Name of channels
+	/// @param plc_alias PLC alias name
+	/// @param puser Pointer ot PLC
 	virtual bool setup (const std::stringcase& tagname,	
 		const std::stringcase& plc_alias, plc::Interface* puser) = 0;
+	/// Update
 	virtual void update (double val) = 0;
+	/// Reset
 	virtual void reset() {};
 
 	/// Get OPC list
 	const ParseUtil::opc_list& get_opc() const { return defopc; }
 	/// Get OPC list
 	ParseUtil::opc_list& get_opc() { return defopc; }
-
+	/// get info 
 	virtual bool get_info (int idx,
 		const std::stringcase& prefix, std::stringcase& name, 
 		ParseUtil::process_type_enum& ptype, ParseUtil::opc_list& opc, 
 		std::stringcase& type_n, bool& atomic) const;
 
 protected:
+	/// statistics list
 	stat_list						stats;
+	/// OPC list
 	ParseUtil::opc_list				defopc;
 };
 
@@ -89,19 +102,31 @@ typedef std::vector<BaseInfoItemPtr> BaseInfoList;
 class SimpleInfoItem: public BaseInfoItem
 {
 public:
+	/// Default constructor
 	SimpleInfoItem () {};
+	/// Initialize from OPC list
 	explicit SimpleInfoItem (const ParseUtil::opc_list& opc) : BaseInfoItem (opc) {};
-	virtual bool setup (const std::stringcase& tagname,	
+	/// Setup
+	/// @param tagname Name of channels
+	/// @param plc_alias PLC alias name
+	/// @param puser Pointer ot PLC
+	virtual bool setup (const std::stringcase& tagname,
 		const std::stringcase& plc_alias, plc::Interface* puser) override;
 	/// Recalculates last, min, max, avg, cnt based on a new value
 	virtual void update (double val) override;
+	/// Reset
 	virtual void reset() override;
 
 protected:
+	/// Last
 	double							last;
+	/// Minimum
 	double							min;
+	/// Maximum
 	double							max;
+	/// Average
 	double							avg;
+	/// Count
 	double							cnt;
 };
 
@@ -112,9 +137,13 @@ protected:
 class HistogramInfoItem	:	public BaseInfoItem
 {
 public:
+	/// Default constructor
 	HistogramInfoItem();
+	/// Desctructor
 	~HistogramInfoItem();
+	/// Update
 	virtual void					update(double val) override;
+	/// Reset
 	virtual void					reset() override;
 protected:
 	/// Upper limit
@@ -135,14 +164,24 @@ protected:
 class HistoryInfoItem : public BaseInfoItem
 {
 public:
-	explicit HistoryInfoItem (int length = 10) 
+	/// Default constructor
+	explicit HistoryInfoItem (int length = 10)
 	: history_length (length) {};
-	explicit HistoryInfoItem (const ParseUtil::opc_list& opc, int length = 10) 
+	/// Constructor from opc list
+	explicit HistoryInfoItem (const ParseUtil::opc_list& opc, int length = 10)
 		: history_length (length), BaseInfoItem (opc) {};
+	/// Desctructor
 	~HistoryInfoItem();
+
+	/// Setup
+	/// @param tagname Name of channels
+	/// @param plc_alias PLC alias name
+	/// @param puser Pointer ot PLC
 	virtual bool setup (const std::stringcase& tagname,
 		const std::stringcase& plc_alias, plc::Interface* puser) override;
+	/// Update
 	virtual void update(double val) override;
+	/// Reset
 	virtual void reset() override;
 protected:
 	/// Length of history to keep
@@ -157,13 +196,20 @@ protected:
 class TimeInfoItem	:	public SimpleInfoItem
 {
 public:
+	/// Default constructor
 	TimeInfoItem();
+	/// Desctructor
 	~TimeInfoItem();
+	/// Start stopwatch
 	void							start();
+	/// Stop stopwatch
 	void							stop();
 protected:
+	/// Start time
 	clock_t							begin;
+	/// End time
 	clock_t							end;
+	/// Elapsed time
 	double							elapsed;
 };
 
@@ -173,12 +219,17 @@ protected:
 class InfoInterface	:	public plc::Interface
 {
 public:
+	/// Constructor
 	InfoInterface(plc::BaseRecord& dval, std::stringcase statname) 
 		: Interface(dval), name(statname) {};
+	/// Destructor
 	~InfoInterface() {};
+	/// push data
 	virtual bool						push() override {return true; };
+	/// pull data
 	virtual bool						pull() override {return true; };
 protected:
+	/// Name of statistics
 	std::stringcase						name;
 };
 
@@ -209,6 +260,7 @@ public:
 	/// get the tag prefix fo rthe info PLC
 	void set_prefix (const std::stringcase& pre) { prefix = pre; }
 protected:
+	/// List of statistics values
 	BaseInfoList			info_list;
 
 	/** Iterates over the info list and processes all specified tags.

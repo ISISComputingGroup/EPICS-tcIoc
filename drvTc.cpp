@@ -24,7 +24,7 @@
 	initialize the TwinCAT interface during EPICS initialization.
  ************************************************************************/
 
-bool dbg = 0;
+static bool dbg = 0;
 
 using namespace std;
 using namespace ParseUtil;
@@ -53,18 +53,22 @@ static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
 static const iocshArg* const  tcAliasArg[2]			= {&tcAliasArg0, &tcAliasArg1};
 static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
 
-iocshFuncDef tcLoadRecordsFuncDef                   = {"tcLoadRecords", 2, tcLoadRecordsArg};
-iocshFuncDef tcSetScanRateFuncDef		            = {"tcSetScanRate", 2, tcSetScanRateArg};
-iocshFuncDef tcListFuncDef				            = {"tcGenerateList", 2, tcListArg};
-iocshFuncDef tcMacroFuncDef				            = {"tcGenerateMacros", 2, tcMacroArg};
-iocshFuncDef tcAliasFuncDef				            = {"tcSetAlias", 2, tcAliasArg};
-iocshFuncDef tcPrintValsFuncDef				        = {"tcPrintVals", 1, tcPrintValsArg};
+static const iocshFuncDef tcLoadRecordsFuncDef      = {"tcLoadRecords", 2, tcLoadRecordsArg};
+static const iocshFuncDef tcSetScanRateFuncDef	    = {"tcSetScanRate", 2, tcSetScanRateArg};
+static const iocshFuncDef tcListFuncDef				= {"tcGenerateList", 2, tcListArg};
+static const iocshFuncDef tcMacroFuncDef            = {"tcGenerateMacros", 2, tcMacroArg};
+static const iocshFuncDef tcAliasFuncDef            = {"tcSetAlias", 2, tcAliasArg}; 
+static const iocshFuncDef tcPrintValsFuncDef        = {"tcPrintVals", 1, tcPrintValsArg};
 
+/// Tuple for filnemae, rule and list processing 
 typedef std::tuple<std::stringcase, std::stringcase, 
 				   epics_list_processing*, bool> filename_rule_list_tuple;
+/// List of tuples for filnemae, rule and list processing 
 typedef std::vector<filename_rule_list_tuple> tc_listing_def;
+/// Tuple for directory name, argument  and macro list processing
 typedef std::tuple<std::stringcase, std::stringcase, 
 				   epics_macrofiles_processing*, const char*> dirname_arg_macro_tuple;
+/// List of tuples for directory name, argument  and macro list processing
 typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 
 static int scanrate = TcComms::default_scanrate;
@@ -75,7 +79,7 @@ static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 
 
-/* Class for generating an EPICS database and tc record 
+/** Class for generating an EPICS database and tc record 
 	@brief EPICS/TCat db processing
  ************************************************************************/
 class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
@@ -102,7 +106,7 @@ public:
 	int get_invalid_records() const { return invnum; }
 
 protected:
-	/// Disable copy contructor
+	/// Disable copy constructor
 	epics_tc_db_processing (const epics_tc_db_processing&);
 	/// Disable assignment operator
 	epics_tc_db_processing& operator= (const epics_tc_db_processing&);
@@ -131,7 +135,7 @@ protected:
 	/// @return True if successful
 	bool process_macros (const ParseUtil::process_arg& arg);
 	/// Process a macro
-	/// @param listdef filename/rule pair defining a macro
+	/// @param macrodef filename/rule pair defining a macro
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
 	bool process_macro (dirname_arg_macro_tuple& macrodef, 
@@ -379,7 +383,7 @@ void epics_tc_db_processing::flush()
  ************************************************************************/
 /** @{ */
 
-/* Function for loading a TCat tpy file, and using it to generate 
+/** Function for loading a TCat tpy file, and using it to generate 
 	internal record entries as well as the EPICs .db file
 	@brief TCat load records
  ************************************************************************/
@@ -537,7 +541,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	return;
 }
 
-/* Set scan rate of the read scanner
+/** Set scan rate of the read scanner
 	@brief TCat set scan rate
  ************************************************************************/
 void tcSetScanRate (const iocshArgBuf *args) 
@@ -593,8 +597,8 @@ void tcSetScanRate (const iocshArgBuf *args)
     return;
 }
 
-/* List function to generate separate listings
-   @brief channel lists
+/** List function to generate separate listings
+    @brief channel lists
  ************************************************************************/
 void tcList (const iocshArgBuf *args)
 {
@@ -617,8 +621,8 @@ void tcList (const iocshArgBuf *args)
 	tc_lists.push_back (make_tuple (p1, p2, nullptr, false));
 }
 
-/* Macro function to generate macro files
-   @brief macro files
+/** Macro function to generate macro files
+    @brief macro files
  ************************************************************************/
 void tcMacro (const iocshArgBuf *args)
 {
@@ -641,8 +645,8 @@ void tcMacro (const iocshArgBuf *args)
 	tc_macros.push_back (dirname_arg_macro_tuple (p1, p2, nullptr, nullptr));
 }
 
-/* Define a nick name or alias
-   @brief alias
+/** Define a nick name or alias
+    @brief alias
  ************************************************************************/
 void tcAlias (const iocshArgBuf *args)
 {
@@ -693,8 +697,8 @@ void tcAlias (const iocshArgBuf *args)
 }
 
 
-/* Debugging function that prints the values for all records on the PLCs
-   @brief TCat print vals
+/** Debugging function that prints the values for all records on the PLCs
+    @brief TCat print vals
  ************************************************************************/
 void tcPrintVals (const iocshArgBuf *args)
 {
@@ -702,8 +706,8 @@ void tcPrintVals (const iocshArgBuf *args)
 	return;
 }
 
-/* Process hook
-   @brief piniProcessHook
+/** Process hook
+    @brief piniProcessHook
  ************************************************************************/
 static void piniProcessHook(initHookState state)
 {
@@ -731,7 +735,7 @@ static void piniProcessHook(initHookState state)
 }
 
 
-/* Register functions to EPICS IOC shell
+/** Register functions to EPICS IOC shell
 	@brief Register to iocsh
  ************************************************************************/
 tcRegisterToIocShell::tcRegisterToIocShell () 

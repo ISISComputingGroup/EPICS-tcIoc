@@ -72,7 +72,7 @@ protected:
 	std::stringcase	ads_targetname;
 };
 
-/* This is a base class for storing the compiler information
+/** This is a base class for storing the compiler information
 ************************************************************************/
 class compiler_info {
 public:
@@ -300,7 +300,7 @@ protected:
 	dimensions		array_list;
 	/// map of enum id and name
 	enum_map		enum_list;
-	// list of structure elements
+	/// list of structure elements
 	item_list		struct_subitems;
 };
 
@@ -457,7 +457,6 @@ protected:
 	/** Resolves the type information for an array. Calls the process 
 	function for each index with an argument of type process_arg.
 	@param typ Name of type to resolve
-	@param id Decoration or unique ID of type
 	@param dim Dimensions of the array
 	@param defopc Default list of OPC parameters
 	@param loc Memory location of variable

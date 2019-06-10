@@ -29,7 +29,7 @@ using namespace plc;
 
 namespace DevTc {
 
-/* linkRecord
+/** linkRecord
  ************************************************************************/
 bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, BaseRecordPtr& pRecord)
 {
@@ -81,7 +81,7 @@ bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, BaseRecordPtr& pR
 	return true;
 }
 
-/* linkTcRecord
+/** linkTcRecord
  ************************************************************************/
 bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 {
@@ -109,7 +109,7 @@ bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 	return true;
 }
 
-/* register_devsup::linkRecord
+/** register_devsup::linkRecord
  ************************************************************************/
 bool register_devsup::linkRecord (const std::stringcase& inpout, 
 	dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
@@ -143,7 +143,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 	return false;
 }
 
-/* register_devsup::the_register_devsup
+/** register_devsup::the_register_devsup
  ************************************************************************/
 register_devsup register_devsup::the_register_devsup;
 
@@ -255,57 +255,57 @@ extern "C" {
 	using namespace DevTc;
 
 // ai record
-epicsExportAddress(dset, aival_record_tc_dset);
-epicsExportAddress(dset, airval_record_tc_dset);
+epicsExportAddress(dset, aival_record_tc_dset); ///< Record processing entry for ai
+epicsExportAddress(dset, airval_record_tc_dset); ///< Record processing entry for raw ai 
 
 // aai record
-epicsExportAddress(dset, aaival_record_tc_dset);
+epicsExportAddress(dset, aaival_record_tc_dset); ///< Record processing entry for aai
 
 // bi record
-epicsExportAddress(dset, bival_record_tc_dset);
-epicsExportAddress(dset, birval_record_tc_dset);
+epicsExportAddress(dset, bival_record_tc_dset);  ///< Record processing entry for bi
+epicsExportAddress(dset, birval_record_tc_dset);  ///< Record processing entry for raw bi
 
 // longin record
-epicsExportAddress(dset, longinval_record_tc_dset);
+epicsExportAddress(dset, longinval_record_tc_dset);  ///< Record processing entry for longin
 
 // mbbi record
-epicsExportAddress(dset, mbbival_record_tc_dset);
-epicsExportAddress(dset, mbbirval_record_tc_dset);
+epicsExportAddress(dset, mbbival_record_tc_dset); ///< Record processing entry for mbbi
+epicsExportAddress(dset, mbbirval_record_tc_dset); ///< Record processing entry for raw mbbi
 
 // mbbiDirect record
-epicsExportAddress(dset, mbbiDirectval_record_tc_dset);
-epicsExportAddress(dset, mbbiDirectrval_record_tc_dset);
+epicsExportAddress(dset, mbbiDirectval_record_tc_dset); ///< Record processing entry for mbbiDirect
+epicsExportAddress(dset, mbbiDirectrval_record_tc_dset); ///< Record processing entry for raw mbbiDirect
 
 // stringin record
-epicsExportAddress(dset, stringinval_record_tc_dset);
+epicsExportAddress(dset, stringinval_record_tc_dset); ///< Record processing entry for stringin
 
 // waveform record
-epicsExportAddress(dset, waveformval_record_tc_dset);
+epicsExportAddress(dset, waveformval_record_tc_dset); ///< Record processing entry for waveform
 
 
 // ao record
-epicsExportAddress(dset, aoval_record_tc_dset);
-epicsExportAddress(dset, aorval_record_tc_dset);
+epicsExportAddress(dset, aoval_record_tc_dset); ///< Record processing entry for ao
+epicsExportAddress(dset, aorval_record_tc_dset); ///< Record processing entry for raw ao
 
 // aao record
-epicsExportAddress(dset, aaoval_record_tc_dset);
+epicsExportAddress(dset, aaoval_record_tc_dset); ///< Record processing entry for aao
 
 // bo record
-epicsExportAddress(dset, boval_record_tc_dset);
-epicsExportAddress(dset, borval_record_tc_dset);
+epicsExportAddress(dset, boval_record_tc_dset); ///< Record processing entry for bo
+epicsExportAddress(dset, borval_record_tc_dset); ///< Record processing entry for raw bo
 
 // longout record
-epicsExportAddress(dset, longoutval_record_tc_dset);
+epicsExportAddress(dset, longoutval_record_tc_dset); ///< Record processing entry for longout
 
 // mbbo record
-epicsExportAddress(dset, mbboval_record_tc_dset);
-epicsExportAddress(dset, mbborval_record_tc_dset);
+epicsExportAddress(dset, mbboval_record_tc_dset); ///< Record processing entry for mbbo
+epicsExportAddress(dset, mbborval_record_tc_dset); ///< Record processing entry for raw mbbo
 
 // mbboDirect record
-epicsExportAddress(dset, mbboDirectval_record_tc_dset);
-epicsExportAddress(dset, mbboDirectrval_record_tc_dset);
+epicsExportAddress(dset, mbboDirectval_record_tc_dset); ///< Record processing entry for mbboDirect
+epicsExportAddress(dset, mbboDirectrval_record_tc_dset); ///< Record processing entry for raw mbboDirect
 
 // stringout record
-epicsExportAddress(dset, stringoutval_record_tc_dset);
+epicsExportAddress(dset, stringoutval_record_tc_dset); ///< Record processing entry for stringout
 
 }

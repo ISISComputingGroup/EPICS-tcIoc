@@ -34,6 +34,7 @@ protected:
 	/// Default constructor; adds a linkInfoRecord entry
 	register_info_devsup() {
 		DevTc::register_devsup::add (info_regex, linkInfoRecord); }
+	/// Register info support
 	static register_info_devsup the_register_info_devsup;
 };
 

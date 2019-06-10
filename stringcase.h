@@ -14,7 +14,8 @@ namespace std {
 
 /** Case insensitive compare.
 	@param s1 first string
-	@param s1 second string
+	@param s2 second string
+	@param n Number of characters
 	@return <0 smaller, 0 equal, >0 greater
     @brief case insensitive compare with maximum length
  ************************************************************************/
@@ -24,7 +25,8 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
 
 /** Case insensitive compare for unicode string.
 	@param s1 first string
-	@param s1 second string
+	@param s2 second string
+	@param n Number of characters
 	@return <0 smaller, 0 equal, >0 greater
     @brief case insensitive unicode compare with maximum length
  ************************************************************************/
@@ -37,16 +39,29 @@ int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, size_t n) {
  ************************************************************************/
 struct case_char_traits : public std::char_traits<char> 
 {
-	static bool eq (const char_type& c1, const char_type& c2) { 
+	/// Equal character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool eq (const char_type& c1, const char_type& c2) {
 		return ::tolower (c1) == ::tolower (c2); 
 	}
-	static bool ne (const char_type& c1, const char_type& c2) { 
+	/// Not equal character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool ne (const char_type& c1, const char_type& c2) {
 		return !(::tolower (c1) == ::tolower (c2));
 	}
-	static bool lt (const char_type& c1, const char_type& c2) { 
+	/// Lower than character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool lt (const char_type& c1, const char_type& c2) {
 		return ::tolower (c1) < ::tolower (c2);
 	}
-	static int compare (const char_type* s1, const char_type* s2, size_t n) { 
+	/// Compare strings
+	/// @param s1 First string
+	/// @param s2 Second string
+	/// @param n number of characters
+	static int compare (const char_type* s1, const char_type* s2, size_t n) {
 		return strncasecmp (s1, s2, n); 
 	}
 };
@@ -56,16 +71,29 @@ struct case_char_traits : public std::char_traits<char>
  ************************************************************************/
 struct case_wchar_traits : public std::char_traits<wchar_t> 
 {
-	static bool eq (const char_type& c1, const char_type& c2) { 
+	/// Equal character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool eq (const char_type& c1, const char_type& c2) {
 		return towlower (c1) == towlower (c2); 
 	}
-	static bool ne (const char_type& c1, const char_type& c2) { 
+	/// Not equal character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool ne (const char_type& c1, const char_type& c2) {
 		return !(towlower (c1) == towlower (c2));
 	}
-	static bool lt (const char_type& c1, const char_type& c2) { 
+	/// Lower than character
+	/// @param c1 First char
+	/// @param c2 Second char
+	static bool lt (const char_type& c1, const char_type& c2) {
 		return towlower (c1) < towlower (c2);
 	}
-	static int compare (const char_type* s1, const char_type* s2, size_t n) { 
+	/// Compare strings
+	/// @param s1 First string
+	/// @param s2 Second string
+	/// @param n number of characters
+	static int compare (const char_type* s1, const char_type* s2, size_t n) {
 		return wcsncasewcmp (s1, s2, n); 
 	}
 };
@@ -83,12 +111,12 @@ typedef std::basic_string <wchar_t, case_wchar_traits> wstringcase;
 /** trim space on both ends.
 	@param s string to trim
  ************************************************************************/
-void trim_space (stringcase& s);
+void trim_space (std::stringcase& s);
 
 /** trim space on both ends.
 	@param s string to trim
  ************************************************************************/
-void trim_space (wstringcase& s);
+void trim_space (std::wstringcase& s);
 
 /** Splits a string into its tokens and adds them to a container.
 	The delimiter can be easily specified with a lambda expression.
@@ -121,6 +149,7 @@ void split_string (Container& output, const String& input,
     }
 }
 
+/** @} */
 }
 
 #include "stringcase_hash.h"

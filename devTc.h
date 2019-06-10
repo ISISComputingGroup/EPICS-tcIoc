@@ -100,7 +100,7 @@ protected:
 	static register_devsup the_register_devsup;
 };
 
-/** @devtc device support for TwinCAT/ADS
+/** @defgroup Device support for TwinCAT/ADS
  ************************************************************************/
 /** @{ */
 
@@ -175,7 +175,7 @@ protected:
 	bool				isCallback;
 	/// Pointer to the EPICS record
 	dbCommon*			pEpicsRecord;
-	/// Pointer to the R\VAL field of the EPICS record
+	/// Pointer to the RVAL field of the EPICS record
 	void*				pEpicsVal;
 	/// Size (bytes) of the data
 	unsigned long		size;
@@ -259,7 +259,10 @@ template <epics_record_enum RecType>
 struct epics_record_traits
 {
 	/// Epics record type
-	typedef struct { double val; } traits_type;
+	typedef struct { 
+		/// Value
+		double val; 
+	} traits_type;
 	/// Value type of (raw) value field
 	typedef epicsFloat64 value_type;
 	/// Name of the record

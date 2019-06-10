@@ -323,19 +323,20 @@ protected:
 	/// Makes sure we don't have stale values.
 	virtual void update_scanner();
 	
-	// Set ADS state
+	/// Set ADS state
 	void set_ads_state(ADSSTATE state);
-	// Set up ADS status change notification
+	/// Set up ADS status change notification
 	void setup_ads_notification();
-	// Remove ADS status change notification
+	/// Remove ADS status change notification
 	void remove_ads_notification();
 
 	/// Opens a new ADS communication port
 	long openPort();
 	/// Closes an ADS communication port
-	/// @param Number of port to close
+	/// @param nPort Number of port to close
 	void closePort(long nPort);
 
+	/// Mutex
 	std::mutex	sync;
 	/// AMS netID of TwinCAT system and port number for this PLC
 	AmsAddr	addr;

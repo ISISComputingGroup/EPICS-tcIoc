@@ -17,8 +17,8 @@ using namespace std;
 using namespace std::experimental::filesystem::v1;
 using namespace plc;
 
-bool debug = false;
-bool tcdebug = false;
+static bool debug = false;
+static bool tcdebug = false;
 
 
 
@@ -43,8 +43,8 @@ void errorPrintf(int nErr)
 		lasterror = nErr;
 	}
 	/////////////////////////////////////////////////
-	/// This function prints the proper error message for common ADS return codes.
-	/// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
+	// This function prints the proper error message for common ADS return codes.
+	// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
 	/////////////////////////////////////////////////
 	if (nErr == 4	) 
 		printf("no ADS mailbox was available to process this message\n");
@@ -372,7 +372,7 @@ bool TcPLC::start()
 }
 
 
-/* Compare two TCat records by their group and offset: compbyOffset
+/** Compare two TCat records by their group and offset: compbyOffset
  ************************************************************************/
 bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 {
@@ -752,7 +752,7 @@ std::mutex TcPLC::plcVecMutex;
   AmsRouterNotification
  ************************************************************************/
 
-/* Callback for AMS router state change
+/** Callback for AMS router state change
  ************************************************************************/
 void __stdcall RouterCall (long nReason)
 {

@@ -55,6 +55,9 @@ static const iocshFuncDef infoAliasFuncDef		    = {"infoAlias", 1, infoAliasArg}
 static const iocshFuncDef infoPrefixFuncDef			= {"infoPrefix", 1, infoPrefixArg};
 static const iocshFuncDef infoPrintValsFuncDef		= {"infoPrintVals", 1, infoPrintValsArg};
 
+/** Class for storing a flanem and a rule
+	@brief filename/rule pair
+ ************************************************************************/
 typedef std::pair<std::stringcase, std::stringcase> filename_rule_pair;
 
 static bool initIoc = false;
@@ -63,8 +66,8 @@ static std::stringcase info_prefix;
 static std::stringcase info_alias;
 static std::vector<filename_rule_pair> info_lists;
 
-/* Class for generating an EPICS database and info record 
-   @brief EPICS/Info db processing
+/** Class for generating an EPICS database and info record 
+    @brief EPICS/Info db processing
  ************************************************************************/
 	class epics_info_db_processing : public epics_db_processing {
 	public:
@@ -156,7 +159,7 @@ bool epics_info_db_processing::operator() (const ParseUtil::process_arg& arg)
  ************************************************************************/
 /** @{ */
 
-/* Function for loading the info record, and using it to generate 
+/** Function for loading the info record, and using it to generate 
 	internal record entries as well as the EPICs .db file
 	@brief Info load records
  ************************************************************************/
@@ -272,7 +275,7 @@ void infoLoadRecords (const iocshArgBuf *args)
     return;
 }
 
-/* Set scan rate of the read scanner
+/** Set scan rate of the read scanner
 	@brief Info set scan rate
  ************************************************************************/
 void infoSetScanRate (const iocshArgBuf *args) 
@@ -313,8 +316,8 @@ void infoSetScanRate (const iocshArgBuf *args)
     return;
 }
 
-/* List function to generate separate listings
-   @brief channel lists
+/** List function to generate separate listings
+    @brief channel lists
  ************************************************************************/
 void infoList (const iocshArgBuf *args)
 {
@@ -337,8 +340,8 @@ void infoList (const iocshArgBuf *args)
 	info_lists.push_back (filename_rule_pair (p1, p2));
 }
 
-/* Define a nick name or alias
-   @brief alias
+/** Define a nick name or alias
+    @brief alias
  ************************************************************************/
 void infoAlias (const iocshArgBuf *args)
 {
@@ -360,8 +363,8 @@ void infoAlias (const iocshArgBuf *args)
 	info_alias = p1;
 }
 
-/* Define the tag prefix
-   @brief tag prefix
+/** Define the tag prefix
+    @brief tag prefix
  ************************************************************************/
 void infoPrefix (const iocshArgBuf *args)
 {
@@ -383,7 +386,7 @@ void infoPrefix (const iocshArgBuf *args)
 	info_prefix = p1;
 }
 
-/* Debugging function that prints the values for all records on the PLCs
+/** Debugging function that prints the values for all records on the PLCs
 	@brief Info print vals
  ************************************************************************/
 void infoPrintVals (const iocshArgBuf *args)
@@ -392,7 +395,7 @@ void infoPrintVals (const iocshArgBuf *args)
 	return;
 }
 
-/* Register functions to EPICS IOC shell
+/** Register functions to EPICS IOC shell
 	@brief Register to iocsh
  ************************************************************************/
 InfoRegisterToIocShell::InfoRegisterToIocShell() 

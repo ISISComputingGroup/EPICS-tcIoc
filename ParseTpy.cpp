@@ -2,7 +2,7 @@
 #include "ParseTpy.h"
 #include "ParseUtilConst.h"
 #include "ParseTpyConst.h"
-#define XML_STATIC
+#define XML_STATIC ///< Static linking
 #include "Expat/expat.h"
 #if defined(__amigaos__) && defined(__USE_INLINE__)
 #include <proto/expat.h>
@@ -10,12 +10,12 @@
 
 #ifdef XML_LARGE_SIZE
 #if defined(XML_USE_MSC_EXTENSIONS) && _MSC_VER < 1400
-#define XML_FMT_INT_MOD "I64"
+#define XML_FMT_INT_MOD "I64" ///< Int format
 #else
-#define XML_FMT_INT_MOD "ll"
+#define XML_FMT_INT_MOD "ll" ///< Int format
 #endif
 #else
-#define XML_FMT_INT_MOD "l"
+#define XML_FMT_INT_MOD "l" ///< Int format
 #endif
 
 using namespace ParseUtil;
@@ -35,12 +35,12 @@ static void XMLCALL startCData (void *userData);
 static void XMLCALL endCData (void *userData);
 static void XMLCALL dataElement (void *userData, const char *data, int len);
 
-/* This structure keeps track of the parser information.
+/** This structure keeps track of the parser information.
  ************************************************************************/
 class parserinfo_type 
 {
 public:
-	// Constructor
+	/// Constructor
 	parserinfo_type (project_record& p, symbol_list& s, type_map& t) 
 		: ignore (0), projects (false), routing (0), compiler (0), types (0), 
 		symbols(0), name_parse (0), type_parse (0), opc_cur (0), 
@@ -50,41 +50,41 @@ public:
 		struct_parse (0), fb_parse(0),
 		project_info (&p), sym_list (&s), type_list (&t) {}
 
-	// Get symbol list
+	/// Get symbol list
 	symbol_list& get_symbols() { return *sym_list; }
-	// Get type list
+	/// Get type list
 	type_map& get_types() { return *type_list; }
-	// Get project information
+	/// Get project information
 	project_record& get_projectinfo() { return *project_info; }
 
-	// Initialze temporary parser info
+	/// Initialze temporary parser info
 	void init ();
-	// Get type of parsed object
+	/// Get type of parsed object
 	type_enum get_type_description() const;
 
-	// the very top of the xml tag hierarchy (not within any tag)
+	/// the very top of the xml tag hierarchy (not within any tag)
 	bool verytop() {
 		return !projects && !ignore && !routing && !compiler && !types && !symbols; }
-	// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
+	/// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
 	bool top() {
 		return projects && !ignore && !routing && !compiler && !types && !symbols; }
 
-	// ignore elements during parsing (with level)
+	/// ignore elements during parsing (with level)
 	int				ignore;
-	// parsing withing PlcProjectInfo tag
+	/// parsing withing PlcProjectInfo tag
 	bool			projects;
-	// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
+	/// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
 	int				routing;
-	// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
+	/// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
 	int				compiler;
-	// parsing within DataTypes tag (1) or DataType tag (2)
+	/// parsing within DataTypes tag (1) or DataType tag (2)
 	int				types;
-	// parsing within Symbols tag (1) or Symbol tag (2)
+	/// parsing within Symbols tag (1) or Symbol tag (2)
 	int				symbols;
 
-	// temporary symbol information during parsing
+	/// temporary symbol information during parsing
 	symbol_record	sym;
-	// temporary type information during parsing
+	/// temporary type information during parsing
 	type_record		rec;
 
 	/// level indicator for type name parsing
@@ -139,15 +139,15 @@ public:
 	int				fb_parse;
 
 protected:
-	// pointer to symbol list
+	/// pointer to symbol list
 	symbol_list*	sym_list;
-	// pointer to type list
+	/// pointer to type list
 	type_map*		type_list;
-	// pointer to project info
+	/// pointer to project info
 	project_record*	project_info;
 
 private:
-	// Default constructor
+	/// Default constructor
 	parserinfo_type();
 };
 
@@ -357,7 +357,7 @@ void type_map::insert (value_type val)
 	type_multipmap::insert (val);
 }
 
-/* compareNamesWoNamespace
+/** compareNamesWoNamespace
  ************************************************************************/
 bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
 {
@@ -492,7 +492,7 @@ void tpy_file::parse_finish ()
 /* XML Parsing
  ************************************************************************/
 
-/* XML get decoration number from attribute
+/** XML get decoration number from attribute
  ************************************************************************/
 bool get_decoration (const char **atts, unsigned int& decoration)
 {
@@ -506,7 +506,7 @@ bool get_decoration (const char **atts, unsigned int& decoration)
 	return false;
 }
 
-/* XML get pointer from attribute
+/** XML get pointer from attribute
  ************************************************************************/
 bool get_pointer (const char **atts)
 {

@@ -22,6 +22,10 @@ using namespace ParseTpy;
 using namespace plc;
 using namespace DevTc;
 
+/** @file devInfo.cpp
+	Methods for Info device support.
+ ************************************************************************/
+
 namespace DevInfo {
 
 /* linkTcRecord
@@ -79,25 +83,25 @@ extern "C" {
 	using namespace DevInfo;
 
 // ai record
-epicsExportAddress(dset, aival_record_info_dset);
+epicsExportAddress(dset, aival_record_info_dset); ///< Record processing entry for ao
 // bi record
-epicsExportAddress(dset, bival_record_info_dset);
+epicsExportAddress(dset, bival_record_info_dset); ///< Record processing entry for bi
 // longin record
-epicsExportAddress(dset, longinval_record_info_dset);
+epicsExportAddress(dset, longinval_record_info_dset); ///< Record processing entry for longin
 // mbbi record
-epicsExportAddress(dset, mbbival_record_info_dset);
+epicsExportAddress(dset, mbbival_record_info_dset); ///< Record processing entry for mbbi
 // stringin record
-epicsExportAddress(dset, stringinval_record_info_dset);
+epicsExportAddress(dset, stringinval_record_info_dset); ///< Record processing entry for stringin
 
 // ao record
-epicsExportAddress(dset, aoval_record_info_dset);
+epicsExportAddress(dset, aoval_record_info_dset); ///< Record processing entry for ao
 // bo record
-epicsExportAddress(dset, boval_record_info_dset);
+epicsExportAddress(dset, boval_record_info_dset); ///< Record processing entry for bo
 // longout record
-epicsExportAddress(dset, longoutval_record_info_dset);
+epicsExportAddress(dset, longoutval_record_info_dset); ///< Record processing entry for longout
 // mbbo record
-epicsExportAddress(dset, mbboval_record_info_dset);
+epicsExportAddress(dset, mbboval_record_info_dset); ///< Record processing entry for mbbo
 // stringout record
-epicsExportAddress(dset, stringoutval_record_info_dset);
+epicsExportAddress(dset, stringoutval_record_info_dset); ///< Record processing entry for stringout
 
 }
