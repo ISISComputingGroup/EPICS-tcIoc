@@ -543,15 +543,22 @@ void TcPLC::printAllRecords()
 /** Callback for ADS state change
  ************************************************************************/
 void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
-							ULONG hUser)
+							unsigned long plcId)
 {
-	TcPLC* tCatPlcUser = NULL;
+	TcPLC* tCatPlcUser = nullptr;
 	{
 		std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
-		tCatPlcUser = TcPLC::plcVec[hUser];
+		if ((plcId >= 0) && (plcId < TcPLC::plcVec.size())) {
+			tCatPlcUser = TcPLC::plcVec[plcId];
+		}
 	}
-	ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
-	tCatPlcUser->set_ads_state(state);
+	if (tCatPlcUser) {
+		ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
+		tCatPlcUser->set_ads_state(state);
+	}
+	else {
+		printf("Uknown PLC ID %i\n", plcId);
+	}
 }
 
 /** TcPLC::set_ads_state

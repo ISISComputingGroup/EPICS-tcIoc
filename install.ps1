@@ -83,6 +83,11 @@ copy-Item $epicsbin\dbRecStd.dll $destination
 #copy-Item $epicsbin\gdd.dll $destination
 copy-Item $epicsbin\iocLogServer.exe $destination
 
+copy-Item $parent\README.md $destination
+copy-Item $paremt\COPYING $destination
+copy-Item $paremt\COPYING $destination
+
+
 Compress-Archive -Path $destination\* -DestinationPath $download\tcIoc_${platform}_${version}.zip -Force
 
 write-verbose "Done"
