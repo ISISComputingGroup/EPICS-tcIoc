@@ -8,7 +8,7 @@
 
 namespace std {
 
-/** @defgroup stringcase Utility functions and classes
+/** @defgroup Stringcase utility functions and classes
  ************************************************************************/
 /** @{ */
 

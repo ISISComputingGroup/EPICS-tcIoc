@@ -12,6 +12,7 @@ using namespace ParseUtil;
  ************************************************************************/
 
 /** Symbol processing
+    @bried Symbol processing
  ************************************************************************/
 class syminfo_processing {
 public:

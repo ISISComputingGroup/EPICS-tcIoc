@@ -641,6 +641,7 @@ void BasePLC::plc_data_set_valid (bool valid)
 }
 
 /** Structure for arguments sent to a scanner thread
+    @brief Scanner thread arguments
  ************************************************************************/
 typedef struct 
 { 
@@ -653,6 +654,7 @@ typedef struct
 } scanner_thread_args;
 
 /** Scanner thread callback with periodic timer
+	@brief Scanner thread callback
  ************************************************************************/
 VOID CALLBACK ScannerProc (
    LPVOID lpArg,               // Data value
@@ -671,7 +673,8 @@ VOID CALLBACK ScannerProc (
 	completion routine at a regular interval. The completion routine in
 	this case is one of either read_scanner, write_scanner, or
 	update_scanner.
- ************************************************************************/
+    @brief Scanner thread
+************************************************************************/
 DWORD WINAPI scannerThread (scanner_thread_args args)
 {
 	HANDLE				hTimer;

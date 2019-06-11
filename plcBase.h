@@ -21,14 +21,14 @@ class BasePLC;
 
 
 /** This is a smart pointer to a PLC 
-    @brief smart pointer to PLC
+    @brief Smart pointer to PLC
 ************************************************************************/
 typedef std::shared_ptr<BasePLC> BasePLCPtr;
 
 
 /** This is a base class for an abstract interface to access the PLC 
     (slave) or the user side (master).
-    @brief abstract interface
+    @brief Abstract interface
 ************************************************************************/
 class Interface
 {
@@ -55,12 +55,12 @@ protected:
 };
 
 /** This is a smart pointer for Interface
-    @brief smart pointer to interface
+    @brief Smart pointer to interface
  ************************************************************************/
 typedef std::unique_ptr<Interface> InterfacePtr;
 
 /** This is an enumerated type listing all the available data types
-    @brief data type enumeration
+    @brief Data type enumeration
  ************************************************************************/
 enum data_type_enum 
 {
@@ -97,7 +97,7 @@ enum data_type_enum
 };
 
 /** Traits class for data value
-    @brief data value traits
+    @brief Data value traits
  ************************************************************************/
 template <typename T>
 struct DataValueTraits
@@ -115,7 +115,7 @@ struct DataValueTraits
 };
 
 /** Type definitions for data value
-    @brief collection of type definitions
+    @brief Collection of type definitions
  ************************************************************************/
 struct DataValueTypeDef
 {
@@ -209,7 +209,7 @@ struct DataValueTypeDef
 	binary read/write operations. However, all data can be accessed 
 	through binary access.
 
-    @brief data value
+    @brief Data value
  ************************************************************************/
 class DataValue : public DataValueTypeDef
 {
@@ -465,6 +465,7 @@ protected:
 };
 
 /** Enum for access rights of a record
+	@brief Access righths enum
 ************************************************************************/
 enum access_rights_enum 
 {
@@ -705,7 +706,7 @@ typedef std::unordered_map<std::stringcase, BaseRecordPtr> BaseRecordList;
 
 	This class is MT safe and uses a mutex to synchronize access.
 
-    @brief base PLC
+    @brief Base PLC
  ************************************************************************/
 class BasePLC
 {
@@ -881,8 +882,7 @@ typedef std::map<std::stringcase, BasePLCPtr> BasePLCList;
 
 
 /** This is a class for managing multiple PLCs.
-
-    @brief System
+    @brief System to keep track of PLCs
  ************************************************************************/
 class System
 {

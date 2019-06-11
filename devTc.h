@@ -17,13 +17,13 @@
  ************************************************************************/
 
 /** @namespace DevTc
-	DevTc name space 
+	DevTc Name space
+	@brief Namespace for TCat device support
  ************************************************************************/
-
 namespace DevTc {
 
 /** Callback function to process EPICS out record
-	@brief outRecordCallback
+	@brief Callback for output record
  ************************************************************************/
 	
 /// Callback function for output records
@@ -40,7 +40,7 @@ inline void outRecordCallback(callbackPvt *pcallback) {
 	@param pEpicsRecord Pointer to EPICS record
 	@param pRecord Pointer to a base record
 	@return true if successful
-	@brief linkRecord
+	@brief Link Record
  ************************************************************************/
 bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
 
@@ -49,7 +49,7 @@ bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, plc::BaseRecordPt
 	@param pEpicsRecord Pointer to EPICS record
 	@param pRecord Pointer to a base record
 	@return true if successful
-	@brief linkTcRecord
+	@brief Link TwinCat Record
  ************************************************************************/
 bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
 
@@ -59,7 +59,7 @@ const std::regex tc_regex (
 
 /** This is a class for managing device support for multiple record
     types, such as TwinCAT/ADS and Info.
-    @brief device support registration.
+    @brief Device support registration.
  ************************************************************************/
 class register_devsup
 {
@@ -100,12 +100,12 @@ protected:
 	static register_devsup the_register_devsup;
 };
 
-/** @defgroup Device support for TwinCAT/ADS
+/** @defgroup devsup Device support for TwinCAT/ADS
  ************************************************************************/
 /** @{ */
 
 /** This is a class for an EPICS Interface
-    @brief epics interface class.
+    @brief Epics interface class.
  ************************************************************************/
 class EpicsInterface	:	public plc::Interface
 {
@@ -192,7 +192,7 @@ protected:
 
 
 /** This record type enums are used as index the epics traits class
-    @brief epics record type enum.
+    @brief Epics record type enum.
  ************************************************************************/
 enum epics_record_enum
 {
@@ -253,7 +253,7 @@ enum epics_record_enum
 };
 
 /** This traits class for Epics records.
-    @brief epics record traits.
+    @brief Epics record traits.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct epics_record_traits
@@ -292,7 +292,7 @@ struct epics_record_traits
 /** Deviced Support Record for generic TwinCAT/ADS IO
     This structure defines the callback functions for the TC device support.
 	This is a base class for both read and write records.
-    @brief device support record.
+    @brief Device support record.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct devTcDefIo 
@@ -327,7 +327,7 @@ protected:
 /** Deviced Support Record for TwinCAT/ADS input
     This structure defines the callback functions for the TC device support.
 	This is a base class for both read and write records.
-    @brief device support input record.
+    @brief Device support input record.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct devTcDefIn : public devTcDefIo <RecType>

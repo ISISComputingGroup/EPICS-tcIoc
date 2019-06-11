@@ -28,6 +28,7 @@ del -r $html
 doxygen $parent\Doxyfile
 Compress-Archive -Path $html -DestinationPath $download\html_${version}.zip -Force
 #
+cp .\doxygen.sty $latex
 cd $latex
 ./make
 cd ..

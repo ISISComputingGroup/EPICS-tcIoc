@@ -17,7 +17,8 @@ namespace ParseUtil {
 /** @{ */
 
 /** This class transforms a string into a standard program argument.
- ************************************************************************/
+    @brief Optional arguments
+************************************************************************/
 class optarg 
 {
 public:
@@ -73,7 +74,8 @@ protected:
 /** @{ */
 
 /** This enum denotes the opc state.
- ************************************************************************/
+     @brief OPC state enum
+************************************************************************/
 enum opc_enum 
 {
 	/// Do not change inherited behaviour
@@ -93,6 +95,7 @@ typedef std::map<int, std::stringcase> property_map;
 typedef std::pair<int, std::stringcase> property_el;
 
 /** This class stores OPC properties.
+	@brief OPC list
 ************************************************************************/
 class opc_list 
 {
@@ -142,6 +145,7 @@ protected:
 /** @{ */
 
 /** This is a class for storing a variable name and an alias
+	@brief Variable name
 ************************************************************************/
 class variable_name
 {
@@ -180,6 +184,7 @@ protected:
 	
 	
 /** This is a class for storing bit offset and size in a structure
+	@brief Bit location
 ************************************************************************/
 class bit_location
 {
@@ -209,7 +214,8 @@ protected:
 };
 
 /** This structure holds a memory location
- ************************************************************************/
+    @brief Memory location
+************************************************************************/
 class memory_location 
 {
 public:
@@ -267,6 +273,7 @@ protected:
 
 
 /** Enumerated type to describe the process type
+	@brief Process type 
  ************************************************************************/
 enum process_type_enum 
 {
@@ -287,6 +294,7 @@ enum process_type_enum
 };
 
 /** Argument which is passed to the name/tag processing function.
+	@brief Arguments for processing
 ************************************************************************/
 class process_arg
 {
@@ -352,6 +360,7 @@ protected:
 };
 
 /** Enumerated type to describe the tag processing
+	@brief Tag preoicessing enum
 ************************************************************************/
 enum process_tag_enum 
 {
@@ -364,6 +373,7 @@ enum process_tag_enum
 };
 
 /** Class to specify which symbols and tags/names to process
+	@brief Tag processing selection
 ************************************************************************/
 class tag_processing 
 {

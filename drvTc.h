@@ -13,6 +13,7 @@ namespace DevTc {
 
 /** Register TC commands to IOC shell
     This class registers the callback functions for the TC IOC commands
+	@brief Register TC commands
   */
 class tcRegisterToIocShell {
 private:

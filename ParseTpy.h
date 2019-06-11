@@ -9,7 +9,8 @@
 
 /** @namespace ParseTpy
 	ParseTpy name space 
- ************************************************************************/
+ 	@brief Namespace for parsing
+************************************************************************/
 namespace ParseTpy {
 
 /** @defgroup parsetpyopc Classes for describing project information
@@ -17,6 +18,7 @@ namespace ParseTpy {
 /** @{ */
 
 /** This is a base class for storing the ADS routing information
+    @brief ADS routing information
  ************************************************************************/
 class ads_routing_info {
 public:
@@ -73,6 +75,7 @@ protected:
 };
 
 /** This is a base class for storing the compiler information
+	@brief Compiler information
 ************************************************************************/
 class compiler_info {
 public:
@@ -120,6 +123,7 @@ protected:
 ************************************************************************/
 
 /** This is a base class for storing the project information
+	@brief Project information
 ************************************************************************/
 class project_record : public ads_routing_info, public compiler_info {
 public:
@@ -136,7 +140,8 @@ protected:
 /** @{ */
 
 /** This is a base class for storing name, type, type id and opc list
- ************************************************************************/
+     @brief Base record definition
+************************************************************************/
 class base_record 
 {
 public:
@@ -224,6 +229,7 @@ typedef std::map<int, std::stringcase> enum_map;
 typedef std::pair<int, std::stringcase> enum_pair;
 
 /** This class stores typed items.
+	@brief item record
 ************************************************************************/
 class item_record : public base_record, public ParseUtil::bit_location
 {
@@ -243,7 +249,8 @@ typedef std::list<item_record> item_list;
 /** @{ */
 
 /** This structure describes a type record
- ************************************************************************/
+     @brief Type enum
+************************************************************************/
 enum type_enum 
 {
 	/// Unknown type
@@ -261,7 +268,8 @@ enum type_enum
 };
 
 /** This structure holds a type record
- ************************************************************************/
+    @brief Type record information
+************************************************************************/
 class type_record : public base_record, public ParseUtil::bit_location
 {
 public:
@@ -309,6 +317,7 @@ protected:
 typedef std::multimap<unsigned int, type_record> type_multipmap;
 
 /** This is a map of type records, index is type number as defined in tpy
+	@brief Type dictionary
 ************************************************************************/
 class type_map : protected type_multipmap
 {
@@ -332,6 +341,7 @@ public:
 /** @{ */
 
 /** This structure holds a symbol record
+	@brief Symbol record
 ************************************************************************/
 class symbol_record : public base_record, public ParseUtil::memory_location
 {
@@ -356,6 +366,7 @@ typedef std::list<symbol_record> symbol_list;
 /** @{ */
 
 /** This class holds the structure of a tpy file
+	@brief Tpy file parsing
 ************************************************************************/
 class tpy_file : public ParseUtil::tag_processing
 {

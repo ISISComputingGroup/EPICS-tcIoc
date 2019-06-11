@@ -17,6 +17,11 @@
 	- See infoPLC.cpp, the SimpleInfoItem stuff to see what "InfoItem" is intended to do
  ************************************************************************/
 
+ /** @namespace InfoPlc
+	 InfoPlc name space, which has all the classes and functions used for
+	 communicating with Info.
+	 @brief Namespace for Info communication
+  ************************************************************************/
 namespace InfoPlc {
 
 class InfoInterface;

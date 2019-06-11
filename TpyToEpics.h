@@ -23,7 +23,8 @@ namespace EpicsTpy {
 typedef std::map <std::stringcase, std::stringcase> replacement_table;
 
 /** Epics channel conversion arguments
- Epics channels are generated from opc through a conversion rule
+    Epics channels are generated from opc through a conversion rule
+	@brief Replacement rules
  ************************************************************************/
 class replacement_rules {
 public:
@@ -60,6 +61,7 @@ protected:
 };
 
 /** This enum describes the TwinCAT/opc to EPICS conversion rule
+	@brief Conversion rules for TC/EPICS
  ************************************************************************/
 enum tc_epics_conv {
 	/// No conversion
@@ -81,7 +83,8 @@ enum tc_epics_conv {
 };
 
 /** This enum describes the case conversion rule
- ************************************************************************/
+     @brief Case conversion rule enum
+************************************************************************/
 enum case_type {
 	/// Preserve the case
 	preserve_case, 
@@ -92,7 +95,8 @@ enum case_type {
 };
 
 /** Epics channel conversion arguments
-Epics channels are generated from opc through a conversion rule
+    Epics channels are generated from opc through a conversion rule
+	@brief Epics conversion
 ************************************************************************/
 class epics_conversion : public replacement_rules {
 public:
@@ -193,8 +197,9 @@ protected:
 };
 
 /** Split file IO support
-Output can be split in multiple files if the number of channels
-exceeds the maximum specified for a file
+    Output can be split in multiple files if the number of channels
+    exceeds the maximum specified for a file
+	@brief Split IO support
 ************************************************************************/
 class split_io_support {
 public:
@@ -344,7 +349,8 @@ enum class io_filestat {
 };
 
 /** Multi file IO support
-Supports a directory argument and opens files within
+    Supports a directory argument and opens files within
+	@brief Multiple IO support
 ************************************************************************/
 class multi_io_support {
 public:
@@ -452,7 +458,8 @@ protected:
 /** @{ */
 
 /** This enum describes the type of listing to produce
- ************************************************************************/
+     @brief Listing type enum
+************************************************************************/
 enum listing_type {
 	/// Standard listing using TwinCAT/OPC names
 	listing_standard, 
@@ -463,6 +470,7 @@ enum listing_type {
 };
 
 /** Class for generatig a channel list
+	@brief List processing
 ************************************************************************/
 class epics_list_processing : 
 	public epics_conversion, public split_io_support {
@@ -551,7 +559,8 @@ enum class macrofile_type {
 };
 
 /** This structure describes a field
- ************************************************************************/
+    @brief Macro information
+************************************************************************/
 struct macro_info {
 	/// Default constructor
 	macro_info () : ptype (ParseUtil::pt_invalid), readonly (false) {}
@@ -571,7 +580,8 @@ struct macro_info {
 typedef std::vector<macro_info> macro_list;
 
 /** This structure describes a record/struct
- ************************************************************************/
+    @brief Macro record
+************************************************************************/
 struct macro_record {
 	macro_record () : iserror (false), haserror (false), erroridx (-1) {}
 	/// name of structure
@@ -597,6 +607,7 @@ typedef std::stack<macro_record> macro_stack;
 typedef std::unordered_set<std::stringcase> filename_set;
 
 /** Class for generatig macro files to be used by medm
+	@brief Macro file processing
 ************************************************************************/
 class epics_macrofiles_processing : 
 	public epics_conversion, public multi_io_support {
@@ -716,6 +727,7 @@ protected:
 };
 
 /** This enum describes the type of listing to produce
+	@brief Device support enum
 ************************************************************************/
 enum device_support_type {
 	/// Use opc names in the INPUT/OUTPUT epics fields
@@ -725,6 +737,7 @@ enum device_support_type {
 };
 
 /** Class for generatig an EPICS database record 
+	@brief pics database record processing
 ************************************************************************/
 class epics_db_processing : 
 	public epics_conversion, public split_io_support {

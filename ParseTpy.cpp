@@ -36,6 +36,7 @@ static void XMLCALL endCData (void *userData);
 static void XMLCALL dataElement (void *userData, const char *data, int len);
 
 /** This structure keeps track of the parser information.
+	@brief Parser information
  ************************************************************************/
 class parserinfo_type 
 {

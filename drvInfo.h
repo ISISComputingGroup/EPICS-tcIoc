@@ -13,6 +13,7 @@ namespace DevInfo {
 
 /** Register Info commands to IOC shell
     This class registers the callback functions for the Info IOC commands
+	@brief Register info commands
   */
 class InfoRegisterToIocShell {
 private:
