@@ -15,6 +15,7 @@
 $parent = "$PSScriptRoot"
 $download = "$parent\Download"
 $html = "html"
+$latex = "latex"
 # 
 $version = "2_0"
 #
@@ -26,3 +27,7 @@ cd $parent
 del -r $html
 doxygen $parent\Doxyfile
 Compress-Archive -Path $html -DestinationPath $download\html_${version}.zip -Force
+#
+cd $latex
+./make
+cd ..
