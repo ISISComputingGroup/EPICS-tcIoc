@@ -304,7 +304,7 @@ bool compiler_info::is_cmpl_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (cmpl_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	int num = sscanf_s (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
 	if ((num != 0) || (end != cmpl_versionstr.length())) {
 		return false;
 	}
@@ -317,23 +317,13 @@ void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr)
 { 
 	tcat_versionstr = versionstr; 
 	if (is_tcat_Valid ()) {
-		int v1, v2;
-		sscanf_s (tcat_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
-		if (v2 > 99) {
-			tcat_version = v1 + (double)v2/1000;
-		} 
-		else if (v2 > 9) {
-			tcat_version = v1 + (double)v2/100;
-		}
-		else if (v2 > 0) {
-			tcat_version = v1 + (double)v2/10;
-		}
-		else {
-			tcat_version = 0;
-		}
+		sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u", &tcat_version_major, 
+			&tcat_version_minor, &tcat_version_build);
 	}
 	else {
-		tcat_version = 0;
+		tcat_version_major = 0;
+		tcat_version_minor = 0;
+		tcat_version_build = 0;
 	}
 }
 
@@ -345,7 +335,7 @@ bool compiler_info::is_tcat_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (tcat_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	int num = sscanf_s (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
 	if ((num != 0) || (end != tcat_versionstr.length())) {
 		return false;
 	}

@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 
 	// generate macro files
 	if (macros) {
-		macroproc.set_twincat3 (tpyfile.get_project_info().get_tcat_version() > 3);
+		macroproc.set_twincat3 (tpyfile.get_project_info().get_tcat_version_major() >= 3);
 		if (!tpyfile.process_symbols (macroproc)) {
 			fprintf (stderr, "Unable to generate listing.\n");
 			return 1;

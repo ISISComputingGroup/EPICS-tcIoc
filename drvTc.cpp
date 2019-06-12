@@ -482,7 +482,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	// setup macro processing
 	for (dirname_arg_macro_tuple& macro : macros) {
 		if (get<2>(macro)) get<2>(macro)->set_twincat3 (
-				tpyfile.get_project_info().get_tcat_version() > 3);
+				tpyfile.get_project_info().get_tcat_version_major() >= 3);
 	}
 
 

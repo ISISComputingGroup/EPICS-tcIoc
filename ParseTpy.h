@@ -80,7 +80,8 @@ protected:
 class compiler_info {
 public:
 	/// Default constructor
-	compiler_info() : cmpl_version (0), tcat_version (0) {}
+	compiler_info() : cmpl_version (0), tcat_version_major(0), 
+		tcat_version_minor(0), tcat_version_build(0) {}
 
 	/// Get compiler version string
 	const std::stringcase& get_cmpl_versionstr() const { return cmpl_versionstr; }
@@ -93,8 +94,12 @@ public:
 	const std::stringcase& get_tcat_versionstr() const { return tcat_versionstr; }
 	/// Set twincat version string
 	void set_tcat_versionstr (const std::stringcase& versionstr);
-	/// Get twincat version
-	double get_tcat_version() const { return tcat_version; }
+	/// Get twincat major version
+	unsigned int get_tcat_version_major() const { return tcat_version_major; }
+	/// Get twincat minor version
+	unsigned int get_tcat_version_minor() const { return tcat_version_minor; }
+	/// Get twincat build version
+	unsigned int get_tcat_version_build() const { return tcat_version_build; }
 
 	/// Get cpu familiy string
 	const std::stringcase& get_cpu_family() const { return cpu_family; }
@@ -113,8 +118,12 @@ protected:
 	double			cmpl_version;
 	/// twincat version string
 	std::stringcase	tcat_versionstr;
-	/// twincat version number
-	double			tcat_version;
+	/// twincat major version number
+	unsigned int	tcat_version_major;
+	/// twincat minor version number
+	unsigned int	tcat_version_minor;
+	/// twincat build version number
+	unsigned int	tcat_version_build;
 	/// cpu family string
 	std::stringcase	cpu_family;
 };

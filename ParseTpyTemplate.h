@@ -29,9 +29,17 @@ namespace ParseTpy {
 	{
 		ParseUtil::variable_name n (prefix);
 		n.append (symbol.get_name(), symbol.get_opc(), "");
+		// Check for pointer: if so, do not follow
 		if (symbol.get_type_pointer()) {
-			return process_type_tree ("DINT", 0, 
-				symbol.get_opc(), symbol, process, n, 0);
+			// check for 64 bit pointers
+			if (symbol.get_bytesize() == 8) {
+				return process_type_tree("ULINT", 0,
+					symbol.get_opc(), symbol, process, n, 0);
+			}
+			else {
+				return process_type_tree("UDINT", 0,
+					symbol.get_opc(), symbol, process, n, 0);
+			}
 		}
 		else if (!n.get_name().empty()) {
 			return process_type_tree (symbol.get_type_name(), 
