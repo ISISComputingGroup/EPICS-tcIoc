@@ -146,16 +146,16 @@ class base_record
 {
 public:
 	/// Default constructor
-	base_record() : type_decoration (0) {}
+	base_record() : type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	explicit base_record (const std::stringcase& n) 
-		: name (n), type_decoration (0) {}
+		: name (n), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o) 
-		: name (n), opc (o), type_decoration (0) {}
+		: name (n), opc (o), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
@@ -163,7 +163,7 @@ public:
 	/// @param td Type decortation or id
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o,
 		const std::stringcase& tn, int td = 0) 
-		: name (n), opc (o), type_n (tn), type_decoration (td) {}
+		: name (n), opc (o), type_n (tn), type_decoration (td), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param tn Type name

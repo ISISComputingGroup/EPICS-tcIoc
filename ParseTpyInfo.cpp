@@ -169,7 +169,8 @@ int main (int argc, char *argv[])
 	}
 	clock_t t3 = clock();
 	fprintf (stderr, "Time to parse file %g sec, time to build list %g sec.\n", 
-		(double)(t2 - t1)/CLOCKS_PER_SEC, (double)(t3 - t2)/CLOCKS_PER_SEC);
+		static_cast<double>((int64_t)t2 - (int64_t)t1)/CLOCKS_PER_SEC, 
+		static_cast<double>((int64_t)t3 - (int64_t)t2)/CLOCKS_PER_SEC);
 
 	// close files
 	if (!inpfilename.empty()) {
