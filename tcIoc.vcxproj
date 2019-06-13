@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="info_registerRecordDeviceDriver.cpp" />
     <ClCompile Include="iocMain.cpp" />
     <ClCompile Include="tCat_registerRecordDeviceDriver.cpp" />
   </ItemGroup>

@@ -1,4 +1,5 @@
 set DEVICE=tCat
+set DEVICE2=info
 set perlpath=C:\Straberry\perl\site\bin;C:\Straberry\perl\bin
 set makepath=C:\Straberry\c\bin
 set EPICS_BASE=C:\SlowControlsMaggie\EPICS\base-3.15.6
@@ -9,7 +10,10 @@ call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary
 %EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -a %EPICS_HOST_ARCH% -p %DEVICE% -i -t ioc %DEVICE%
 gmake
 copy %DEVICE%Support.dbd %DEVICE%App\src\O.Common
-echo include "%DEVICE%Support.dbd" >> "%DEVICE%App\src\O.Common\%DEVICE%Include.dbd"
+copy %DEVICE2%Support.dbd %DEVICE%App\src\O.Common
+echo tCat_DBD += %DEVICE%Support.dbd %DEVICE2%Support.dbd >> "%DEVICE%App\src\Makefile"
+del %DEVICE%App\src\O.Common\%DEVICE%.dbd
 gmake
 copy %DEVICE%App\src\O.Common\%DEVICE%.dbd ..\%DEVICE%.dbd
 copy %DEVICE%App\src\O.win32-x86\%DEVICE%_registerRecordDeviceDriver.cpp ..\%DEVICE%_registerRecordDeviceDriver.cpp
+echo "Ignore unresolved external symbols!"
