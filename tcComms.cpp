@@ -557,7 +557,7 @@ void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification
 		tCatPlcUser->set_ads_state(state);
 	}
 	else {
-		printf("Uknown PLC ID %i\n", plcId);
+		printf("Unknown PLC ID %i\n", plcId);
 	}
 }
 

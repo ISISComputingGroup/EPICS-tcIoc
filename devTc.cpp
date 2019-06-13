@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "devTc.h"
 #include "ParseTpy.h"
+#include "InfoPlc.h"
 #include "errlog.h"
 #undef va_start
 #undef va_end
@@ -29,61 +30,70 @@ using namespace plc;
 
 namespace DevTc {
 
-/** linkRecord
+/* Initialization function that matches an EPICS record with an internal
+	record entry
+	@param name Name of record (INP/OUT field)
+	@param pEpicsRecord Pointer to EPICS record
+	@param pRecord Pointer to a base record
+	@return true if successful
+	@brief Link Record
  ************************************************************************/
-bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, BaseRecordPtr& pRecord)
-{
-	static int inpError = 0;
-	if (name.empty() ) {
-		printf("Error in inp field for record %s.\n", pEpicsRecord->name);
-		inpError++;
-		return false;
-	}
-	std::regex rgx("((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
+//bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, BaseRecordPtr& pRecord)
+//{
+//	if (name.empty() ) {
+//		printf("Error in inp field for record %s.\n", pEpicsRecord->name);
+//		return false;
+//	}
+//	std::regex rgx("((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
+//
+//	std::smatch match;
+//
+//	if (!std::regex_search(name, match, rgx)) {
+//		printf("Name doesn't fit regex for %s, name is %s!!!\n", pEpicsRecord->name, name.c_str());
+//		return false;
+//	}
+//	//for (auto m:match) std::cout << "submatch " << m << '\n';
+//
+//	// Get PLC name from EPICS name string
+//	BasePLCPtr plcMatch = plc::System::get().find (match[1].str().c_str());
+//	if (!plcMatch.get()) {
+//		printf("PLC not found %s.\n", pEpicsRecord->name);
+//		return false;
+//	}
+//	// Link record object to EPICS record
+//	pRecord = plcMatch->find (stringcase(name.c_str()));
+//	if (!pRecord.get()) {
+//		printf("Record %s.\n", pEpicsRecord->name);
+//		return false;
+//	}
+//	// Create EPICS interface
+//	DevTc::EpicsInterface* epics = new DevTc::EpicsInterface (*pRecord);
+//
+//	// Let EPICS interface know about size of data
+//	TcComms::TCatInterface* tcat = dynamic_cast<TcComms::TCatInterface*>(pRecord->get_plcInterface());
+//	if (!tcat) {
+//		printf("dynamic cast failed, record name is %s.\n", pEpicsRecord->name);
+//		return false;
+//	}
+//
+//	epics->set_size(tcat->get_size());
+//
+//
+//	// Link EPICS record to EPICS interface
+//	epics->set_pEpicsRecord(pEpicsRecord);
+//	// Link EPICS interface to record object
+//	pRecord->set_userInterface(epics);
+//	return true;
+//}
 
-	std::smatch match;
-
-	if (!std::regex_search(name, match, rgx)) {
-		printf("Name doesn't fit regex for %s, name is %s!!!!!!!!!!.\n", pEpicsRecord->name, name.c_str());
-		return false;
-	}
-	//for (auto m:match) std::cout << "submatch " << m << '\n';
-
-	// Get PLC name from EPICS name string
-	BasePLCPtr plcMatch = plc::System::get().find (match[1].str().c_str());
-	if (!plcMatch.get()) {
-		printf("PLC not found %s.\n", pEpicsRecord->name);
-		return false;
-	}
-	// Link record object to EPICS record
-	pRecord = plcMatch->find (stringcase(name.c_str()));
-	if (!pRecord.get()) {
-		printf("Record %s.\n", pEpicsRecord->name);
-		return false;
-	}
-	// Create EPICS interface
-	DevTc::EpicsInterface* epics = new DevTc::EpicsInterface (*pRecord);
-
-	// Let EPICS interface know about size of data
-	TcComms::TCatInterface* tcat = dynamic_cast<TcComms::TCatInterface*>(pRecord->get_plcInterface());
-	if (!tcat) {
-		printf("dynamic cast failed, record name is %s.\n", pEpicsRecord->name);
-		return false;
-	}
-
-	epics->set_size(tcat->get_size());
-
-
-	// Link EPICS record to EPICS interface
-	epics->set_pEpicsRecord(pEpicsRecord);
-	// Link EPICS interface to record object
-	pRecord->set_userInterface(epics);
-	return true;
-}
-
-/** linkTcRecord
+/** Initialization function that matches an EPICS record with an internal
+	TwinCAT record entry
+	@param pEpicsRecord Pointer to EPICS record
+	@param pRecord Pointer to a base record
+	@return true if successful
+	@brief Link TwinCat Record
  ************************************************************************/
-bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+static bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 {
 	// Let EPICS interface know about size of data
 	TcComms::TCatInterface* tcat = dynamic_cast<TcComms::TCatInterface*>(pRecord->get_plcInterface());
@@ -99,7 +109,36 @@ bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 		return false;
 	}
 	
-	epics->set_size(tcat->get_size());
+	// Link EPICS record to EPICS interface
+	epics->set_pEpicsRecord(pEpicsRecord);
+	// Link EPICS interface to record object
+	pRecord->set_userInterface(epics);
+
+	return true;
+}
+
+/** Initialization function that matches an EPICS record with an internal
+	info record entry
+	@param pEpicsRecord Pointer to EPICS record
+	@param pRecord Pointer to a base record
+	@return true if successful
+	@brief Link Info Record
+ ************************************************************************/
+static bool linkInfoRecord(dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+{
+	// Let EPICS interface know about size of data
+	InfoPlc::InfoInterface* info = dynamic_cast<InfoPlc::InfoInterface*>(pRecord->get_plcInterface());
+	if (!info) {
+		printf("dynamic cast failed, record name is %s.\n", pEpicsRecord->name);
+		return false;
+	}
+
+	// Create EPICS interface
+	DevTc::EpicsInterface* epics = new (std::nothrow) DevTc::EpicsInterface(*pRecord);
+	if (!epics) {
+		printf("allocation failed, record name is %s.\n", pEpicsRecord->name);
+		return false;
+	}
 
 	// Link EPICS record to EPICS interface
 	epics->set_pEpicsRecord(pEpicsRecord);
@@ -107,6 +146,14 @@ bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 	pRecord->set_userInterface(epics);
 
 	return true;
+}
+
+/** register_devsup::register_devsup
+ ************************************************************************/
+register_devsup::register_devsup()
+{
+	add (tc_regex, linkTcRecord);
+	add (info_regex, linkInfoRecord);
 }
 
 /** register_devsup::linkRecord
@@ -131,7 +178,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 			// Link record object to EPICS record
 			pRecord = plcMatch->find (inpout);
 			if (!pRecord.get()) {
-				printf("Record %s.\n", pEpicsRecord->name);
+				printf("No PLC record for %s.\n", pEpicsRecord->name);
 				return false;
 			}
 			// Call link function
@@ -152,9 +199,7 @@ register_devsup register_devsup::the_register_devsup;
  ************************************************************************/
 EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
 		: Interface (dval), isPassive (false), isCallback (false),
-		pEpicsRecord (nullptr), pEpicsVal (nullptr), size (0),
-		ioscanpvt (nullptr)
-		/*, callbackRequestPending(false)*/ 
+		pEpicsRecord (nullptr), ioscanpvt (nullptr)
 {
 	memset (&callbackval, 0, sizeof (callbackval));
 }

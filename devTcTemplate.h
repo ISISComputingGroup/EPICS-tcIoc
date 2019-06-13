@@ -606,8 +606,8 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
         getchar();
         exit(S_db_badField);
 	}
-	epics->set_pEpicsVal (
-		epics_record_traits<RecType>::val (prec));
+//	epics->set_pEpicsVal (
+//		epics_record_traits<RecType>::val (prec));
 	// Set scan properties
 	pRecord->set_access_rights(read_only);
     if(prec->scan == SCAN_IO_EVENT) {
@@ -656,7 +656,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 	// Copy item name
     std::stringcase itemName = prec->out.value.instio.string; 
 	// Disable records if link to TCat record fails
-    if(!linkRecord(itemName, (dbCommon*)prec, pRecord)) {
+    if(!register_devsup::linkRecord(itemName, (dbCommon*)prec, pRecord)) {
         prec->pact = TRUE;     /* disable this record */
         return S_db_badField;
     }
@@ -670,8 +670,8 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
         getchar();
         exit(S_db_badField);
 	}
-	epics->set_pEpicsVal (
-		epics_record_traits<RecType>::val (prec));
+//	epics->set_pEpicsVal (
+//		epics_record_traits<RecType>::val (prec));
 	// Set scan properties
 	pRecord->set_access_rights(read_write);
 	epics->set_isCallback(true); // readwrite record: need to generate callback to do a read
@@ -747,24 +747,31 @@ long devTcDefWaveformIn<RecType>::
 /* devTcDefIn<>::read
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefIn<RecType>::read (rec_type_ptr precord)
+long devTcDefIn<RecType>::read(rec_type_ptr precord)
 {
 	// Get the conversion setting for this record
 	long ret = epics_record_traits<RecType>::value_conversion;
 	// Get the IOC internal record entry and EPICS user interface
-	BaseRecord* pBaseRecord = (BaseRecord*) precord->dpvt;
-	EpicsInterface* epics = dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() );
+	BaseRecord* pBaseRecord = (BaseRecord*)precord->dpvt;
+	EpicsInterface* epics = dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface());
 
-    if(!pBaseRecord || !epics) {
-        recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
-        precord->pact = TRUE;     // disable this record
-        return 1;
-    }
+	if (!pBaseRecord || !epics) {
+		recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
+		precord->pact = TRUE;     // disable this record
+		return 1;
+	}
 	// Check the "processing active" field
-    if(precord->pact)
-        return ret;
-	// Grab data value into the EPICS 
+#ifdef _MSC_VER 
+	if (_InterlockedCompareExchange8((char*)&precord->pact, TRUE, FALSE)) {
+		return ret;
+	}
+#else
+	if (precord->pact) {}
+		return ret;
+	}
 	precord->pact = TRUE;
+#endif
+	// check validity
 	bool udf = false;
 	// Check data valid 
 	if (pBaseRecord->DataIsValid ()) {
@@ -775,7 +782,7 @@ long devTcDefIn<RecType>::read (rec_type_ptr precord)
 		recGblSetSevr (precord, READ_ALARM, INVALID_ALARM);
 		udf = true;
 	}
-//	pBaseRecord->UserRead( *epics_record_traits<RecType>::val (precord) );
+	// Grab data value into EPICS 
 	epics_record_traits<RecType>::read (precord, pBaseRecord);
 	// set time stamp
 	BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
@@ -785,8 +792,8 @@ long devTcDefIn<RecType>::read (rec_type_ptr precord)
     //    *((aitUint32*)(pOpc2Epics->pRecVal)) &= pOpc2Epics->mask;
     //if (pOpc2Epics->mask && (pOpc2Epics->recType == bival))
     //    *((epicsEnum16*)(pOpc2Epics->pRecVal)) &= pOpc2Epics->mask;
-    precord->pact = FALSE;
-    precord->udf  = udf;
+	precord->udf = udf;
+	precord->pact = FALSE;
     return ret;
 }
 
@@ -815,11 +822,22 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
         return 1;
     }
 
+	// Check the "processing active" field
+#ifdef _MSC_VER 
+	if (_InterlockedCompareExchange8((char*)&precord->pact, TRUE, FALSE)) {
+		return 0;
+	}
+#else
+	if (precord->pact) {}
+		return 0;
+	}
+	precord->pact = TRUE;
+#endif
+
 	// For in/out records, check if read is pending
 	bool udf = false;
 	if (epics->get_callbackRequestPending()) {
 		// Check data valid 
-		precord->pact = TRUE;
 		if (pBaseRecord->DataIsValid ()) {
 			//recGblSetSevr (precord, NO_ALARM, NO_ALARM);
 			precord->nsev = NO_ALARM;
@@ -837,8 +855,8 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 	}
 	else {
 		// Write data value
-		precord->pact = TRUE;
 		epics_record_traits<RecType>::write (pBaseRecord, precord);
+		// set time stamp
 		FILETIME timestamp;
 		GetSystemTimeAsFileTime (&timestamp);
 		precord->time = epicsTime (timestamp);
@@ -853,8 +871,8 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
     //if(opcSetScalar(pOpc2Epics))
     //    return 1;
 
-    precord->pact = FALSE;
-    precord->udf = udf;
+	precord->udf = udf;
+	precord->pact = FALSE;
     return 0;
 }
 

@@ -45,12 +45,6 @@
     <ClInclude Include="infoPlcTemplate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="drvInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="devInfo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\tcIoc\drvTc.cpp">
@@ -69,12 +63,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="infoPlc.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="devInfo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="drvInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

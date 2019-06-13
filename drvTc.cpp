@@ -45,6 +45,7 @@ static const iocshArg tcMacroArg1		            = {"Macro arguments", iocshArgStr
 static const iocshArg tcAliasArg0					= {"Alias name for PLC", iocshArgString};
 static const iocshArg tcAliasArg1					= {"Replacement rules", iocshArgString};
 static const iocshArg tcPrintValsArg0				= {"emptyarg", iocshArgString};
+static const iocshArg tcInfoPrefixArg0				= {"Prefix for info PLC records", iocshArgString};
 
 static const iocshArg* const  tcLoadRecordsArg[2]   = {&tcLoadRecordsArg0, &tcLoadRecordsArg1};
 static const iocshArg* const  tcSetScanRateArg[2]   = {&tcSetScanRateArg0, &tcSetScanRateArg1};
@@ -52,6 +53,7 @@ static const iocshArg* const  tcListArg[2]		    = {&tcListArg0, &tcListArg1};
 static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
 static const iocshArg* const  tcAliasArg[2]			= {&tcAliasArg0, &tcAliasArg1};
 static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
+static const iocshArg* const  tcInfoPrefixArg[1]	= {&tcInfoPrefixArg0};
 
 static const iocshFuncDef tcLoadRecordsFuncDef      = {"tcLoadRecords", 2, tcLoadRecordsArg};
 static const iocshFuncDef tcSetScanRateFuncDef	    = {"tcSetScanRate", 2, tcSetScanRateArg};
@@ -59,6 +61,7 @@ static const iocshFuncDef tcListFuncDef				= {"tcGenerateList", 2, tcListArg};
 static const iocshFuncDef tcMacroFuncDef            = {"tcGenerateMacros", 2, tcMacroArg};
 static const iocshFuncDef tcAliasFuncDef            = {"tcSetAlias", 2, tcAliasArg}; 
 static const iocshFuncDef tcPrintValsFuncDef        = {"tcPrintVals", 1, tcPrintValsArg};
+static const iocshFuncDef tcInfoPrefixFuncDef		= {"tcInfoPrefix", 1, tcInfoPrefixArg};
 
 /// Tuple for filnemae, rule and list processing 
 typedef std::tuple<std::stringcase, std::stringcase, 
@@ -77,6 +80,7 @@ static std::stringcase tc_alias;
 static EpicsTpy::replacement_table tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
+static std::stringcase tc_infoprefix;
 
 
 /** Class for generating an EPICS database and tc record 
@@ -328,9 +332,13 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtDouble;
 	else if (arg.get_type_name().substr(0,6) == "STRING") 
 		rt = plc::data_type_enum::dtString;
+	else {
+		printf("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
+		return false;
+	}
 
 	/// Make new record object
-	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(),rt));
+	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
 	/// Make TCat interface
 	TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord, 
 								arg.get_name(), 
@@ -394,10 +402,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 	EpicsTpy::replacement_table rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
+	std::stringcase infoprefix = tc_infoprefix;
 	tc_alias = "";
 	tc_replacement_rules.clear();
 	tc_lists.clear();
 	tc_macros.clear();
+	tc_infoprefix = "";
 
 	// Check if Ioc is running
 	if (plc::System::get().is_ioc_running()) {
@@ -697,10 +707,35 @@ void tcAlias (const iocshArgBuf *args)
 }
 
 
-/** Debugging function that prints the values for all records on the PLCs
-    @brief TCat print vals
+/** Sets the channel prefix for info PLC records
+	@brief TCat info prefix
  ************************************************************************/
-void tcPrintVals (const iocshArgBuf *args)
+void tcInfoPrefix(const iocshArgBuf *args)
+{
+	// Check if Ioc is running
+	if (plc::System::get().is_ioc_running()) {
+		printf("IOC is already initialized\n");
+		return;
+	}
+	// Check arguments
+	if (!args) {
+		printf("Specify a info prefix\n");
+		return;
+	}
+	// Check prefix string
+	const char* p1 = args[0].sval;
+	if (!p1) {
+		printf("Specify an info prefix for a tc PLC\n");
+		return;
+	}
+	tc_infoprefix = p1;
+	return;
+}
+
+/** Debugging function that prints the values for all records on the PLCs
+	@brief TCat print vals
+ ************************************************************************/
+void tcPrintVals(const iocshArgBuf *args)
 {
 	plc::System::get().printVals();
 	return;
@@ -746,6 +781,7 @@ tcRegisterToIocShell::tcRegisterToIocShell ()
     iocshRegister(&tcListFuncDef, tcList);
     iocshRegister(&tcMacroFuncDef, tcMacro);
 	iocshRegister(&tcPrintValsFuncDef, tcPrintVals);
+	iocshRegister(&tcInfoPrefixFuncDef, tcInfoPrefix);
 	initHookRegister(piniProcessHook);
 }
 

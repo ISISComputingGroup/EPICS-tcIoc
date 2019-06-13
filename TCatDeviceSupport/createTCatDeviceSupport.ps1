@@ -50,9 +50,9 @@ sleep 5
 # make base app
 gmake
 copy ${DEVICE}Support.dbd ${DEVICE}App\src\O.Common\
-copy ${DEVICE2}Support.dbd ${DEVICE}App\src\O.Common\
+#copy ${DEVICE2}Support.dbd ${DEVICE}App\src\O.Common\
 #echo include "${DEVICE}Support.dbd" >> "${DEVICE}App\src\O.Common\${DEVICE}Include.dbd"
-add-content "${DEVICE}App\src\Makefile" "tCat_DBD += ${DEVICE}Support.dbd ${DEVICE2}Support.dbd"
+add-content "${DEVICE}App\src\Makefile" "tCat_DBD += ${DEVICE}Support.dbd"
 rm ${DEVICE}App\src\O.Common\${DEVICE}.dbd
 gmake
 #

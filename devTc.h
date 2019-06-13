@@ -34,28 +34,13 @@ inline void outRecordCallback(callbackPvt *pcallback) {
         dbProcess(prec);
 }
 
-/** Initialization function that matches an EPICS record with an internal
-	record entry
-	@param name Name of record (INP/OUT field)
-	@param pEpicsRecord Pointer to EPICS record
-	@param pRecord Pointer to a base record
-	@return true if successful
-	@brief Link Record
- ************************************************************************/
-bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
-
-/** Initialization function that matches an EPICS record with an internal
-	TwinCAT record entry
-	@param pEpicsRecord Pointer to EPICS record
-	@param pRecord Pointer to a base record
-	@return true if successful
-	@brief Link TwinCat Record
- ************************************************************************/
-bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
-
 /// Regex for indentifying TwinCAT records
 const std::regex tc_regex (
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
+
+/// Regex for indentifying info records
+const std::regex info_regex(
+	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(info)/([A-Za-z0-9_]+)");
 
 /** This is a class for managing device support for multiple record
     types, such as TwinCAT/ADS and Info.
@@ -86,9 +71,8 @@ public:
 		plc::BaseRecordPtr& pRecord);
 
 protected:
-	/// Default constructor; adds a linkTcRecord entry
-	register_devsup() {
-		add (tc_regex, linkTcRecord); }
+	/// Default constructor (adds linkTcRecord entry)
+	register_devsup();
 	/// Disabled copy constructor
 	register_devsup (const register_devsup&);
 	/// Disabled assignment operator
@@ -127,18 +111,6 @@ public:
 	/// Set pEpicsRecord
 	void set_pEpicsRecord(dbCommon* pEpRecord) {
 		pEpicsRecord = pEpRecord;};
-	/// Get pEpicsVal
-	void* get_pEpicsVal() const { 
-		return pEpicsVal; };
-	/// Set pEpicsVal
-	void set_pEpicsVal(void* pVal) { 
-		pEpicsVal = pVal;};
-	/// Get size
-	unsigned long get_size() const { 
-		return size; };
-	/// Set size
-	void set_size (unsigned long nBytes) { 
-		size = nBytes; };
 	/// Get callbackRequestPending
 	bool get_callbackRequestPending() const;
 
@@ -175,15 +147,6 @@ protected:
 	bool				isCallback;
 	/// Pointer to the EPICS record
 	dbCommon*			pEpicsRecord;
-	/// Pointer to the RVAL field of the EPICS record
-	void*				pEpicsVal;
-	/// Size (bytes) of the data
-	unsigned long		size;
-	/** Bool indicating that a read callback is pending
-		Set to true for in/out records when callback request is made.
-		true : if this is an in/out record, then dbProcess will do an 
-		EPICS read instead of write, then reset this value to false */
-//+	bool				callbackRequestPending;
 	/// Pointer to IO scan list
 	IOSCANPVT			ioscanpvt;
 	/// Callback structure

@@ -147,10 +147,8 @@
   <ItemGroup>
     <ClInclude Include="..\tcIoc\drvTc.h" />
     <ClInclude Include="atomic_string.h" />
-    <ClInclude Include="devInfo.h" />
     <ClInclude Include="devTc.h" />
     <ClInclude Include="devTcTemplate.h" />
-    <ClInclude Include="drvInfo.h" />
     <ClInclude Include="infoPlc.h" />
     <ClInclude Include="infoPlcTemplate.h" />
     <ClInclude Include="plcBase.h" />
@@ -160,9 +158,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\tcIoc\drvTc.cpp" />
-    <ClCompile Include="devInfo.cpp" />
     <ClCompile Include="devTc.cpp" />
-    <ClCompile Include="drvInfo.cpp" />
     <ClCompile Include="infoPlc.cpp" />
     <ClCompile Include="plcBase.cpp" />
     <ClCompile Include="stdafx.cpp" />
