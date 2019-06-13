@@ -60,7 +60,6 @@ static const iocshFuncDef infoPrintValsFuncDef		= {"infoPrintVals", 1, infoPrint
  ************************************************************************/
 typedef std::pair<std::stringcase, std::stringcase> filename_rule_pair;
 
-static bool initIoc = false;
 static int scanrate = default_scanrate;
 static std::stringcase info_prefix;
 static std::stringcase info_alias;
@@ -174,7 +173,7 @@ void infoLoadRecords (const iocshArgBuf *args)
 	info_lists.clear();
 
 	// Check if Ioc is running
-    if (initIoc) {
+    if (plc::System::get().is_ioc_running()) {
         printf ("IOC is already initialized\n");
         return;
     }
@@ -281,7 +280,7 @@ void infoLoadRecords (const iocshArgBuf *args)
 void infoSetScanRate (const iocshArgBuf *args) 
 {
 	// Check if Ioc is running
-    if (initIoc) {
+    if (plc::System::get().is_ioc_running()) {
         printf ("IOC is already initialized\n");
         return;
     }
@@ -408,7 +407,7 @@ InfoRegisterToIocShell::InfoRegisterToIocShell()
 	iocshRegister(&infoPrintValsFuncDef, infoPrintVals);
 }
 
-/// create a static object to make shure that opcRegisterToIocShell is called on beginning of
+/// create a static object to make shure that opcRegisterToIocShell is called on beginning of code
 InfoRegisterToIocShell InfoRegisterToIocShell::gInfoRegisterToIocShell;
 
 /** @} */
