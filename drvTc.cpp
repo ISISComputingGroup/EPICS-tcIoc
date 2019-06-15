@@ -2,6 +2,8 @@
 #include "drvTc.h"
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
+#include "TpyToEpicsConst.h"
+#include "infoPlc.h"
 #include "gdd.h"
 #include "dbStaticLib.h"
 #include "dbAccess.h"
@@ -77,7 +79,7 @@ typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
-static EpicsTpy::replacement_table tc_replacement_rules;
+static ParseUtil::replacement_table tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 static std::stringcase tc_infoprefix;
@@ -90,7 +92,7 @@ class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
 public:
 	/// Default constructor
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
-		EpicsTpy::replacement_table& rules,
+		ParseUtil::replacement_table& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
 		: plc (&p), invnum (0), lists (l), macros (m) { 
 			device_support = device_support_tc_name; 
@@ -106,8 +108,18 @@ public:
 	/// Flush output files
 	void flush();
 
+	/// Process an info variable
+	/// @param arg Process argument describign the variable and type
+	/// @return True if successful
+	bool process_info (const ParseUtil::process_arg& arg);
+
 	/// Get number of EPICS records without tc records
 	int get_invalid_records() const { return invnum; }
+
+	/// Patch channel names in info database
+	/// @param infodb EPICS database
+	/// @return True if no errors
+	bool patch_db_recordnames (std::stringcase& infodb);
 
 protected:
 	/// Disable copy constructor
@@ -318,7 +330,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtInt8;
 	else if (arg.get_type_name() == "USINT" || arg.get_type_name() == "BYTE") 
 		rt = plc::data_type_enum::dtUInt8;
-	else if (arg.get_type_name() == "INT"|| arg.get_process_type() == pt_enum) 
+	else if (arg.get_type_name() == "INT" || arg.get_process_type() == pt_enum) 
 		rt = plc::data_type_enum::dtInt16;
 	else if (arg.get_type_name() == "UINT" || arg.get_type_name() =="WORD") 
 		rt = plc::data_type_enum::dtUInt16;
@@ -333,7 +345,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 	else if (arg.get_type_name().substr(0,6) == "STRING") 
 		rt = plc::data_type_enum::dtString;
 	else {
-		printf("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
+		printf ("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
 		return false;
 	}
 
@@ -368,6 +380,75 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 	return true;
 }
 
+/* Process an info channel
+   epics_tc_db_processing::process_info()
+ ************************************************************************/
+bool epics_tc_db_processing::process_info (const ParseUtil::process_arg& arg)
+{
+	// Generate EPICS database record
+	if (!EpicsTpy::epics_db_processing::operator()(arg)) {
+		process_macros(arg); // need to process binaries!
+		return false;
+	}
+
+	/// Determine data type of this record
+	plc::data_type_enum rt = plc::data_type_enum::dtInvalid;
+
+	if (arg.get_type_name() == "BOOL")
+		rt = plc::data_type_enum::dtBool;
+	else if (arg.get_type_name() == "SINT")
+		rt = plc::data_type_enum::dtInt8;
+	else if (arg.get_type_name() == "USINT" || arg.get_type_name() == "BYTE")
+		rt = plc::data_type_enum::dtUInt8;
+	else if (arg.get_type_name() == "INT" || arg.get_process_type() == pt_enum)
+		rt = plc::data_type_enum::dtInt16;
+	else if (arg.get_type_name() == "UINT" || arg.get_type_name() == "WORD")
+		rt = plc::data_type_enum::dtUInt16;
+	else if (arg.get_type_name() == "DINT")
+		rt = plc::data_type_enum::dtInt32;
+	else if (arg.get_type_name() == "UDINT" || arg.get_type_name() == "DWORD")
+		rt = plc::data_type_enum::dtUInt32;
+	else if (arg.get_type_name() == "REAL")
+		rt = plc::data_type_enum::dtFloat;
+	else if (arg.get_type_name() == "LREAL")
+		rt = plc::data_type_enum::dtDouble;
+	else if (arg.get_type_name().substr(0, 6) == "STRING")
+		rt = plc::data_type_enum::dtString;
+	else {
+		printf("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
+		return false;
+	}
+
+	/// Make new record object
+	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
+	/// Make info interface
+	InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface (*pRecord,
+		arg.get_name()/*,
+		arg.get_igroup(),
+		arg.get_ioffset(),
+		arg.get_bytesize(),
+		arg.get_type_name(),
+		arg.get_process_type() == pt_binary,
+		arg.get_process_type() == pt_enum*/);
+	if (info == 0) {
+		// this means the allocation failed!
+		++invnum;
+		return false;
+	}
+
+	/// Tell record about info interface
+	pRecord->set_plcInterface (info);
+
+	if (!plc->add(pRecord)) {
+		// this means the EPICS record has nothing to connect to!
+		++invnum;
+		return false;
+	}
+
+	process_lists(arg);
+	process_macros(arg);
+	return true;
+}
 
 /* Flush output files
    epics_tc_db_processing::flush()
@@ -387,6 +468,38 @@ void epics_tc_db_processing::flush()
 	}
 }
 
+/* Patch channel names in info database
+   epics_tc_db_processing::patch_db_recordnames()
+ ************************************************************************/
+bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
+{
+	bool err = false;
+	// first mark all channel names by a sentinel
+	std::regex e(R"++((record\w*\(\w*(bi|bo|ai|ao|mbbi|mbbo|longin|longout|stringin|stringout)\w*,\w*)"([^"]+)")++");
+	std::stringcase fmt("$1%#$3#%");
+	infodb = std::regex_replace(infodb, e, fmt);
+	// now: search and replace  
+	std::regex e2(R"++((%#([^#]+)#%))++");
+	std::smatch m;
+	while (std::regex_search(infodb, m, e2)) {
+		if (m.size() == 3) {
+			std::string rep = "\"";
+			// check record header
+			string epicsname = to_epics(m[2].str().c_str());
+			if (epicsname.size() > MAX_EPICS_CHANNEL) {
+				fprintf(stderr, "Warning: channel name %s too long by %i\n",
+					epicsname.c_str(), static_cast<int>(epicsname.size() - MAX_EPICS_CHANNEL));
+				err = true;
+			}
+			rep += epicsname;
+			rep += "\"";
+			infodb.replace(m[1].first, m[1].second, rep.c_str());
+		}
+	}
+	return !err;
+}
+
+
 /** @defgroup iocshfunc Functions called by the EPICS base
  ************************************************************************/
 /** @{ */
@@ -399,7 +512,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 {
 	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
-	EpicsTpy::replacement_table rules = tc_replacement_rules;
+	ParseUtil::replacement_table rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
 	std::stringcase infoprefix = tc_infoprefix;
@@ -510,7 +623,22 @@ void tcLoadRecords (const iocshArgBuf *args)
 			num, dbproc.get_invalid_records(), args[0].sval);
 	}
 
-	
+	// add info records
+	if (!infoprefix.empty()) {
+		// get info database
+		stringcase infodb = InfoPlc::InfoInterface::get_infodb (infoprefix, tcplc->get_name());
+		// fix channel names
+		if (dbproc.patch_db_recordnames(infodb)) {
+			// write info database
+			fprintf (dbproc.get_file(), infodb.c_str());
+			dbproc.flush();
+			printf("Info database has been loaded.\n");
+		}
+		else {
+			printf("Info database was not loaded.\n");
+		}
+	}
+		
 	// end timer
 	tpyend = clock();
 	printf("Tpy parsing took %f seconds.\n",((float)(tpyend - tpybegin)/CLOCKS_PER_SEC));
@@ -523,7 +651,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	if (!tcplc->start ()) {
 		printf ("Failed to start\n");
-		return;
+		//return;
 	}
 
 	plc::System::get().add(plc::BasePLCPtr(tcplc)); // adopted by TSystem
@@ -679,6 +807,7 @@ void tcAlias (const iocshArgBuf *args)
 	tc_alias = p1;
 	// Check replacement rules
 	tc_replacement_rules.clear();
+	tc_replacement_rules["ALIAS"] = tc_alias;
 	const char* p2 = args[1].sval;
 	if (p2) {
 		std::regex e ("([^=,]+)=([^=,]*)");
@@ -729,6 +858,11 @@ void tcInfoPrefix(const iocshArgBuf *args)
 		return;
 	}
 	tc_infoprefix = p1;
+	// Unescape \$
+	stringcase::size_type pos;
+	while ((pos = tc_infoprefix.find("\\$")) != stringcase::npos) {
+		tc_infoprefix.erase(pos, 1);
+	}
 	return;
 }
 

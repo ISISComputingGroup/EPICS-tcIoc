@@ -124,7 +124,7 @@ static bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 	@return true if successful
 	@brief Link Info Record
  ************************************************************************/
-static bool linkInfoRecord(dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+static bool linkInfoRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 {
 	// Let EPICS interface know about size of data
 	InfoPlc::InfoInterface* info = dynamic_cast<InfoPlc::InfoInterface*>(pRecord->get_plcInterface());
@@ -185,7 +185,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 			return i.second (pEpicsRecord, pRecord);
 		}
 	}
-	printf("Name doesn't fit regex for %s, link field is %s.\n", 
+	printf ("Name doesn't fit regex for %s, link field is %s.\n", 
 		pEpicsRecord->name, inpout.c_str());
 	return false;
 }

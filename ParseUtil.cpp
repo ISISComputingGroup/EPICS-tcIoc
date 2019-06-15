@@ -9,6 +9,52 @@ using namespace std;
  ************************************************************************/
 namespace ParseUtil {	
 
+/* Static const variables
+	************************************************************************/
+const char* const replacement_rules::prefix = "${";
+const char* const replacement_rules::suffix = "}";
+
+/* Static const variables
+	************************************************************************/
+std::stringcase replacement_rules::apply_replacement_rules(const std::stringcase& arg) const
+{
+	stringcase ret(arg);
+	stringcase var;
+	stringcase val;
+	stringcase::size_type pos1;
+	stringcase::size_type pos2;
+	stringcase::size_type prefixlen = strlen(prefix);
+	stringcase::size_type suffixlen = strlen(suffix);
+	replacement_table::const_iterator rep;
+
+	// start from beginning
+	pos2 = 0;
+	while ((pos1 = ret.find(prefix, pos2)) != stringcase::npos) {
+		// look for suffix
+		pos2 = ret.find(suffix, pos1 + prefixlen);
+		// no suffix? What's up? remove prefix and move on
+		if (pos2 == stringcase::npos) {
+			ret.erase(pos1, prefixlen);
+			// if recursive start from beginning
+			pos2 = is_recursive() ? 0 : pos1;
+			continue;
+		}
+		// determine variable name
+		var = ret.substr(pos1 + prefixlen, pos2 - (pos1 + prefixlen));
+		trim_space(var);
+		// check for value in table
+		if (!var.empty() &&
+			(rep = table.find(var)) != table.end()) {
+			var = rep->second;
+		}
+		// replace var with value
+		ret.replace(pos1, pos2 - pos1 + 1, var);
+		// if recursive start from beginning
+		pos2 = is_recursive() ? 0 : pos1 + var.size();
+	}
+	return ret;
+}
+
 /* optarg::parse
  ************************************************************************/
 int optarg::parse (const std::stringcase& arg)

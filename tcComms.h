@@ -284,10 +284,6 @@ public:
 	long get_nReadPort() { return nReadPort; };
 	/// Get write port number
 	long get_nWritePort() { return nWritePort; };
-	/// Get run-time system number
-	int get_nRTS() { return nRTS; };		
-	/// Set run-time system number
-	void set_nRTS(int RTS) { nRTS = RTS; };
 	/// Set slowdown multiple for EPICS read
 	void set_read_scanner_multiple(int mult) { 
 		scanRateMultiple = mult; };
@@ -340,8 +336,6 @@ protected:
 	std::mutex	sync;
 	/// AMS netID of TwinCAT system and port number for this PLC
 	AmsAddr	addr;
-	/// Run-time system number
-	int	nRTS;
 	/// The path of the tpy file
 	std::string	pathTpy;
 	/// Modification time of file

@@ -153,7 +153,7 @@ private:
 };
 
 
-/* type:record::init
+/* parserinfo_type::init
  ************************************************************************/
  void parserinfo_type::init() 
  {
@@ -181,7 +181,7 @@ private:
 	 fb_parse = 0;
  }
 
-/* type:record::get_type_description
+/* parserinfo_type::get_type_description
  ************************************************************************/
  type_enum parserinfo_type::get_type_description() const
  {

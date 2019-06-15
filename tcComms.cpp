@@ -4,7 +4,8 @@
 #include "ParseTpy.h"
 #include "windows.h"
 #include "TpyToEpics.h"
-#include "TcAdsAPI.h"
+#include "TcAdsDef.h"
+#include "TcAdsApi.h"
 #include <memory>
 #include <filesystem>
 #undef _CRT_SECURE_NO_WARNINGS
@@ -315,6 +316,25 @@ void tcProcWrite::tcwrite()
   TcPLC
  ************************************************************************/
 
+ /* TcPLC::TcPLC constructor
+  ************************************************************************/
+TcPLC::TcPLC(std::string tpyPath)
+	: pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRequest(0),
+	scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
+	nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
+	ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false), plcId(0)
+{
+	// modification time
+	path fpath(pathTpy);
+	timeTpy = last_write_time(fpath).time_since_epoch().count();
+	// Set PLC ID and initialize list of PLC instances
+	{
+		std::lock_guard<std::mutex> lock(plcVecMutex);
+		plcVec.push_back(this);
+		plcId = (unsigned int)plcVec.size() - 1;
+	};
+};
+
 /* TcPLC::set_addr
  ************************************************************************/
 bool TcPLC::set_addr(stringcase netIdStr, int port)
@@ -381,25 +401,6 @@ bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 	if (!a || !b) return true;
 	return ((a->get_indexGroup() <= b->get_indexGroup()) && (a->get_indexOffset() < b->get_indexOffset()));
 }
-
-/* TcPLC::TcPLC constructor
- ************************************************************************/
-TcPLC::TcPLC (std::string tpyPath)
-: pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRTS(0), nRequest(0),
-scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
-nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
-ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false), plcId (0)
-{
-	// modification time
-	path fpath(pathTpy);
-	timeTpy = last_write_time(fpath).time_since_epoch().count();
-	// Set PLC ID and initialize list of PLC instances
-	{
-		std::lock_guard<std::mutex> lock(plcVecMutex);
-		plcVec.push_back(this);
-		plcId = (unsigned int)plcVec.size() - 1;
-	};
-};
 
 /* Checks is tpy file is valid, ie. hasn't changed
  ************************************************************************/
@@ -627,6 +628,10 @@ void TcPLC::read_scanner()
 {	
 	std::lock_guard<std::mutex>	lockit (sync);
 	bool read_success = false;
+	//for_each([](BaseRecord* p) {
+	//	if (p && !p->get_data().IsValid()) {
+	//		printf("Inavlid data for %s\n", p->get_name().c_str());
+	//	}});
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
@@ -789,6 +794,12 @@ AmsRouterNotification::AmsRouterNotification()
 	: ams_router_event (AMSEVENT_ROUTERSTART)
 {
 	LONG nErr;
+	AdsVersion* pDLLVersion;
+	nErr = AdsGetDllVersion();
+	pDLLVersion = (AdsVersion *)&nErr;
+	printf ("ADS version: %i, revision: %i, build: %i\n", 
+		(int)pDLLVersion->version, (int)pDLLVersion->revision, (int)pDLLVersion->build);
+	nErr = AdsPortOpen();
 	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
 	if (nErr) errorPrintf(nErr);
 }

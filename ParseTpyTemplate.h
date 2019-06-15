@@ -110,7 +110,7 @@ namespace ParseTpy {
 						defopc.get_properties().insert (property_el (102, std::to_string (max).c_str()));
 						defopc.get_properties().insert (property_el (103, std::to_string (min).c_str()));
 					}
-					process_arg arg (loc, varname, pt_int, defopc, typ.get_name(), true);
+					process_arg arg (loc, varname, pt_int, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 				// add opc property for enum values
@@ -121,7 +121,7 @@ namespace ParseTpy {
 							defopc.get_properties().insert (
 								property_el (8510 + e->first, e->second));
 					}
-					process_arg arg (loc, varname, pt_enum, defopc, typ.get_name(), true);
+					process_arg arg (loc, varname, pt_enum, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 			}

@@ -11,10 +11,61 @@
  ************************************************************************/
 namespace ParseUtil {
 
-/** @defgroup parseopt Option processing
-    These function and classes are used to parse command line options
+
+/** @defgroup parseutilities Parser utility functions and classes
  ************************************************************************/
 /** @{ */
+
+/** Table of replacement rules
+ ************************************************************************/
+typedef std::map <std::stringcase, std::stringcase> replacement_table;
+
+/** Epics channel conversion arguments
+    Epics channels are generated from opc through a conversion rule
+	@brief Replacement rules
+ ************************************************************************/
+class replacement_rules {
+public:
+	/// Default constructor
+	replacement_rules (bool rec = true) : recursive (rec) {}
+	/// Constructor
+	replacement_rules (const replacement_table& t, bool rec = true)
+		: table (t), recursive(rec) {}
+	/// Add a rule
+	void add_rule (const std::stringcase& var, const std::stringcase& val) {
+		table[var] = val; }
+	/// set table
+	void set_rule_table (const replacement_table& t) {
+		table = t; }
+	/// get table
+	replacement_table& get_rule_table() { 
+		return table; }
+	/// get table
+	const replacement_table& get_rule_table() const { 
+		return table; }
+	/// replace
+	std::stringcase apply_replacement_rules (const std::stringcase& s) const;
+	/// Has rules
+	bool HasRules() const {
+		return !table.empty(); }
+
+	/// Is recursive?
+	bool is_recursive() const { return recursive; }
+	/// Set recursive
+	void set_recursive (bool rec) {
+		recursive = rec; }
+
+	/// prefix for replacement rule: ${
+	static const char* const prefix;
+	/// suffix for replacement rule: }
+	static const char* const suffix;
+protected:
+	/// Replacement table
+	replacement_table		table;
+	/// Recusrsive replacement
+	bool					recursive;
+};
+
 
 /** This class transforms a string into a standard program argument.
     @brief Optional arguments

@@ -225,7 +225,7 @@ class InfoInterface	:	public plc::Interface
 {
 public:
 	/// Constructor
-	InfoInterface(plc::BaseRecord& dval, std::stringcase statname) 
+	InfoInterface (plc::BaseRecord& dval, std::stringcase statname) 
 		: Interface(dval), name(statname) {};
 	/// Destructor
 	~InfoInterface() {};
@@ -233,6 +233,13 @@ public:
 	virtual bool						push() override {return true; };
 	/// pull data
 	virtual bool						pull() override {return true; };
+
+	/// Get the EPICS datbacse for the info records
+	/// @param prefix Prefix to channel names in the info datbase
+	/// @param tcaddr Twincat plc address:port to be used in INP/OUT fields
+	/// @return Returns an EPICS database string describing the info records
+	static std::stringcase get_infodb (const std::stringcase& prefix, 
+		const std::stringcase& tcaddr);
 protected:
 	/// Name of statistics
 	std::stringcase						name;

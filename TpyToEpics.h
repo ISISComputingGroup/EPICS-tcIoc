@@ -18,48 +18,6 @@ namespace EpicsTpy {
  ************************************************************************/
 /** @{ */
 
-/** Table of replacement rules
- ************************************************************************/
-typedef std::map <std::stringcase, std::stringcase> replacement_table;
-
-/** Epics channel conversion arguments
-    Epics channels are generated from opc through a conversion rule
-	@brief Replacement rules
- ************************************************************************/
-class replacement_rules {
-public:
-	/// Default constructor
-	replacement_rules() {}
-	/// Constructor
-	replacement_rules (const replacement_table& t) 
-		: table (t) {}
-	/// Add a rule
-	void add_rule (const std::stringcase& var, const std::stringcase& val) {
-		table[var] = val; }
-	/// set table
-	void set_rule_table (const replacement_table& t) {
-		table = t; }
-	/// get table
-	replacement_table& get_rule_table() { 
-		return table; }
-	/// get table
-	const replacement_table& get_rule_table() const { 
-		return table; }
-	/// replace
-	std::stringcase apply_replacement_rules (const std::stringcase& s) const;
-	/// Has rules
-	bool HasRules() const {
-		return !table.empty(); }
-
-	/// prefix for replacement rule: $(
-	static const char* const prefix;
-	/// suffix for replacement rule: )
-	static const char* const suffix;
-protected:
-	/// Replacement table
-	replacement_table		table;
-};
-
 /** This enum describes the TwinCAT/opc to EPICS conversion rule
 	@brief Conversion rules for TC/EPICS
  ************************************************************************/
@@ -98,7 +56,7 @@ enum case_type {
     Epics channels are generated from opc through a conversion rule
 	@brief Epics conversion
 ************************************************************************/
-class epics_conversion : public replacement_rules {
+class epics_conversion : public ParseUtil::replacement_rules {
 public:
 	/// Default constructor
 	epics_conversion()
