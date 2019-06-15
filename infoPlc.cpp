@@ -10,6 +10,45 @@ using namespace plc;
 
 namespace InfoPlc {
 
+
+/// List of of db info tuples
+info_dbrecord_list InfoInterface::dbinfo_list({
+info_dbrecord_type(
+	variable_name("name"),
+	process_type_enum::pt_string,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "PCL name")
+	})),
+	"STRING", true),
+info_dbrecord_type(
+	variable_name("alias"),
+	process_type_enum::pt_string,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Alias name")
+		})),
+	"STRING", true),
+info_dbrecord_type(
+	variable_name("active"),
+	process_type_enum::pt_bool,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Running state of PLC"),
+		property_el(OPC_PROP_CLOSE, "ONLINE"),
+		property_el(OPC_PROP_OPEN, "OFFLINE")
+		})),
+	"BOOL", true),
+info_dbrecord_type (
+	variable_name("state"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "AMS state of PLC")
+		})),
+	"DINT", true)
+	});
+
 /// Database for PLC info records
 const char* const infodb = R"++(
 record(stringin,"${PREFIX}.name") {
@@ -21,7 +60,7 @@ record(stringin,"${PREFIX}.name") {
 	field(PINI,"0")
 }
 record(stringin,"${PREFIX}.alias") {
-	field(DESC,"Tpy filename")
+	field(DESC,"Alias name")
 	field(SCAN,"I/O Intr")
 	field(DTYP,"tcat")
 	field(INP,"@${PLCADR}/info/alias")
@@ -282,174 +321,85 @@ record(longin,"${PREFIX}.addr.netid.b[5]") {
 }
 )++";
 
-const char* const infodb_prefix = "PREFIX";
-const char* const infodb_tcaddr = "PLCADR";
 
-/* InfoInterface::get_infodb
+
+/* InfoInterface::InfoInterface
  ************************************************************************/
-std::stringcase InfoInterface::get_infodb (const std::stringcase& prefix,
-	const std::stringcase& tcaddr)
+InfoInterface::InfoInterface (plc::BaseRecord& dval,
+	const std::stringcase& name, const std::stringcase& tname, 
+	bool isStruct, bool isEnum)
+	: Interface(dval), tCatName(name), tCatType(tname) 
 {
-	std::stringcase db (infodb);
-	// create rules table 
-	ParseUtil::replacement_table rtable;
-	rtable[infodb_prefix] = prefix;
-	trim_space (rtable[infodb_prefix]);
-	rtable[infodb_tcaddr] = tcaddr;
-	trim_space (rtable[infodb_tcaddr]);
-	// remove trailing slash in tc addr
-	if (!rtable[infodb_tcaddr].empty() &&
-		(*rtable[infodb_tcaddr].crbegin() == '/')) {
-		rtable[infodb_tcaddr].erase(rtable[infodb_tcaddr].size()-1, 1);
-	}
-	// apply rules
-	ParseUtil::replacement_rules rrules (rtable, false);
-	return rrules.apply_replacement_rules(db);
-}
+	if (isEnum)	tCatType = "ENUM";
+	if (isStruct) record->set_process(false);
+};
 
-/** BaseInfoItem::get_info
+/* InfoInterface::printTCatVal
  ************************************************************************/
-bool BaseInfoItem::get_info (int idx,
-		const std::stringcase& prefix, std::stringcase& name, 
-		ParseUtil::process_type_enum& ptype, ParseUtil::opc_list& opc, 
-		std::stringcase& type_n, bool& atomic) const
+void InfoInterface::printVal (FILE* fp)
 {
-	if ((idx < 0) || (idx >= (int)stats.size())) {
-		return false;
+	/////////////////////////////////////////////////
+	/// This is a function for printing the variable name and value of a record.
+	/// Depending on the variable type, the readout from the ADS server is cast
+	/// into the proper data type and printed to the output file fp.
+	/////////////////////////////////////////////////
+	fprintf(fp, "%15s: %15s         ", tCatName.c_str(), tCatType.c_str());
+
+	/*double				doublePLCVar;
+	float				floatPLCVar;
+	signed long int		sliPLCVar;
+	signed short int	ssiPLCVar;
+	signed char			charPLCVar;
+	char				chararrPLCVar[100];
+	void*				pTCatVal = nullptr;
+
+	if (tCatType == "LREAL")
+	{
+		doublePLCVar = *(double*)pTCatVal;
+		fprintf(fp, "%f", doublePLCVar);
 	}
-	if (!stats[idx].rec.get()) {
-		return false;
+	else if (tCatType == "REAL")
+	{
+		floatPLCVar = *(float*)pTCatVal;
+		fprintf(fp, "%f", floatPLCVar);
 	}
-	opc.add (defopc);
-	name = prefix + stats[idx].rec->get_name();
-	opc.add (stats[idx].opc);
-	atomic = true;
-	switch (stats[idx].rec->get_data().get_data_type()) {
-	case dtBool:
-		type_n = "BOOL";
-		ptype = pt_bool;
-		break;
-	case dtInt8:
-		type_n = "SINT";
-		ptype = pt_int;
-		break;
-	case dtUInt8:
-		type_n = "USINT";
-		ptype = pt_int;
-		break;
-	case dtInt16:
-		type_n = "INT";
-		ptype = pt_int;
-		break;
-	case dtUInt16:
-		type_n = "UINT";
-		ptype = pt_int;
-		break;
-	case dtInt32:
-		type_n = "DINT";
-		ptype = pt_int;
-		break;
-	case dtUInt32:
-		type_n = "UDINT";
-		ptype = pt_int;
-		break;
-	case dtInt64:
-		type_n = "LINT";
-		ptype = pt_int;
-		break;
-	case dtUInt64:
-		type_n = "ULINT";
-		ptype = pt_int;
-		break;
-	case dtFloat:
-		type_n = "REAL";
-		ptype = pt_real;
-		break;
-	case dtDouble:
-		type_n = "LREAL";
-		ptype = pt_real;
-		break;
-	case dtString:
-		type_n = "STRING";
-		ptype = pt_string;
-		break;
-	case dtWString:
-		type_n = "WSTRING";
-		ptype = pt_string;
-		break;
-	case dtBinary:
-		type_n = "STRUCT";
-		ptype = pt_binary;
-		break;
-	default:
-		return false;
+	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")
+	{
+		sliPLCVar = *(signed long int*)pTCatVal;
+		fprintf(fp, "%d", sliPLCVar);
 	}
-	return true;
+	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT")
+	{
+		ssiPLCVar = *(signed short int*)pTCatVal;
+		fprintf(fp, "%d", ssiPLCVar);
+	}
+	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT")
+	{
+		charPLCVar = *(signed char*)pTCatVal;
+		fprintf(fp, "%d", charPLCVar);
+	}
+	else if (tCatType.substr(0, 6) == "STRING")
+	{
+		//strncpy(chararrPLCVar, (char*)pTCatVal, tCatSymbol.length);
+		fprintf(fp, "%s", chararrPLCVar);
+	}
+	else
+	{
+		fprintf(fp, "INVALID!!!");
+	}*/
+
+	fprintf(fp, "\n");
 }
 
 
-/** SimpleInfoItem
+/* process_arg::get
  ************************************************************************/
-bool SimpleInfoItem::setup (const std::stringcase& tagname,	
-	const std::stringcase& plc_alias, plc::Interface* puser)
+std::stringcase process_arg_info::get_full() const
 {
-	return false;
-}
-
-void SimpleInfoItem::update(double val)
-{
-	last = val;
-	if (val < min) min = val;
-	if (val > max) max = val;
-	cnt++;
-	avg = (avg*(cnt-1) + val)/cnt;
-}
-
-void SimpleInfoItem::reset()
-{
-	min = last;
-	max = last;
-	avg = last;
-	cnt = 1;
-}
-
-/** HistoryInfoItem
- ************************************************************************/
-bool HistoryInfoItem::setup (const std::stringcase& tagname,
-		const std::stringcase& plc_alias, plc::Interface* puser) 
-{
-	return false;
-}
-
-void HistoryInfoItem::update(double val)
-{
-	if (history.size() == history_length) {
-		history.pop_front();
-	}
-	history.push_back(val);
-}
-
-void HistoryInfoItem::reset()
-{
-	history.clear();
-}
-
-/** TimeInfoItem
- ************************************************************************/
-
-void TimeInfoItem::start()
-{
-	begin = clock();
-}
-
-void TimeInfoItem::stop()
-{
-	end = clock();
-	elapsed = (end-begin)/CLOCKS_PER_SEC;
-	if (elapsed <= 0) {
-	
-	}
-	update(elapsed);
+	std::stringcase servername (tcplc_addr);
+	servername += "info/";
+	servername += get_name();
+	return servername;
 }
 
 }

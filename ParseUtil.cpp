@@ -310,7 +310,7 @@ std::stringcase process_arg::get_process_string () const
 
 /* process_arg::get
  ************************************************************************/
-std::stringcase process_arg::get_full () const
+std::stringcase process_arg_tc::get_full () const
 {
 	std::stringcase servername = "tc://0.0.0.0.0.0:801/";
 	opc.get_property (OPC_PROP_PLCNAME, servername);

@@ -76,7 +76,10 @@ bool syminfo_processing::operator() (const process_arg& arg)
 	}
 
 	// Print memory start address and size (24 chars)
-	fprintf (outf, " %7d %7d %7d", arg.get_igroup(), arg.get_ioffset(), (int)(arg.get_bytesize()));
+	const process_arg_tc* parg = dynamic_cast<const process_arg_tc*>(&arg);
+	if (parg) {
+		fprintf(outf, " %7d %7d %7d", parg->get_igroup(), parg->get_ioffset(), (int)(parg->get_bytesize()));
+	}
 
 	// Print type and varname
 	fprintf (outf, " %-23s %-s\n", arg.get_type_name().c_str(), arg.get_name().c_str()); 

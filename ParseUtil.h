@@ -153,6 +153,9 @@ class opc_list
 public:
 	/// Default constructor
 	opc_list() : opc (no_change) {}
+	/// Constructor
+	opc_list (opc_enum state, const property_map& map) 
+		: opc(state), opc_prop(map) {}
 
 	/// Get opc state
 	opc_enum get_opc_state () const { return opc; }
@@ -205,6 +208,8 @@ public:
 	variable_name () {}
 	/// Constructor
 	explicit variable_name (const std::stringcase& n) : name (n), alias (n) {}
+	/// Constructor
+	explicit variable_name (const char* s) : name(s), alias(s) {}
 	/// Constructor
 	variable_name (const std::stringcase& n, const std::stringcase& a) 
 		: name (n), alias (a) {}
@@ -357,10 +362,9 @@ public:
 	/// @param o OPC list
 	/// @param tname Type name
 	/// @param at Atomic type
-	process_arg (const memory_location& loc,
-		const variable_name& vname, process_type_enum pt, 
+	process_arg (const variable_name& vname, process_type_enum pt, 
 		const opc_list& o, const std::stringcase& tname, bool at) 
-		: name (vname), type_n (tname), opc (o), memloc (loc),
+		: name (vname), type_n (tname), opc (o), 
 		ptype (pt), atomic (at) {}
 
 	/// Get variable
@@ -381,18 +385,9 @@ public:
 	/// Is atomic (or structured) type
 	bool is_atomic() const { return atomic; }
 
-	/// Get IGroup
-	int get_igroup () const { return memloc.get_igroup(); }
-	/// Get IOffset
-	int get_ioffset () const { return memloc.get_ioffset(); }
-	/// Get BitSize
-	int get_bytesize () const { return memloc.get_bytesize(); }
-	/// Gets a string representation of a memory location
-	/// @return string with format "igroup/ioffset:size", empty on error
-	std::stringcase get() const { return memloc.get(); }
 	/// Gets a string representation of a PLC & memory location
 	/// @return string with format "prefixigroup/ioffset:size", empty on error
-	std::stringcase get_full() const;
+	virtual std::stringcase get_full() const = 0;
 
 protected:
 	/// name of type
@@ -401,13 +396,46 @@ protected:
 	const std::stringcase&	type_n;
 	/// list of opc properties
 	const opc_list&			opc;
-	/// memory location
-	const memory_location&	memloc;
-
 	/// Process Type
 	process_type_enum		ptype;
 	/// Atomic element
 	bool					atomic;
+};
+
+/** Argument which is passed to the name/tag processing function.
+	@brief Arguments for processing
+************************************************************************/
+class process_arg_tc : public process_arg
+{
+public:
+	/// Constructor
+	/// @param loc Memory location
+	/// @param vname Variable name
+	/// @param pt Process type 
+	/// @param o OPC list
+	/// @param tname Type name
+	/// @param at Atomic type
+	process_arg_tc (const memory_location& loc,
+		const variable_name& vname, process_type_enum pt,
+		const opc_list& o, const std::stringcase& tname, bool at)
+		: process_arg (vname, pt, o, tname, at), memloc(loc) {}
+
+	/// Get IGroup
+	int get_igroup() const { return memloc.get_igroup(); }
+	/// Get IOffset
+	int get_ioffset() const { return memloc.get_ioffset(); }
+	/// Get BitSize
+	int get_bytesize() const { return memloc.get_bytesize(); }
+	/// Gets a string representation of a memory location
+	/// @return string with format "igroup/ioffset:size", empty on error
+	std::stringcase get() const { return memloc.get(); }
+	/// Gets a string representation of a PLC & memory location
+	/// @return string with format "prefixigroup/ioffset:size", empty on error
+	virtual std::stringcase get_full() const;
+
+protected:
+	/// memory location
+	const memory_location&	memloc;
 };
 
 /** Enumerated type to describe the tag processing

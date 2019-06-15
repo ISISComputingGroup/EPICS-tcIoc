@@ -144,7 +144,7 @@ public:
 
 	/// Prints TCat symbol value and information
 	/// @param fp File to print symbol to
-	void printTCatVal(FILE* fp);
+	virtual void printVal (FILE* fp);
 
 	/// Does nothing
 	virtual bool push() override;

@@ -11,6 +11,21 @@ namespace plc {
 
 System System::tCat;
 
+/* Interface::get_parent
+ ************************************************************************/
+BasePLC* Interface::get_parent()
+{
+	return record->get_parent();
+}
+
+/* Interface::get_parent
+ ************************************************************************/
+const BasePLC* Interface::get_parent() const
+{
+	return record->get_parent();
+}
+
+
 /* DataValueTraits: template specialization
  ************************************************************************/
 template<> const 
@@ -507,7 +522,6 @@ BasePLC::time_type BaseRecord::get_timestamp() const
 	if (!parent) return 0;
 	return parent->get_timestamp();
 }
-
 
 /************************************************************************/
 /* BasePLC */

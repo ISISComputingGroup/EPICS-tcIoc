@@ -49,6 +49,13 @@ public:
 	/// Pure virtual method indicating that the value needs to be pulled
 	virtual bool pull() = 0;
 
+	/// Get parent PLC that owns this record
+	BasePLC* get_parent();
+	/// Get parent PLC that owns this record
+	const BasePLC* get_parent() const;
+	/// Print values to file
+	/// @param fp File pointer
+	virtual void printVal (FILE* fp) {}
 protected:
 	/// Pointer to tag/channel record associated with this interface
 	BaseRecord*			record;

@@ -108,11 +108,6 @@ public:
 	/// Flush output files
 	void flush();
 
-	/// Process an info variable
-	/// @param arg Process argument describign the variable and type
-	/// @return True if successful
-	bool process_info (const ParseUtil::process_arg& arg);
-
 	/// Get number of EPICS records without tc records
 	int get_invalid_records() const { return invnum; }
 
@@ -351,25 +346,45 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 
 	/// Make new record object
 	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
+	plc::Interface* iface = nullptr;
+
 	/// Make TCat interface
-	TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord, 
-								arg.get_name(), 
-								arg.get_igroup(), 
-								arg.get_ioffset(), 
-								arg.get_bytesize(), 
-								arg.get_type_name(), 
-								arg.get_process_type() == pt_binary, 
-								arg.get_process_type() == pt_enum);
-	if (tcat == 0) {
+	const process_arg_tc* targ = dynamic_cast<const process_arg_tc*>(&arg);
+	if (targ) {
+		TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord,
+			arg.get_name(),
+			targ->get_igroup(),
+			targ->get_ioffset(),
+			targ->get_bytesize(),
+			arg.get_type_name(),
+			arg.get_process_type() == pt_binary,
+			arg.get_process_type() == pt_enum);
+		iface = tcat;
+	}
+	
+	/// Make info interface
+	else {
+		const InfoPlc::process_arg_info* iarg = dynamic_cast<const InfoPlc::process_arg_info*>(&arg);
+		if (iarg) {
+			InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface(*pRecord,
+				arg.get_name(),
+				arg.get_type_name(),
+				arg.get_process_type() == pt_binary,
+				arg.get_process_type() == pt_enum);
+			iface = info;
+		}
+	}
+
+	if (iface == 0) {
 		// this means the allocation failed!
 		++invnum;
 		return false;
 	}
 
 	/// Tell record about TCat interface
-	pRecord->set_plcInterface(tcat);
+	pRecord->set_plcInterface (iface);
 
-	if (!plc->add(pRecord)) {
+	if (!plc->add (pRecord)) {
 		// this means the EPICS record has nothing to connect to!
 		++invnum;
 		return false;
@@ -380,75 +395,6 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 	return true;
 }
 
-/* Process an info channel
-   epics_tc_db_processing::process_info()
- ************************************************************************/
-bool epics_tc_db_processing::process_info (const ParseUtil::process_arg& arg)
-{
-	// Generate EPICS database record
-	if (!EpicsTpy::epics_db_processing::operator()(arg)) {
-		process_macros(arg); // need to process binaries!
-		return false;
-	}
-
-	/// Determine data type of this record
-	plc::data_type_enum rt = plc::data_type_enum::dtInvalid;
-
-	if (arg.get_type_name() == "BOOL")
-		rt = plc::data_type_enum::dtBool;
-	else if (arg.get_type_name() == "SINT")
-		rt = plc::data_type_enum::dtInt8;
-	else if (arg.get_type_name() == "USINT" || arg.get_type_name() == "BYTE")
-		rt = plc::data_type_enum::dtUInt8;
-	else if (arg.get_type_name() == "INT" || arg.get_process_type() == pt_enum)
-		rt = plc::data_type_enum::dtInt16;
-	else if (arg.get_type_name() == "UINT" || arg.get_type_name() == "WORD")
-		rt = plc::data_type_enum::dtUInt16;
-	else if (arg.get_type_name() == "DINT")
-		rt = plc::data_type_enum::dtInt32;
-	else if (arg.get_type_name() == "UDINT" || arg.get_type_name() == "DWORD")
-		rt = plc::data_type_enum::dtUInt32;
-	else if (arg.get_type_name() == "REAL")
-		rt = plc::data_type_enum::dtFloat;
-	else if (arg.get_type_name() == "LREAL")
-		rt = plc::data_type_enum::dtDouble;
-	else if (arg.get_type_name().substr(0, 6) == "STRING")
-		rt = plc::data_type_enum::dtString;
-	else {
-		printf("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
-		return false;
-	}
-
-	/// Make new record object
-	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
-	/// Make info interface
-	InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface (*pRecord,
-		arg.get_name()/*,
-		arg.get_igroup(),
-		arg.get_ioffset(),
-		arg.get_bytesize(),
-		arg.get_type_name(),
-		arg.get_process_type() == pt_binary,
-		arg.get_process_type() == pt_enum*/);
-	if (info == 0) {
-		// this means the allocation failed!
-		++invnum;
-		return false;
-	}
-
-	/// Tell record about info interface
-	pRecord->set_plcInterface (info);
-
-	if (!plc->add(pRecord)) {
-		// this means the EPICS record has nothing to connect to!
-		++invnum;
-		return false;
-	}
-
-	process_lists(arg);
-	process_macros(arg);
-	return true;
-}
 
 /* Flush output files
    epics_tc_db_processing::flush()
@@ -609,9 +555,16 @@ void tcLoadRecords (const iocshArgBuf *args)
 	}
 
 
-	// generate db file and tc records
+	// generate db file from tc records
 	if (dbg) tpyfile.set_export_all (TRUE);
 	int num = tpyfile.process_symbols (dbproc);
+
+	// generate df file from info  records
+	if (!infoprefix.empty()) {
+		num += InfoPlc::InfoInterface::get_infodb (infoprefix, 
+			tpyfile.get_project_info().get(), dbproc);
+	}
+
 	// make sure all file contents is written to file
 	dbproc.flush();
 	// write statistics
@@ -624,20 +577,20 @@ void tcLoadRecords (const iocshArgBuf *args)
 	}
 
 	// add info records
-	if (!infoprefix.empty()) {
-		// get info database
-		stringcase infodb = InfoPlc::InfoInterface::get_infodb (infoprefix, tcplc->get_name());
-		// fix channel names
-		if (dbproc.patch_db_recordnames(infodb)) {
-			// write info database
-			fprintf (dbproc.get_file(), infodb.c_str());
-			dbproc.flush();
-			printf("Info database has been loaded.\n");
-		}
-		else {
-			printf("Info database was not loaded.\n");
-		}
-	}
+	//if (!infoprefix.empty()) {
+	//	// get info database
+	//	stringcase infodb = InfoPlc::InfoInterface::get_infodb (infoprefix, tcplc->get_name());
+	//	// fix channel names
+	//	if (dbproc.patch_db_recordnames(infodb)) {
+	//		// write info database
+	//		fprintf (dbproc.get_file(), infodb.c_str());
+	//		dbproc.flush();
+	//		printf("Info database has been loaded.\n");
+	//	}
+	//	else {
+	//		printf("Info database was not loaded.\n");
+	//	}
+	//}
 		
 	// end timer
 	tpyend = clock();

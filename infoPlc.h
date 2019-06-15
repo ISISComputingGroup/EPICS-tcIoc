@@ -24,199 +24,20 @@
   ************************************************************************/
 namespace InfoPlc {
 
-class InfoInterface;
 
-/** @defgroup scansettings Constants related to read/write scanning
+/** @defgroup infoplc Classes and functions related to the info interface
  ************************************************************************/
 /** @{ */
 
-/// default PLC TwinCAT scan rate (100ms)
-const int default_scanrate = 100;
-/// minimum PLC TwinCAT scan rate (5ms)
-const int minimum_scanrate = 5;	
-/// maximum PLC TwinCAT scan rate (10s)
-const int maximum_scanrate = 10000;
+/// db info tuple with variable name, type name, process type enum, 
+typedef std::tuple<ParseUtil::variable_name, 
+	ParseUtil::process_type_enum,
+	ParseUtil::opc_list, 
+	std::stringcase, bool> info_dbrecord_type;
 
-/** @} */
+/// List type of db info tuples
+typedef std::vector<info_dbrecord_type> info_dbrecord_list;
 
-/** This is a statistics value
-	@brief Statistic value
- ************************************************************************/
-struct stat_value
-{
-	/// Record
-	plc::BaseRecordPtr		rec;
-	/// OPC list
-	ParseUtil::opc_list		opc;
-};
-
-/** This is a list of statistic value
-	@brief Statistic list
- ************************************************************************/
-typedef std::vector<stat_value> stat_list;
-
-/** This is a base class for a property/value/etc. to keep statistics on
-	@brief Base info item
- ************************************************************************/
-class BaseInfoItem
-{
-public:
-	/// Default constructor
-	BaseInfoItem () {};
-	/// Initialize from OPC list
-	explicit BaseInfoItem (const ParseUtil::opc_list& opc) : defopc (opc) {};
-	/// Destructor
-	virtual ~BaseInfoItem() {};
-	/// Setup
-	/// @param tagname Name of channels
-	/// @param plc_alias PLC alias name
-	/// @param puser Pointer ot PLC
-	virtual bool setup (const std::stringcase& tagname,	
-		const std::stringcase& plc_alias, plc::Interface* puser) = 0;
-	/// Update
-	virtual void update (double val) = 0;
-	/// Reset
-	virtual void reset() {};
-
-	/// Get OPC list
-	const ParseUtil::opc_list& get_opc() const { return defopc; }
-	/// Get OPC list
-	ParseUtil::opc_list& get_opc() { return defopc; }
-	/// get info 
-	virtual bool get_info (int idx,
-		const std::stringcase& prefix, std::stringcase& name, 
-		ParseUtil::process_type_enum& ptype, ParseUtil::opc_list& opc, 
-		std::stringcase& type_n, bool& atomic) const;
-
-protected:
-	/// statistics list
-	stat_list						stats;
-	/// OPC list
-	ParseUtil::opc_list				defopc;
-};
-
-/// Smart pointer to Base info items
-typedef std::shared_ptr<BaseInfoItem> BaseInfoItemPtr;
-/// List of Base info items
-typedef std::vector<BaseInfoItemPtr> BaseInfoList;
-
-
-/** This is a class to keep simple statistics for a particular property
-	@brief Simple info tracker
- ************************************************************************/
-class SimpleInfoItem: public BaseInfoItem
-{
-public:
-	/// Default constructor
-	SimpleInfoItem () {};
-	/// Initialize from OPC list
-	explicit SimpleInfoItem (const ParseUtil::opc_list& opc) : BaseInfoItem (opc) {};
-	/// Setup
-	/// @param tagname Name of channels
-	/// @param plc_alias PLC alias name
-	/// @param puser Pointer ot PLC
-	virtual bool setup (const std::stringcase& tagname,
-		const std::stringcase& plc_alias, plc::Interface* puser) override;
-	/// Recalculates last, min, max, avg, cnt based on a new value
-	virtual void update (double val) override;
-	/// Reset
-	virtual void reset() override;
-
-protected:
-	/// Last
-	double							last;
-	/// Minimum
-	double							min;
-	/// Maximum
-	double							max;
-	/// Average
-	double							avg;
-	/// Count
-	double							cnt;
-};
-
-
-/** This is a class for a histogram
-	@brief Histogram statistic
- ************************************************************************/
-class HistogramInfoItem	:	public BaseInfoItem
-{
-public:
-	/// Default constructor
-	HistogramInfoItem();
-	/// Desctructor
-	~HistogramInfoItem();
-	/// Update
-	virtual void					update(double val) override;
-	/// Reset
-	virtual void					reset() override;
-protected:
-	/// Upper limit
-	double							ulim;
-	/// Lower limit
-	double							llim;
-	/// Number of buckets
-	double							nBuckets;
-	/// Number of data points
-	int								cnt;
-	/// Histogram
-	std::list<int>					buckets;
-};
-
-/** This is a class for keeping the history of a something
-	@brief History tracker
- ************************************************************************/
-class HistoryInfoItem : public BaseInfoItem
-{
-public:
-	/// Default constructor
-	explicit HistoryInfoItem (int length = 10)
-	: history_length (length) {};
-	/// Constructor from opc list
-	explicit HistoryInfoItem (const ParseUtil::opc_list& opc, int length = 10)
-		: history_length (length), BaseInfoItem (opc) {};
-	/// Desctructor
-	~HistoryInfoItem();
-
-	/// Setup
-	/// @param tagname Name of channels
-	/// @param plc_alias PLC alias name
-	/// @param puser Pointer ot PLC
-	virtual bool setup (const std::stringcase& tagname,
-		const std::stringcase& plc_alias, plc::Interface* puser) override;
-	/// Update
-	virtual void update(double val) override;
-	/// Reset
-	virtual void reset() override;
-protected:
-	/// Length of history to keep
-	int								history_length;
-	/// History of values
-	std::list<double>				history;
-};
-
-/** This is a class for timing a process
-	@brief Timing tracker
- ************************************************************************/
-class TimeInfoItem	:	public SimpleInfoItem
-{
-public:
-	/// Default constructor
-	TimeInfoItem();
-	/// Desctructor
-	~TimeInfoItem();
-	/// Start stopwatch
-	void							start();
-	/// Stop stopwatch
-	void							stop();
-protected:
-	/// Start time
-	clock_t							begin;
-	/// End time
-	clock_t							end;
-	/// Elapsed time
-	double							elapsed;
-};
 
 /** This is a class for a Info interface
 	@brief Info interface
@@ -225,74 +46,79 @@ class InfoInterface	:	public plc::Interface
 {
 public:
 	/// Constructor
-	InfoInterface (plc::BaseRecord& dval, std::stringcase statname) 
-		: Interface(dval), name(statname) {};
-	/// Destructor
+	explicit InfoInterface(plc::BaseRecord& dval)
+		: Interface(dval) {};
+	/// Constructor
+	/// @param dval BaseRecord that this interface is part of
+	/// @param name Name of TCat symbol
+	/// @param type Name of TCat data type
+	/// @param isStruct True = this symbol is a structure in TCat
+	/// @param isEnum True = this symbol is an enum in TCat
+	InfoInterface (plc::BaseRecord& dval, const std::stringcase& name,
+		const std::stringcase& type, bool isStruct, bool isEnum);
+	/// Deconstructor
 	~InfoInterface() {};
+
+	/// Constructor
+	InfoInterface (plc::BaseRecord& dval, const std::stringcase& name, 
+		const std::stringcase& tname)
+		: Interface(dval), tCatName (name), tCatType (tname) {};
 	/// push data
 	virtual bool						push() override {return true; };
 	/// pull data
 	virtual bool						pull() override {return true; };
 
-	/// Get the EPICS datbacse for the info records
+	/// Prints TCat symbol value and information
+	/// @param fp File to print symbol to
+	virtual void printVal(FILE* fp);
+
+	/// Porcess the EPICS datbacse for the info records
 	/// @param prefix Prefix to channel names in the info datbase
-	/// @param tcaddr Twincat plc address:port to be used in INP/OUT fields
+	/// @param proc database processing
 	/// @return Returns an EPICS database string describing the info records
-	static std::stringcase get_infodb (const std::stringcase& prefix, 
-		const std::stringcase& tcaddr);
+	template <class Function>
+	static int get_infodb(const std::stringcase& prefix, 
+		const std::stringcase& plcaddr, Function& proc);
+
 protected:
-	/// Name of statistics
-	std::stringcase						name;
+	/// Name of TCat symbol
+	std::stringcase		tCatName;
+	/// Data type in TCat
+	std::stringcase		tCatType;
+
+	/// List of db info records
+	static info_dbrecord_list dbinfo_list;
 };
 
-
-
-/** This is a class for a dummy PLC that tracks connection status, errors, etc.
-	@brief Info plc
- ************************************************************************/
-
-class InfoPLC	:	public plc::BasePLC
+/** Argument which is passed to the name/tag processing function.
+	@brief Arguments for processing
+************************************************************************/
+class process_arg_info : public ParseUtil::process_arg
 {
 public:
-	InfoPLC();
-	~InfoPLC();
+	/// Constructor
+	/// @param vname Variable name
+	/// @param pt Process type 
+	/// @param o OPC list
+	/// @param tname Type name
+	/// @param at Atomic type
+	/// #param plcaddr TwinCAT PLC address
+	process_arg_info (
+		const ParseUtil::variable_name& vname, ParseUtil::process_type_enum pt,
+		const ParseUtil::opc_list& o, const std::stringcase& tname, bool at,
+		const std::stringcase& plcaddr)
+		: process_arg (vname, pt, o, tname, at), tcplc_addr(plcaddr) {}
 
-	/** Iterates over the info list and processes all specified tags.
-	@param process Function class
-	@param prefix Prefix which is added to all variable names
-	@return Number of processes variables
-	@brief Process the type tree of a symbol
-	*/
-	template <class Function>
-	int process_info (Function& process, 
-		const std::stringcase& prefix = std::stringcase()) const;
+	/// Gets a string representation of a PLC & memory location
+	/// @return string with format "prefixigroup/ioffset:size", empty on error
+	virtual std::stringcase get_full() const;
 
-	/// get the tag prefix fo rthe info PLC
-	const std::stringcase& get_prefix() const { return prefix; }
-	/// get the tag prefix fo rthe info PLC
-	void set_prefix (const std::stringcase& pre) { prefix = pre; }
 protected:
-	/// List of statistics values
-	BaseInfoList			info_list;
-
-	/** Iterates over the info list and processes all specified tags.
-	@param info Info item
-	@param process Function class
-	@param defopc OPC default list
-	@param memloc memory location used to get the EPICS name
-	@param prefix Prefix which is added to all variable names
-	@return Number of processes variables
-	@brief Process the type tree of a symbol
-	*/
-	template <class Function>
-	int process_info (const BaseInfoItem& info,
-		Function& process, const ParseUtil::opc_list& defopc, 
-		ParseUtil::memory_location& memloc,
-		const std::stringcase& prefix = std::stringcase()) const;
-
-	/// Tag prefix
-	std::stringcase			prefix;
+	/// TwinCAT PLC addres
+	const std::stringcase& tcplc_addr;
 };
+
+/** @} */
 
 }
 

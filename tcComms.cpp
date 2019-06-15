@@ -113,14 +113,23 @@ bool TCatInterface::pull()
 	return true;
 }
 
+/* TCatInterface::get_parent
+ ************************************************************************/
 TcPLC* TCatInterface::get_parent()
 { 
 	return dynamic_cast<TcPLC*>(record->get_parent()); 
 }
 
+/* TCatInterface::get_parent
+ ************************************************************************/
+const TcPLC* TCatInterface::get_parent() const
+{
+	return dynamic_cast<const TcPLC*>(record->get_parent());
+}
+
 /* TCatInterface::printTCatVal
  ************************************************************************/
-void TCatInterface::printTCatVal(FILE* fp)
+void TCatInterface::printVal (FILE* fp)
 {
 	/////////////////////////////////////////////////
 	/// This is a function for printing the variable name and value of a record.
@@ -436,7 +445,8 @@ bool TcPLC::optimizeRequests()
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
 	for (auto& it : records) {
-		recordList.push_back(it.second);
+		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
+		if (a) recordList.push_back(it.second);
 	}
 
 	// Sort record list by group and offset
@@ -535,9 +545,11 @@ void TcPLC::printAllRecords()
 {
 	for (auto it = records.begin(); it != records.end(); ++it)
 	{
-		TCatInterface* tcat = dynamic_cast<TCatInterface*>(it->second.get()->get_plcInterface());
-		if (!tcat) continue;
-		tcat->printTCatVal(stdout);
+		Interface* iface = it->second.get()->get_plcInterface();
+		if (iface) {
+			iface->printVal (stdout);
+			continue;
+		}
 	}
 }
 

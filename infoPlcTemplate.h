@@ -5,44 +5,27 @@
  ************************************************************************/
 namespace InfoPlc {
 
-template <class Function>
-int InfoPLC::process_info (Function& process, 
-				  const std::stringcase& prefix) const
-{
-	ParseUtil::opc_list defopc;
-	defopc.set_opc_state (ParseUtil::publish);
-	defopc.add (ParseUtil::property_el (OPC_PROP_PLCNAME, "info://0.0.0.0.0.0:1/"));
-	ParseUtil::memory_location memloc (1, 0, 0);
-	int num = 0;
-	for (auto i : info_list) {
-		num += process_info (*i, process, defopc, memloc, prefix);
-		memloc.set_ioffset (memloc.get_ioffset() + 1);
-	}
-	return num;
-}
 
-/* InfoPLC::process_info
+/* InfoInterface::get_infodb
  ************************************************************************/
 template <class Function>
-int InfoPLC::process_info (const BaseInfoItem& info,
-	Function& process, const ParseUtil::opc_list& defopc, 
-	ParseUtil::memory_location& memloc,
-	const std::stringcase& prefix) const 
+int InfoInterface::get_infodb(const std::stringcase& prefix, 
+	const std::stringcase& plcaddr, Function& proc)
 {
-	std::stringcase name;
-	std::stringcase type_n;
-	ParseUtil::process_type_enum ptype;
-	ParseUtil::opc_list opc (defopc);
-	bool atomic;
 	int num = 0;
-	int idx = 0;
-	while (info.get_info (idx, prefix, name, ptype, opc, type_n, atomic)) {
-		memloc.set_bytesize (idx);
-		++idx;
-		process_arg arg (memloc, ParseUtil::variable_name(name), ptype, 
-			opc, type_n, atomic);
-		if (process (arg)) ++num;
-		opc = defopc;
+	for (const auto& rec:dbinfo_list) {
+		if (std::get<ParseUtil::opc_list>(rec).get_opc_state() != publish) {
+			continue;
+		}
+		ParseUtil::variable_name var (
+			std::get<ParseUtil::variable_name>(rec).get_name(),
+			prefix + "." + std::get<ParseUtil::variable_name>(rec).get_alias());
+		ParseUtil::opc_list opc (std::get<ParseUtil::opc_list>(rec));
+		process_arg_info arg (var, std::get< ParseUtil::process_type_enum>(rec),
+			opc, std::get<std::stringcase>(rec), std::get<bool>(rec), plcaddr);
+		if (proc (arg)) {
+			++num;
+		}
 	}
 	return num;
 }
