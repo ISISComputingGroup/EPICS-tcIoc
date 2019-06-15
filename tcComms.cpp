@@ -446,6 +446,7 @@ bool TcPLC::optimizeRequests()
 	std::list<BaseRecordPtr> recordList;
 	for (auto& it : records) {
 		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
+		// ignore info records!
 		if (a) recordList.push_back(it.second);
 	}
 

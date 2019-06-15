@@ -554,7 +554,6 @@ void tcLoadRecords (const iocshArgBuf *args)
 				tpyfile.get_project_info().get_tcat_version_major() >= 3);
 	}
 
-
 	// generate db file from tc records
 	if (dbg) tpyfile.set_export_all (TRUE);
 	int num = tpyfile.process_symbols (dbproc);
@@ -576,22 +575,6 @@ void tcLoadRecords (const iocshArgBuf *args)
 			num, dbproc.get_invalid_records(), args[0].sval);
 	}
 
-	// add info records
-	//if (!infoprefix.empty()) {
-	//	// get info database
-	//	stringcase infodb = InfoPlc::InfoInterface::get_infodb (infoprefix, tcplc->get_name());
-	//	// fix channel names
-	//	if (dbproc.patch_db_recordnames(infodb)) {
-	//		// write info database
-	//		fprintf (dbproc.get_file(), infodb.c_str());
-	//		dbproc.flush();
-	//		printf("Info database has been loaded.\n");
-	//	}
-	//	else {
-	//		printf("Info database was not loaded.\n");
-	//	}
-	//}
-		
 	// end timer
 	tpyend = clock();
 	printf("Tpy parsing took %f seconds.\n",((float)(tpyend - tpybegin)/CLOCKS_PER_SEC));
@@ -604,7 +587,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	if (!tcplc->start ()) {
 		printf ("Failed to start\n");
-		//return;
+		return;
 	}
 
 	plc::System::get().add(plc::BasePLCPtr(tcplc)); // adopted by TSystem
