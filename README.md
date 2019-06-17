@@ -98,10 +98,12 @@ Added features:
   specify a channel prefix string.
 * Support for a new print command tcPrintVal 'var name' which can be 
   used to print a single or multiple variables using wildcards.
+* New Download directory with binary files.
 
 Bug Fixes:
 * Fix 64 bit issuses (thanks Freddie Akeroyd)
 * ALIAS has been added to the replacement rule list
+* Documentation clean up
 
 * Version 1.3
 *************
