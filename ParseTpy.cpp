@@ -258,6 +258,7 @@ bool ads_routing_info::set (const std::stringcase& s)
 		ads_port = 0;
 		return false;
 	}
+	buf[255] = 0;
 	std::stringcase	ads_netid_old = ads_netid;
 	int ads_port_old = ads_port;
 	ads_netid = buf;
@@ -354,12 +355,12 @@ bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& 
 {
 	int pos = static_cast<int>(p1.length() - p2.length());
 	if (pos > 0) {
-		return (p1[pos-1] == '.') &&
+		return (p1[(std::stringcase::size_type)pos-1] == '.') &&
 			(p1.compare (pos, std::stringcase::npos, p2) == 0);
 	}
 	else if (pos < 0) {
 		pos = -pos;
-		return (p2[pos-1] == '.') &&
+		return (p2[(std::stringcase::size_type)pos-1] == '.') &&
 			(p2.compare (pos, std::stringcase::npos, p1) == 0);
 	}
 	else {

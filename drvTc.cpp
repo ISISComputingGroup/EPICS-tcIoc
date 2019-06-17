@@ -46,24 +46,27 @@ static const iocshArg tcMacroArg0			        = {"'mdir' output directory", iocshA
 static const iocshArg tcMacroArg1		            = {"Macro arguments", iocshArgString};
 static const iocshArg tcAliasArg0					= {"Alias name for PLC", iocshArgString};
 static const iocshArg tcAliasArg1					= {"Replacement rules", iocshArgString};
-static const iocshArg tcPrintValsArg0				= {"emptyarg", iocshArgString};
 static const iocshArg tcInfoPrefixArg0				= {"Prefix for info PLC records", iocshArgString};
+static const iocshArg tcPrintValsArg0				= {"emptyarg", iocshArgString };
+static const iocshArg tcPrintValArg0				= {"Variable name (accepts wildcards)", iocshArgString};
 
 static const iocshArg* const  tcLoadRecordsArg[2]   = {&tcLoadRecordsArg0, &tcLoadRecordsArg1};
 static const iocshArg* const  tcSetScanRateArg[2]   = {&tcSetScanRateArg0, &tcSetScanRateArg1};
 static const iocshArg* const  tcListArg[2]		    = {&tcListArg0, &tcListArg1};
 static const iocshArg* const  tcMacroArg[2]		    = {&tcMacroArg0, &tcMacroArg1};
 static const iocshArg* const  tcAliasArg[2]			= {&tcAliasArg0, &tcAliasArg1};
-static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
 static const iocshArg* const  tcInfoPrefixArg[1]	= {&tcInfoPrefixArg0};
+static const iocshArg* const  tcPrintValsArg[1]		= {&tcPrintValsArg0};
+static const iocshArg* const  tcPrintValArg[1]		= {&tcPrintValArg0};
 
 static const iocshFuncDef tcLoadRecordsFuncDef      = {"tcLoadRecords", 2, tcLoadRecordsArg};
 static const iocshFuncDef tcSetScanRateFuncDef	    = {"tcSetScanRate", 2, tcSetScanRateArg};
 static const iocshFuncDef tcListFuncDef				= {"tcGenerateList", 2, tcListArg};
 static const iocshFuncDef tcMacroFuncDef            = {"tcGenerateMacros", 2, tcMacroArg};
 static const iocshFuncDef tcAliasFuncDef            = {"tcSetAlias", 2, tcAliasArg}; 
-static const iocshFuncDef tcPrintValsFuncDef        = {"tcPrintVals", 1, tcPrintValsArg};
 static const iocshFuncDef tcInfoPrefixFuncDef		= {"tcInfoPrefix", 1, tcInfoPrefixArg};
+static const iocshFuncDef tcPrintValsFuncDef        = {"tcPrintVals", 1, tcPrintValsArg};
+static const iocshFuncDef tcPrintValFuncDef			= {"tcPrintVal", 1, tcPrintValArg};
 
 /// Tuple for filnemae, rule and list processing 
 typedef std::tuple<std::stringcase, std::stringcase, 
@@ -312,6 +315,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 {
 	// Generate EPICS database record
 	if (!EpicsTpy::epics_db_processing::operator()(arg)) {
+		// These are structs!
 		process_macros (arg); // need to process binaries!
 		return false;
 	}
@@ -341,6 +345,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtString;
 	else {
 		printf ("Unknown type %s for %s\n", arg.get_type_name().c_str(), arg.get_name().c_str());
+		++invnum;
 		return false;
 	}
 
@@ -351,8 +356,12 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 	/// Make TCat interface
 	const process_arg_tc* targ = dynamic_cast<const process_arg_tc*>(&arg);
 	if (targ) {
+		std::stringcase tcatname = arg.get_alias();
+		if (HasRules()) {
+			tcatname = apply_replacement_rules (tcatname);
+		}
 		TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord,
-			arg.get_name(),
+			tcatname,
 			targ->get_igroup(),
 			targ->get_ioffset(),
 			targ->get_bytesize(),
@@ -364,13 +373,14 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 	
 	/// Make info interface
 	else {
+		std::stringcase tcatname = arg.get_alias();
+		if (HasRules()) {
+			tcatname = apply_replacement_rules(tcatname);
+		}
 		const InfoPlc::process_arg_info* iarg = dynamic_cast<const InfoPlc::process_arg_info*>(&arg);
 		if (iarg) {
 			InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface(*pRecord,
-				arg.get_name(),
-				arg.get_type_name(),
-				arg.get_process_type() == pt_binary,
-				arg.get_process_type() == pt_enum);
+				tcatname, arg.get_type_name());
 			iface = info;
 		}
 	}
@@ -811,6 +821,22 @@ void tcPrintVals(const iocshArgBuf *args)
 	return;
 }
 
+/** Debugging function that prints the values for all records on the PLCs
+	@brief TCat print a values
+ ************************************************************************/
+void tcPrintVal (const iocshArgBuf *args)
+{
+	// Check argument string
+	const char* p1 = args[0].sval;
+	if (!p1) {
+		printf("Specify variable name or regex\n");
+		return;
+	}
+
+	plc::System::get().printVal (p1);
+	return;
+}
+
 /** Process hook
     @brief piniProcessHook
  ************************************************************************/
@@ -850,8 +876,9 @@ tcRegisterToIocShell::tcRegisterToIocShell ()
     iocshRegister(&tcAliasFuncDef, tcAlias);
     iocshRegister(&tcListFuncDef, tcList);
     iocshRegister(&tcMacroFuncDef, tcMacro);
-	iocshRegister(&tcPrintValsFuncDef, tcPrintVals);
 	iocshRegister(&tcInfoPrefixFuncDef, tcInfoPrefix);
+	iocshRegister(&tcPrintValsFuncDef, tcPrintVals);
+	iocshRegister(&tcPrintValFuncDef, tcPrintVal);
 	initHookRegister(piniProcessHook);
 }
 

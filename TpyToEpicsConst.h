@@ -15,9 +15,10 @@ namespace EpicsTpy {
  ************************************************************************/
 /** @{ */
 
-const int MAX_EPICS_CHANNEL=	54;	/**< maximum EPICS channel name */
-const int MAX_EPICS_DESC=		40;	/**< maximum EPICS channel name */
-const int MAX_EPICS_UNIT=		15;	/**< maximum EPICS channel name */
+const int MAX_EPICS_CHANNEL=	54;	/**< maximum length of EPICS channel name */
+const int MAX_EPICS_DESC=		40;	/**< maximum length of EPICS channel description */
+const int MAX_EPICS_STRING=		40;	/**< maximum length of EPICS strings */
+const int MAX_EPICS_UNIT=		15;	/**< maximum length of EPICS channel unit string */
 /** @} */
 
 /** @defgroup tpytoepicsconstfields EPICS record field names

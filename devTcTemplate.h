@@ -566,14 +566,14 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
             "Fatal error: init_record record has NULL-pointer");
-        getchar();
+        (void)getchar();
         exit(S_db_notFound);
     }
 	// Check for inp.type
     if(!prec->inp.type) {
         recGblRecordError(S_db_badField, prec,
             "Fatal error: init_record INP field not initialized (It has value 0!!!)");
-        getchar();
+		(void)getchar();
         exit(S_db_badField);
     }
 	// Check for inp.type = INST_IO
@@ -603,7 +603,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 		prec->pact = TRUE;
 		recGblRecordError(S_db_badField, prec,
             "Fatal error: Internal record does not have an EPICS interface!");
-        getchar();
+		(void)getchar();
         exit(S_db_badField);
 	}
 //	epics->set_pEpicsVal (
@@ -636,14 +636,14 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
             "Fatal error: init_record record has NULL-pointer");
-        getchar();
+		(void)getchar();
         exit(S_db_notFound);
     }
 	// Check for out.type
     if( prec->out.type == 0 ) {
         recGblRecordError(S_db_badField, prec,
             "Fatal error: init_record OUT field not initialized (It has value 0!!!)");
-        getchar();
+		(void)getchar();
         exit(S_db_badField);
     }
 	// Check for out.type = INST_IO
@@ -667,7 +667,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 	if (!epics) {
 		recGblRecordError(S_db_badField, prec,
             "Fatal error: Internal record does not have an EPICS interface!");
-        getchar();
+		(void)getchar();
         exit(S_db_badField);
 	}
 //	epics->set_pEpicsVal (
@@ -695,14 +695,14 @@ long devTcDefWaveformIn<RecType>::
     if(!precord) {
         recGblRecordError(S_db_notFound, precord,
             "Fatal error: init_record record has NULL-pointer");
-        getchar();
+		(void)getchar();
         exit(S_db_notFound);
     }
     if( precord->inp.type == 0 ) {
         recGblRecordError(S_db_badField, (void*)precord,
             "Fatal error: init_record INP field not initialized (It has value 0!!!)");
         precord->pact = TRUE;     // disable this record
-        getchar();
+		(void)getchar();
         exit(S_db_badField);
     }
     if( precord->inp.type != INST_IO ) {

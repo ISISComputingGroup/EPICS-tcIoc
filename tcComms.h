@@ -76,7 +76,8 @@ class TCatInterface	:	public plc::Interface
 public:
 	/// Constructor
 	explicit TCatInterface (plc::BaseRecord& dval)
-		: Interface(dval) {} ;
+		: Interface(dval), tCatSymbol({ 0,0,0 }), requestNum (0), 
+		requestOffs (0) {};
 	/// Constructor
 	/// @param dval BaseRecord that this interface is part of
 	/// @param name Name of TCat symbol
@@ -93,11 +94,14 @@ public:
 	~TCatInterface() {};
 
 	/// Get name of TCat symbol
-	const std::stringcase get_tCatName() { 
+	const std::stringcase get_tCatName() const { 
 		return tCatName; };							
 	/// Set name of TCat symbol
 	void set_tCatName(std::stringcase name) { 
 		tCatName = name; };
+	/// Get symbol name
+	virtual const char* get_symbol_name() const { 
+		return tCatName.c_str(); }
 	/// Get TCat data type
 	const std::stringcase get_tCatType() { 
 		return tCatType; };
@@ -190,7 +194,9 @@ public:
 	/// Destructor: will porcess the TCat writes
 	~tcProcWrite();
 	/// Move constructor
-	tcProcWrite (tcProcWrite&& tp) : ptr (nullptr) {
+	tcProcWrite (tcProcWrite&& tp) noexcept 
+		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), port(0), ptr(nullptr),
+		data (nullptr), maxrec (0), size (0), alloc (0), count (0) {
 		*this = std::move (tp); }
 
 	/// Process on record
@@ -232,7 +238,7 @@ protected:
 	void tcwrite();
 
 	/// Move operator
-	tcProcWrite&  operator= (tcProcWrite&&);
+	tcProcWrite&  operator= (tcProcWrite&&) noexcept;
 private:
 	/// Copy constructor (disabled)
 	tcProcWrite (const tcProcWrite&);
@@ -276,21 +282,29 @@ public:
 	bool is_valid_tpy();
 
 	/// Get AMS netID of TwinCAT system and port number for this PLC
-	AmsAddr	get_addr() { return addr; };
+	AmsAddr	get_addr() const { return addr; };
 	/// Set AMS address
 	/// @return true if successful
 	bool set_addr(std::stringcase netid, int port);
 	/// Get read port number
-	long get_nReadPort() { return nReadPort; };
+	long get_nReadPort() const { return nReadPort; };
 	/// Get write port number
-	long get_nWritePort() { return nWritePort; };
+	long get_nWritePort() const { return nWritePort; };
 	/// Set slowdown multiple for EPICS read
-	void set_read_scanner_multiple(int mult) { 
+	void set_read_scanner_multiple (int mult) { 
 		scanRateMultiple = mult; };
 	/// Get ADS state
 	ADSSTATE get_ads_state() const { return ads_state.load(); }
 	/// Is read scanner active and successful
 	bool is_read_active() const { return read_active; }
+
+	const std::string& get_tpyfilename() const {
+		return pathTpy; }
+	bool is_tpyfile_valid() const {
+		return validTpy; }
+	time_t get_tpyfile_time() const {
+		return timeTpy;
+	}
 
 	/// Starts the appropriate scanners
 	virtual bool start();
@@ -305,12 +319,16 @@ public:
 	bool optimizeRequests();
 
 	/// Get pointer to the beginning of a read request response buffer
-	buffer_ptr get_responseBuffer (size_t idx) {
-		return (idx >= 0 && idx < adsResponseBufferVector.size()) ?  
-			adsResponseBufferVector [idx] : buffer_ptr(); }
+	/// @param idx Index of response buffer
+	/// @return pointer to buffer
+	buffer_ptr get_responseBuffer(size_t idx);
 
 	/// Prints symbol information for entire list of symbols to console
 	virtual void printAllRecords();
+	/// Print a record values to stdout. (override for action)
+	/// @param var variable name (accepts wildcards)
+	virtual void printRecord(const std::string& var);
+
 protected:
 	/// Makes read requests to ADS, makes PlcWrite on all data values
 	virtual void read_scanner();

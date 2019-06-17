@@ -441,7 +441,7 @@ public:
 	/// @param ll long listing
 	explicit epics_list_processing (listing_type ltype, 
 		bool ll = false) 
-		: listing (listing_standard), verbose (ll) {}
+		: listing (ltype), verbose (ll) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -701,7 +701,7 @@ class epics_db_processing :
 	public epics_conversion, public split_io_support {
 public:
 	/// Default constructor
-	epics_db_processing () {}
+	epics_db_processing () : device_support (device_support_tc_name) {}
 
 	/// Constructor
 	/// Command line arguments will override default parameters when specified

@@ -15,14 +15,14 @@ System System::tCat;
  ************************************************************************/
 BasePLC* Interface::get_parent()
 {
-	return record->get_parent();
+	return record.get_parent();
 }
 
 /* Interface::get_parent
  ************************************************************************/
 const BasePLC* Interface::get_parent() const
 {
-	return record->get_parent();
+	return record.get_parent();
 }
 
 
@@ -628,7 +628,7 @@ void BasePLC::update_timestamp()
 
 /* BasePLC::count
  ************************************************************************/
-int BasePLC::count()
+int BasePLC::count() const
 {
 	guard lock (mux);
 	return (int)records.size();
@@ -801,11 +801,20 @@ void System::printVals()
 {
 	guard lock (mux);
 
-	for (auto it = PLCs.begin(); it != PLCs.end(); ++it)
-	{
-		if (it->second.get()) it->second.get()->printAllRecords();
+	for (auto const& it : PLCs)	{
+		if (it.second.get()) it.second.get()->printAllRecords();
 	}
+}
 
+/* System::printVal
+ ************************************************************************/
+void System::printVal(const std::string& var)
+{
+	guard lock(mux);
+
+	for (auto const& it : PLCs) {
+		if (it.second.get()) it.second.get()->printRecord (var);
+	}
 }
 
 /* System::find

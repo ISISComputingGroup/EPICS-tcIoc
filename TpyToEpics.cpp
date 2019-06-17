@@ -198,7 +198,9 @@ split_io_support::~split_io_support()
 split_io_support::~split_io_support
 ************************************************************************/
 split_io_support::split_io_support (const split_io_support& iosup)
-	: outf(0), outf_io (0), outf_in (0)
+	: error(true), split_io(false), split_n(0), outf(0), 
+	outf_in(nullptr), outf_io(nullptr), rec_num(0), rec_num_in(0), 
+	rec_num_io(0), file_num_in(1), file_num_io(1)
 {
 	*this = iosup;
 }
@@ -526,7 +528,8 @@ epics_list_processing::epics_list_processing (
 		const std::stringcase& fname, 
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
-	  split_io_support (fname, argc, argv, argp) 
+	  split_io_support (fname, argc, argv, argp), 
+	  listing(listing_standard), verbose(false)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -805,7 +808,7 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	procstack.top().fields.push_back (minfo);
 	int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
 	bool iserror = (minfo.type_n == errorstruct) ||
-		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
+		((pos > 0) && (minfo.type_n[(stringcase::size_type)pos-1] == '.') && 
 		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
 	if (iserror) {
 		procstack.top().haserror = true;
@@ -957,13 +960,13 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			// read file with list of error messages
 			FILE* fp = get_file();
 			fseek (fp, 0L, SEEK_END);
-			int sz = ftell (fp);
+			size_t sz = ftell (fp);
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
 			unsigned char* buf = new unsigned char [sz+1];
-			sz = (int)fread (buf, sizeof (char), sz, fp);
+			sz = fread (buf, sizeof (char), sz, fp);
 			buf[sz] = 0;
-			for (int i = 0; i < sz; ++i) {
+			for (size_t i = 0; i < sz; ++i) {
 				if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
 			}
 			// check if it is formatted correctly
@@ -1181,7 +1184,8 @@ epics_db_processing::epics_db_processing (
 		const std::stringcase& fname,
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
-	  split_io_support (fname, argc, argv, argp) 
+	  split_io_support (fname, argc, argv, argp),
+	  device_support (device_support_tc_name)
 {
 	mygetopt (argc, argv, argp); 
 }

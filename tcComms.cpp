@@ -89,14 +89,14 @@ TCatInterface::TCatInterface (BaseRecord& dval, const stringcase& name,
 							  unsigned long group, unsigned long offset, 
 							  unsigned long nBytes, const stringcase& type, 
 							  bool isStruct, bool isEnum)
-	: Interface (dval), tCatName(name), tCatType(type), requestNum(0), 
-	requestOffs(0)
+	: Interface (dval), tCatName(name), tCatType(type), 
+	tCatSymbol({ 0,0,0 }), requestNum(0), requestOffs(0)
 {
 	tCatSymbol.indexGroup = group;
 	tCatSymbol.indexOffset = offset;
 	tCatSymbol.length = nBytes;
 	if (isEnum)	tCatType = "ENUM";
-	if (isStruct) record->set_process(false);
+	if (isStruct) record.set_process(false);
 }
 
 /* TCatInterface::push
@@ -117,14 +117,14 @@ bool TCatInterface::pull()
  ************************************************************************/
 TcPLC* TCatInterface::get_parent()
 { 
-	return dynamic_cast<TcPLC*>(record->get_parent()); 
+	return dynamic_cast<TcPLC*>(record.get_parent()); 
 }
 
 /* TCatInterface::get_parent
  ************************************************************************/
 const TcPLC* TCatInterface::get_parent() const
 {
-	return dynamic_cast<const TcPLC*>(record->get_parent());
+	return dynamic_cast<const TcPLC*>(record.get_parent());
 }
 
 /* TCatInterface::printTCatVal
@@ -136,61 +136,48 @@ void TCatInterface::printVal (FILE* fp)
 	/// Depending on the variable type, the readout from the ADS server is cast
 	/// into the proper data type and printed to the output file fp.
 	/////////////////////////////////////////////////
-	fprintf(fp,"%15s: %15s         ",tCatName.c_str(), tCatType.c_str());
+	fprintf(fp,"%65s: %15s         ",tCatName.c_str(), tCatType.c_str());
 
 	double				doublePLCVar;
 	float				floatPLCVar;
 	signed long int		sliPLCVar;
 	signed short int	ssiPLCVar;
 	signed char			charPLCVar;
-	char				chararrPLCVar[100];
+	char				chararrPLCVar[256];
 	
 	TcPLC*				parent = get_parent();
 	if (!parent) return;	
 	TcPLC::buffer_ptr buf = parent->get_responseBuffer (requestNum);
 	if (!buf) return;
 	char* pTCatVal = buf.get() + requestOffs;
-	if (tCatType == "LREAL")
-	{
+	if (tCatType == "LREAL") {
 		doublePLCVar	= *(double*)pTCatVal;
 		fprintf(fp,"%f",doublePLCVar);
 	}
-	else if (tCatType == "REAL")
-	{
+	else if (tCatType == "REAL") {
 		floatPLCVar		= *(float*)pTCatVal;
 		fprintf(fp,"%f",floatPLCVar);
 	}
-	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")
-	{
+	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")  {
 		sliPLCVar		= *(signed long int*)pTCatVal;
 		fprintf(fp,"%d",sliPLCVar);
 	}
-	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT")
-	{
+	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		ssiPLCVar		= *(signed short int*)pTCatVal;
 		fprintf(fp,"%d",ssiPLCVar);
 	}
-	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT")
-	{
+	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT") {
 		charPLCVar		= *(signed char*)pTCatVal;
 		fprintf(fp,"%d",charPLCVar);
 	}
-	else if (tCatType.substr(0,6) == "STRING")
-	{
-		strncpy(chararrPLCVar, (char*)pTCatVal, tCatSymbol.length);
+	else if (tCatType.substr(0,6) == "STRING") {
+		strncpy(chararrPLCVar, (char*)pTCatVal, min (tCatSymbol.length, sizeof(chararrPLCVar)));
 		fprintf(fp,"%s",chararrPLCVar);
 	}
-	else
-	{
+	else {
 		fprintf(fp,"INVALID!!!");
 	}
-
 	fprintf(fp,"\n");
-	//fprintf(fp,"      request %i       offset %i          \n", requestNum, tCatSymbol.indexOffset); // Use this to print additional information
-
-	if (debug)
-	{
-	}
 }
 
 
@@ -211,7 +198,7 @@ tcProcWrite::~tcProcWrite()
 
 /* tcProcWrite::operator=
  ************************************************************************/
-tcProcWrite&  tcProcWrite::operator= (tcProcWrite&& tp) 
+tcProcWrite&  tcProcWrite::operator= (tcProcWrite&& tp) noexcept
 {
 	addr = tp.addr;
 	port = tp.port;
@@ -327,11 +314,11 @@ void tcProcWrite::tcwrite()
 
  /* TcPLC::TcPLC constructor
   ************************************************************************/
-TcPLC::TcPLC(std::string tpyPath)
-	: pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRequest(0),
-	scanRateMultiple(default_multiple), cyclesLeft(default_multiple),
-	nReadPort(0), nWritePort(0), nNotificationPort(0), read_active(false),
-	ads_state(ADSSTATE_INVALID), ads_handle(0), ads_restart(false), plcId(0)
+TcPLC::TcPLC (std::string tpyPath)
+	: addr(), pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRequest(0),
+	scanRateMultiple(default_multiple), cyclesLeft(default_multiple), update_workload (0),
+	ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false), nReadPort(0), nWritePort(0),
+	nNotificationPort(0), read_active(false), plcId(0)
 {
 	// modification time
 	path fpath(pathTpy);
@@ -517,17 +504,19 @@ bool TcPLC::optimizeRequests()
 	if (debug) printf("Making buffer...\n");
 	for (auto i : adsGroupReadRequestVector)
 	{
-		buffer_type* buffer = new (nothrow) buffer_type [i.length + 4];
+		size_t bufsize = (size_t)i.length + 4;
+		buffer_type* buffer = new (nothrow) buffer_type [bufsize];
+		if (buffer) memset(buffer, 0, bufsize);
 		adsResponseBufferVector.push_back(buffer_ptr(buffer));
 	}
 
 	// Set offset into request buffer for each record
 	int reqNum;
-	int recOffs;
-	int reqOffs;
-	for (it = recordList.begin(); it != recordList.end(); ++it)
+	size_t recOffs;
+	size_t reqOffs;
+	for (auto const& it : recordList)
 	{
-		rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
+		rec = dynamic_cast<TCatInterface*>(it.get()->get_plcInterface());
 		if (!rec) continue;
 		reqNum = rec->get_requestNum();
 		recOffs = rec->get_indexOffset();
@@ -540,18 +529,108 @@ bool TcPLC::optimizeRequests()
 	return true;
 }
 
+/* TcPLC::get_responseBuffer
+************************************************************************/
+TcPLC::buffer_ptr TcPLC::get_responseBuffer(size_t idx)
+{
+	return (idx >= 0 && idx < adsResponseBufferVector.size()) ?
+		adsResponseBufferVector[idx] : buffer_ptr();
+}
+
  /* TcPLC::printAllRecords
  ************************************************************************/
 void TcPLC::printAllRecords()
 {
-	for (auto it = records.begin(); it != records.end(); ++it)
-	{
-		Interface* iface = it->second.get()->get_plcInterface();
-		if (iface) {
-			iface->printVal (stdout);
-			continue;
+	std::vector<BaseRecordPtr> rlist;
+	for (auto const& i : records) {
+		if (i.second.get() && i.second->get_plcInterface() && 
+			i.second->get_plcInterface()->get_symbol_name()) {
+			rlist.push_back(i.second);
 		}
 	}
+	std::sort (rlist.begin(), rlist.end(),
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		return _stricmp (p1->get_plcInterface()->get_symbol_name(), 
+						 p2->get_plcInterface()->get_symbol_name()) < 0; });
+	int num = 0;
+	for (auto const& it : rlist) {
+		Interface* iface = it.get()->get_plcInterface();
+		if (iface) {
+			iface->printVal (stdout);
+			++num;
+		}
+	}
+	fprintf (stdout, "Printed %i record values\n", num);
+}
+
+/* replace_all
+************************************************************************/
+static void replace_all (std::string& str, const std::string& from, const std::string& to)
+{
+	std::string::size_type start_pos = 0;
+	while ((start_pos = str.find (from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+}
+
+/* escape_regex
+************************************************************************/
+static std::string escape_regex (const std::string& regex)
+{
+	std::string str(regex);
+	replace_all (str, "\\", "\\\\");
+	replace_all (str, "^", "\\^");
+	replace_all (str, ".", "\\.");
+	replace_all (str, "$", "\\$");
+	replace_all (str, "|", "\\|");
+	replace_all (str, "(", "\\(");
+	replace_all (str, ")", "\\)");
+	replace_all (str, "[", "\\[");
+	replace_all (str, "]", "\\]");
+	replace_all (str, "*", "\\*");
+	replace_all (str, "+", "\\+");
+	replace_all (str, "?", "\\?");
+	replace_all (str, "/", "\\/");
+	return str;
+}
+
+/* WildcardToRegex
+************************************************************************/
+static std::string WildcardToRegex (const std::string& pattern)
+{
+	std::string str ("^" + escape_regex (pattern) + "$");
+	replace_all (str, "\\*", ".*");
+	replace_all (str, "\\?", ".");
+	return str;
+}
+
+/* TcPLC::printRecord
+ ************************************************************************/
+void TcPLC::printRecord (const std::string& var)
+{
+	std::vector<BaseRecordPtr> rlist;
+	for (auto const& i : records) {
+		if (i.second.get() && i.second->get_plcInterface() && 
+			i.second->get_plcInterface()->get_symbol_name()) {
+			rlist.push_back(i.second);
+		}
+	}
+	std::sort(rlist.begin(), rlist.end(),
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		return _stricmp(p1->get_plcInterface()->get_symbol_name(), 
+					    p2->get_plcInterface()->get_symbol_name()) < 0;	});
+	int num = 0;
+	std::string pattern = WildcardToRegex(var);
+	std::regex	exp (pattern);
+	for (auto const& it : rlist) {
+		Interface* iface = it.get()->get_plcInterface();
+		if (iface && std::regex_match (iface->get_symbol_name(), exp)) {
+			iface->printVal(stdout);
+			++num;
+		}
+	}
+	if (num > 5) fprintf(stdout, "Printed %i record values\n", num);
 }
 
 /** Callback for ADS state change

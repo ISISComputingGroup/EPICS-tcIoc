@@ -256,8 +256,12 @@ static struct iocshVarDef vardefs[] = {
 int tCat_registerRecordDeviceDriver(DBBASE *pbase)
 {
     static int executed = 0;
-    const char *bldTop = "C:/SlowControlsMaggie/EPICS/Utilities/tcIoc/TCatDeviceSupport";
-    const char *envTop = getenv("TOP");
+    const char *bldTop = "C:/SlowControls/EPICS/Utilities/tcIoc/TCatDeviceSupport";
+	char envTop[1024];
+	size_t ret;
+	if (getenv_s (&ret, envTop, sizeof(envTop), "TOP") || (ret >= sizeof (envTop))) {
+		envTop[0] = 0;
+	}
 
     if (envTop && strcmp(envTop, bldTop)) {
         printf("Warning: IOC is booting with TOP = \"%s\"\n"

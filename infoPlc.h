@@ -7,15 +7,6 @@
 	Header which includes classes for the info PLC.
  ************************************************************************/
 
-/** General plan:
-	- InfoPLC is created along with System
-	- InfoItems are created and updated at appropriate points in the other parts of the code
-	- an InfoItem creates several InfoInterfaces with the proper epics_params_structs, and a Record for each, adds these to InfoPLC
-	- infoLoad() is called from startup file after tcLoadRecords()
-	- infoLoad() generates the dB file from the contents of InfoPLC
-
-	- See infoPLC.cpp, the SimpleInfoItem stuff to see what "InfoItem" is intended to do
- ************************************************************************/
 
  /** @namespace InfoPlc
 	 InfoPlc name space, which has all the classes and functions used for
@@ -29,11 +20,30 @@ namespace InfoPlc {
  ************************************************************************/
 /** @{ */
 
-/// db info tuple with variable name, type name, process type enum, 
+
+class InfoInterface;
+
+/// Update frequency type
+enum class update_enum {
+	/// Repeat foreveer
+	forever,
+	/// once
+	once,
+	/// done
+	done
+};
+
+/// Pointer to info update method
+typedef bool (InfoInterface::*info_update_method)();
+
+/// db info tuple with variable name, process type enum, 
+/// opc list, TwinCAT type string, readonly,
+/// update enum, and update method
 typedef std::tuple<ParseUtil::variable_name, 
 	ParseUtil::process_type_enum,
 	ParseUtil::opc_list, 
-	std::stringcase, bool> info_dbrecord_type;
+	std::stringcase, bool, update_enum,
+	info_update_method> info_dbrecord_type;
 
 /// List type of db info tuples
 typedef std::vector<info_dbrecord_type> info_dbrecord_list;
@@ -47,26 +57,21 @@ class InfoInterface	:	public plc::Interface
 public:
 	/// Constructor
 	explicit InfoInterface(plc::BaseRecord& dval)
-		: Interface(dval) {};
+		: Interface(dval), update_freq (update_enum::done), 
+		info_update (nullptr) {};
 	/// Constructor
 	/// @param dval BaseRecord that this interface is part of
 	/// @param name Name of TCat symbol
 	/// @param type Name of TCat data type
-	/// @param isStruct True = this symbol is a structure in TCat
-	/// @param isEnum True = this symbol is an enum in TCat
 	InfoInterface (plc::BaseRecord& dval, const std::stringcase& name,
-		const std::stringcase& type, bool isStruct, bool isEnum);
+		const std::stringcase& type);
 	/// Deconstructor
 	~InfoInterface() {};
 
-	/// Constructor
-	InfoInterface (plc::BaseRecord& dval, const std::stringcase& name, 
-		const std::stringcase& tname)
-		: Interface(dval), tCatName (name), tCatType (tname) {};
 	/// push data
-	virtual bool						push() override {return true; };
+	virtual bool push() override {return true; };
 	/// pull data
-	virtual bool						pull() override {return true; };
+	virtual bool pull() override;
 
 	/// Prints TCat symbol value and information
 	/// @param fp File to print symbol to
@@ -80,14 +85,89 @@ public:
 	static int get_infodb(const std::stringcase& prefix, 
 		const std::stringcase& plcaddr, Function& proc);
 
+	/// Get symbol name
+	virtual const char* get_symbol_name() const { return tCatName.c_str(); }
+
 protected:
 	/// Name of TCat symbol
 	std::stringcase		tCatName;
 	/// Data type in TCat
 	std::stringcase		tCatType;
+	/// Update frequency
+	update_enum			update_freq;
+
+	/// pointer to info update method
+	info_update_method	info_update;
+
+	/// info update: name
+	bool info_update_name ();
+	/// info update: alias
+	bool info_update_alias();
+	/// info update: active
+	bool info_update_active();
+	/// info update: state
+	bool info_update_state();
+	/// info update: statestr
+	bool info_update_statestr();
+	/// info update: timestamp_str
+	bool info_update_timestamp_str();
+	/// info update: timestamp_year
+	bool info_update_timestamp_year();
+	/// info update: timestamp_month
+	bool info_update_timestamp_month();
+	/// info update: timestamp_day
+	bool info_update_timestamp_day();
+	/// info update: timestamp_hour
+	bool info_update_timestamp_hour();
+	/// info update: timestamp_min
+	bool info_update_timestamp_min();
+	/// info update: timestamp_sec
+	bool info_update_timestamp_sec();
+	/// info update: rate_read
+	bool info_update_rate_read();
+	/// info update: rate_write
+	bool info_update_rate_write();
+	/// info update: rate_update
+	bool info_update_rate_update();
+	/// info update: records_num
+	bool info_update_records_num();
+	/// info update: tpy_filename
+	bool info_update_tpy_filename();
+	/// info update: tpy_valid
+	bool info_update_tpy_valid();
+	/// info update: tpy_time_str
+	bool info_update_tpy_time_str();
+	/// info update: tpy_time_year
+	bool info_update_tpy_time_year();
+	/// info update: tpy_time_month
+	bool info_update_tpy_time_month();
+	/// info update: tpy_time_day
+	bool info_update_tpy_time_day();
+	/// info update: tpy_time_hour
+	bool info_update_tpy_time_hour();
+	/// info update: tpy_time_min
+	bool info_update_tpy_time_min();
+	/// info update: tpy_time_sec
+	bool info_update_tpy_time_sec();
+	/// info update: addr_port
+	bool info_update_addr_port();
+	/// info update: addr_netid_str
+	bool info_update_addr_netid_str();
+	/// info update: addr_netid_b0
+	bool info_update_addr_netid_b0();
+	/// info update: addr_netid_b1
+	bool info_update_addr_netid_b1();
+	/// info update: addr_netid_b2
+	bool info_update_addr_netid_b2();
+	/// info update: addr_netid_b3
+	bool info_update_addr_netid_b3();
+	/// info update: addr_netid_b4
+	bool info_update_addr_netid_b4();
+	/// info update: addr_netid_b5
+	bool info_update_addr_netid_b5();
 
 	/// List of db info records
-	static info_dbrecord_list dbinfo_list;
+	static const info_dbrecord_list dbinfo_list;
 };
 
 /** Argument which is passed to the name/tag processing function.

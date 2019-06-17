@@ -103,7 +103,17 @@ void optarg::setup (int size)
 	if (size <= 0) return;
 
 	myargv = new (std::nothrow) char* [size];
+	if (!myargv) {
+		mysize = 0;
+		return;
+	}
 	myargp = new (std::nothrow) bool [size];
+	if (!myargp) {
+		mysize = 0;
+		delete[] myargv;
+		myargv = nullptr;
+		return;
+	}
 	for (int i = 0; i < size; ++i) {
 		myargv[i] = nullptr;
 		myargp[i] = false;

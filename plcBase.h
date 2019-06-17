@@ -35,14 +35,14 @@ class Interface
 public:
 	/// Constructor
 	/// @param dval Reference to a tag/channel record
-	explicit Interface (BaseRecord& dval) : record (&dval) {}
+	explicit Interface (BaseRecord& dval) : record (dval) {}
 	/// Desctructor
 	virtual ~Interface() {};
 
 	/// Return a pointer to the tag/channel record
-	BaseRecord* get_record() const { return record; };
-	/// Set the tag/channel record reference
-	void set_record (BaseRecord& rec) { record = &rec; };
+	BaseRecord& get_record() { return record; };
+	/// Return a pointer to the tag/channel record
+	const BaseRecord& get_record() const { return record; };
 
 	/// Pure virtual method indicating that the value needs to be pushed
 	virtual bool push() = 0;
@@ -56,9 +56,11 @@ public:
 	/// Print values to file
 	/// @param fp File pointer
 	virtual void printVal (FILE* fp) {}
+	/// Get symbol name
+	virtual const char* get_symbol_name() const { return nullptr; }
 protected:
 	/// Pointer to tag/channel record associated with this interface
-	BaseRecord*			record;
+	BaseRecord&			record;
 };
 
 /** This is a smart pointer for Interface
@@ -808,10 +810,13 @@ public:
 	/// @param f Function which takes BaseRecord* as the argument
 	template <typename func> void for_each (func& f);
 	/// Count the number of records
-	int count();
+	int count() const;
 
 	/// Print all records and vals to stdout. (override for action)
 	virtual void printAllRecords() {};
+	/// Print a record values to stdout. (override for action)
+	/// @param var variable name (accepts wildcards)
+	virtual void printRecord (const std::string& var) {};
 
 	/// Get time stamp
 	virtual time_type get_timestamp() const { return timestamp; }
@@ -920,6 +925,9 @@ public:
 
 	/// Print all PLC record values to the console
 	void printVals();
+	/// Print all PLC record values to the console
+	/// @param var Variable name or regex
+	void printVal (const std::string& var);
 
 	/// Start scanning after ioc is running
 	void start();

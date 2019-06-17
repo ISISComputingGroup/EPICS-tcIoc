@@ -208,8 +208,7 @@ EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
  ************************************************************************/
 bool EpicsInterface::get_callbackRequestPending() const
 {
-	BaseRecord* rec = get_record();
-	return (rec &&rec->UserIsDirty());
+	return (get_record().UserIsDirty());
 }
 
 
