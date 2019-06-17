@@ -8,7 +8,7 @@
 
 namespace std {
 
-/** @defgroup Stringcase utility functions and classes
+/** @defgroup Stringcase String functions and classes
  ************************************************************************/
 /** @{ */
 
@@ -149,7 +149,7 @@ void split_string (Container& output, const String& input,
     }
 }
 
-/** @} */
 }
 
 #include "stringcase_hash.h"
+/** @} */

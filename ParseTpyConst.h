@@ -90,11 +90,7 @@ const char* const xmlEnumComment = "Comment";
 const char* const xmlValue = "Value";
 /// Description
 const char* const xmlDesc = "Desc";
-/** @} */
 
-/** @defgroup parsetpyconstopc  OPC tpy file constants
- ************************************************************************/
-/** @{ */
 
 /// OPC
 const char* const opcExport = "opc";

@@ -91,9 +91,17 @@ Added features:
 * Updated to EPICS base-3.15.6
 * Updated to expat version 2.6.6
 * Support 64 bit libraries and applications
+* Support for info records
+  Info records reside in the tcIoc and describe local parameters,
+  such as the state of the PLC, the tpy filename, ADS/AMS address, etc.
+  This features is enabled by using the new tcInfoPrefix function to
+  specify a channel prefix string.
+* Support for a new print command tcPrintVal 'var name' which can be 
+  used to print a single or multiple variables using wildcards.
 
 Bug Fixes:
 * Fix 64 bit issuses (thanks Freddie Akeroyd)
+* ALIAS has been added to the replacement rule list
 
 * Version 1.3
 *************

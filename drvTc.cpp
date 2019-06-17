@@ -456,7 +456,7 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 }
 
 
-/** @defgroup iocshfunc Functions called by the EPICS base
+/** @defgroup iocshfunc Device driver functions
  ************************************************************************/
 /** @{ */
 

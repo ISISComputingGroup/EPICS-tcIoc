@@ -116,13 +116,6 @@ protected:
 	bool*		myargp;
 };
 
-/** @} */
-
-/** @defgroup parseutilopc OPC related functions and classes
-    These function and classes are generally used to describe channel 
-	properties
- ************************************************************************/
-/** @{ */
 
 /** This enum denotes the opc state.
      @brief OPC state enum
@@ -192,11 +185,6 @@ protected:
 	property_map	opc_prop;
 };
 
-/** @} */
-
-/** @defgroup parseutilparseinfo Classes for describing a parser argument
- ************************************************************************/
-/** @{ */
 
 /** This is a class for storing a variable name and an alias
 	@brief Variable name

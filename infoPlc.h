@@ -16,7 +16,7 @@
 namespace InfoPlc {
 
 
-/** @defgroup infoplc Classes and functions related to the info interface
+/** @defgroup infoplc Info interface classes and functions
  ************************************************************************/
 /** @{ */
 

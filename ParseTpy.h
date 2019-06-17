@@ -13,7 +13,7 @@
 ************************************************************************/
 namespace ParseTpy {
 
-/** @defgroup parsetpyopc Classes for describing project information
+/** @defgroup parsetpyopc TwinCAT tpy file parser
  ************************************************************************/
 /** @{ */
 
@@ -142,11 +142,6 @@ public:
 protected:
 };
 
-/** @} */
-
-/** @defgroup parsetpyitem Classes for describing a structure element
- ************************************************************************/
-/** @{ */
 
 /** This is a base class for storing name, type, type id and opc list
      @brief Base record definition
@@ -251,11 +246,6 @@ public:
 ************************************************************************/
 typedef std::list<item_record> item_list;
 
-/** @} */
-
-/** @defgroup parsetpytype Classes for describing a type
- ************************************************************************/
-/** @{ */
 
 /** This structure describes a type record
      @brief Type enum
@@ -343,11 +333,6 @@ public:
 	find (value_type::first_type id, const std::stringcase& typn) const;
 };
 
-/** @} */
-
-/** @defgroup parsetpysymbol Classes for describing a symbol
- ************************************************************************/
-/** @{ */
 
 /** This structure holds a symbol record
 	@brief Symbol record
@@ -368,11 +353,6 @@ public:
 ************************************************************************/
 typedef std::list<symbol_record> symbol_list;
 
-/** @} */
-
-/** @defgroup parsetpyparseinfo Classes for describing the parser
- ************************************************************************/
-/** @{ */
 
 /** This class holds the structure of a tpy file
 	@brief Tpy file parsing

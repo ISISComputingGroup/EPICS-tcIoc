@@ -11,7 +11,7 @@
  ************************************************************************/
 namespace EpicsTpy {
 
-/** @defgroup tpytoepicsconstmax EPICS maximum length constants
+/** @defgroup tpytoepicsconstmax EPICS constants
  ************************************************************************/
 /** @{ */
 
@@ -19,11 +19,6 @@ const int MAX_EPICS_CHANNEL=	54;	/**< maximum length of EPICS channel name */
 const int MAX_EPICS_DESC=		40;	/**< maximum length of EPICS channel description */
 const int MAX_EPICS_STRING=		40;	/**< maximum length of EPICS strings */
 const int MAX_EPICS_UNIT=		15;	/**< maximum length of EPICS channel unit string */
-/** @} */
-
-/** @defgroup tpytoepicsconstfields EPICS record field names
- ************************************************************************/
-/** @{ */
 
 const char* const EPICS_DB_EGU=     "EGU";	/**< unit string */
 const char* const EPICS_DB_DESC=    "DESC";	/**< description string */
@@ -68,12 +63,6 @@ const char* const EPICS_DB_MAJOR=	"MAJOR"; /**< major alarm  */
 const char* const EPICS_DB_UNSV=	"UNSV";	/**< unknown severity */
 const char* const EPICS_DB_ZRSV[16] = {"ZRSV", "ONSV", "TWSV", "THSV", "FRSV", "FVSV", "SXSV", "SVSV", 
 									   "EISV", "NISV", "TESV", "ELSV", "TVSV", "TTSV", "FTSV", "FFSV"}; /**< enum alarm severity */
-/** @} */
-
-/** @defgroup tpytoepicsconstlists Lists of EPICS record field names
-    used to describe allowed, forbidden and numeric fields
- ************************************************************************/
-/** @{ */
 
 /** Names of forbidden EPICS record fields
  ************************************************************************/
@@ -93,11 +82,7 @@ const char* const EPICS_DB_NUMVAL[] = {EPICS_DB_TSE, EPICS_DB_HOPR, EPICS_DB_LOP
 							 "AOFF", "ASLO", "ESLO", "SMOO", "PREC", "HIHI", "LOLO", "HIGH", "LOW", "HYST",
                              "ZRVL", "ONVL", "TWVL", "THVL", "FRVL", "FVVL", "SXVL", "SVVL", "EIVL", "NIVL", "TEVL", "ELVL",
 							 "TVVL", "TTVL", "FTVL", "FFVL", NULL};
-/** @} */
 
-/** @defgroup tpytoepicsconstligo LIGO related constants
-************************************************************************/
-/** @{ */
 
 /** DAQ datatype name */
 const char* const LIGODAQ_DATATYPE_NAME = "datatype";

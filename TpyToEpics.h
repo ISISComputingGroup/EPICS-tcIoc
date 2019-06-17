@@ -14,7 +14,7 @@
  ************************************************************************/
 namespace EpicsTpy {
 
-/** @defgroup epicstpyutil Utility functions and classes
+/** @defgroup epicstpyutil EPICS utility functions and classes
  ************************************************************************/
 /** @{ */
 
@@ -408,12 +408,6 @@ protected:
 	int				file_num_out;
 };
 
-/** @} */
-
-/** @defgroup epicstpyprocessing Classes for converting a parsed tpy
-    into an EPICS database
- ************************************************************************/
-/** @{ */
 
 /** This enum describes the type of listing to produce
      @brief Listing type enum

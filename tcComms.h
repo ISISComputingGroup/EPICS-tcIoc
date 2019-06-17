@@ -19,7 +19,7 @@ struct dbCommon;
  ************************************************************************/
 namespace TcComms {
 
-/** @defgroup scansettings Constants related to read/write scanning
+/** @defgroup tccommgroup TwinCAT read/write scanning
  ************************************************************************/
 /** @{ */
 
@@ -45,15 +45,11 @@ const int minimum_multiple = 1;
 /// maximum multiple for PLC EPICS scan rate (200) 
 const int maximum_multiple = 200;
 
-/** @} */
 
 /** Forward declaration
  ************************************************************************/
 class TcPLC;
 
-/** @defgroup tccommssymbol Classes for describing TC symbol
- ************************************************************************/
-/** @{ */
 
 /** Struct for storing index group, index offset, and size of a TC symbol
 	@brief Memory location struct
@@ -167,11 +163,6 @@ protected:
 	size_t				requestOffs;
 };
 
-/** @} */
-
-/** @defgroup tccommsplc Classes for managing groups of TC symbols
- ************************************************************************/
-/** @{ */
 
 /** Class for collecting and processing write requests
 	This class iterates through the entire record list on the PLC and 

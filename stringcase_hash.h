@@ -3,9 +3,6 @@
  ************************************************************************/
 namespace std {
 
-/** @defgroup stringcase Utility functions and classes
- ************************************************************************/
- /** @{ */
 
 /** This is a function specialization for case sensitive strings.
 	Perform a 32/64 bit Fowler/Noll/Vo hash on a string.
@@ -39,5 +36,5 @@ public:
 	std::size_t operator()(const wstringcase& str) const;
 };
 
-/** @} */
+
 }
