@@ -263,7 +263,7 @@ int tCat_registerRecordDeviceDriver(DBBASE *pbase)
 		envTop[0] = 0;
 	}
 
-    if (envTop && strcmp(envTop, bldTop)) {
+	if ((strlen (envTop) > 0) && strcmp(envTop, bldTop)) {
         printf("Warning: IOC is booting with TOP = \"%s\"\n"
                "          but was built with TOP = \"%s\"\n",
                envTop, bldTop);

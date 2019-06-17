@@ -322,7 +322,8 @@ TcPLC::TcPLC (std::string tpyPath)
 {
 	// modification time
 	path fpath(pathTpy);
-	timeTpy = last_write_time(fpath).time_since_epoch().count();
+	timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
+	if (debug) printf("Tpy time: %s\n", std::asctime(std::localtime(&timeTpy)));
 	// Set PLC ID and initialize list of PLC instances
 	{
 		std::lock_guard<std::mutex> lock(plcVecMutex);
@@ -390,7 +391,7 @@ bool TcPLC::start()
 
 /** Compare two TCat records by their group and offset: compbyOffset
  ************************************************************************/
-bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
+static bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 {
 	TCatInterface* a = dynamic_cast<TCatInterface*>(recA.get()->get_plcInterface());
 	TCatInterface* b = dynamic_cast<TCatInterface*>(recB.get()->get_plcInterface());
@@ -406,7 +407,7 @@ bool TcPLC::is_valid_tpy()
 		checkTpy = false;
 		path fpath (pathTpy);
 		if (exists (fpath)) {
-			time_t modtime = last_write_time(fpath).time_since_epoch().count();
+			time_t modtime = file_time_type::clock::to_time_t (last_write_time (fpath));
 			validTpy = (modtime == timeTpy);
 		}
 		else {
@@ -433,9 +434,16 @@ bool TcPLC::optimizeRequests()
 	std::list<BaseRecordPtr> recordList;
 	for (auto& it : records) {
 		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
-		// ignore info records!
-		if (a) recordList.push_back(it.second);
+		// add tc records to optimize list
+		if (a) {
+			recordList.push_back(it.second);
+		}
+		// add all others to non tc list
+		else {
+			nonTcRecords.insert(it);
+		}
 	}
+	if (debug) printf("Number of info records %i\n", (int)nonTcRecords.size());
 
 	// Sort record list by group and offset
 	recordList.sort(compByOffset);
@@ -683,22 +691,13 @@ void TcPLC::setup_ads_notification()
 		&adsNotificationAttrib, ADScallback, plcId, &ads_handle);
 	if (nErr) {
 		printf ("Unable to establish ADS notifications for %s\n", name.c_str());
-		set_ads_state (ADSSTATE_RUN);
+		set_ads_state (ADSSTATE_INVALID);
 		if (nErr != 18) errorPrintf(nErr);
 		ads_restart = true;
 	}
-
-	// Now ask for initial state (is this actually needed?)
-	//USHORT state;
-	//USHORT devstate;
-	//nErr = AdsSyncReadStateReqEx (nNotificationPort, &addr, &state, &devstate);
-	//if (nErr) {
-	//	set_ads_state (ADSSTATE_STOP);
-	//	if (nErr != 18) errorPrintf(nErr);
-	//}
-	//else {
-	//	set_ads_state ((ADSSTATE)state);
-	//}
+	else {
+		// set_ads_state (ADSSTATE_RUN);
+	}
 }
 
 /* TcPLC::remove_ads_notification
@@ -720,10 +719,6 @@ void TcPLC::read_scanner()
 {	
 	std::lock_guard<std::mutex>	lockit (sync);
 	bool read_success = false;
-	//for_each([](BaseRecord* p) {
-	//	if (p && !p->get_data().IsValid()) {
-	//		printf("Inavlid data for %s\n", p->get_name().c_str());
-	//	}});
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
@@ -762,11 +757,11 @@ void TcPLC::read_scanner()
 
 	// Check if it's time to do an EPICS read for the slow (read only) records
 	bool readAll = false;
-	if (cyclesLeft == 0) readAll = true;
+	if (cyclesLeft <= 0) readAll = true;
 	// Reset countdown until EPICS read
 	if (readAll) cyclesLeft = scanRateMultiple;
 
-	// Update all records
+	// Update all tc records
 	for (auto recordsEntry = records.begin(); recordsEntry != records.end(); ++recordsEntry) {
 		BaseRecord* pRecord = recordsEntry->second.get();
 		if (!pRecord) continue;
@@ -784,6 +779,16 @@ void TcPLC::read_scanner()
 		}
 	}
 
+	// update non tc records (try using a different cycle to distribute load)
+	if (cyclesLeft == 1) {
+		for (auto const& it : nonTcRecords) {
+			plc::Interface* iface = it.second->get_plcInterface();
+			if (iface) {
+				iface->pull();
+			}
+		}
+	}
+
 	--cyclesLeft;
 }
 
@@ -795,12 +800,22 @@ void TcPLC::write_scanner()
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for_each (tcProcWrite (addr, nWritePort));
 	}
+
+	// update non tc records (try using a different cycle to distribute load)
+	for (auto const& it : nonTcRecords) {
+		plc::Interface* iface = it.second->get_plcInterface();
+		if (iface) {
+			iface->push();
+		}
+	}
 }
 
 /* TcPLC::update_scanner()
  ************************************************************************/
 void TcPLC::update_scanner()
 {
+	static time_t last_restart = 0;
+
 	if (!update_last.get()) return;
 	BaseRecordPtr next;
 	for (int i = 0; i < update_workload; ++i) {
@@ -815,11 +830,16 @@ void TcPLC::update_scanner()
 		}
 	}
 	// restart ads callback when needed
-	if (is_read_active() && ads_restart.load()) {
-		printf ("Reconnect to PLC %s\n", name.c_str());
-		remove_ads_notification();
-		setup_ads_notification();
-		ads_restart = false;
+	if ((get_ads_state() == ADSSTATE_INVALID) ||
+		(is_read_active() && ads_restart.load())) {
+		time_t t = file_time_type::clock::to_time_t (std::chrono::system_clock::now());
+		if (t > last_restart + 10) {
+			last_restart = t;
+			printf("Reconnect to PLC %s\n", name.c_str());
+			remove_ads_notification();
+			setup_ads_notification();
+			ads_restart = false;
+		}
 	}
 }
 
@@ -883,14 +903,18 @@ void AmsRouterNotification::set_router_notification(AmsRouterEvent routerevent) 
 /* AmsRouterNotification constructor
  ************************************************************************/
 AmsRouterNotification::AmsRouterNotification()
-	: ams_router_event (AMSEVENT_ROUTERSTART)
+	: ads_version (0), ads_revision (0), ads_build (0),
+	ams_router_event (AMSEVENT_ROUTERSTART)
 {
 	LONG nErr;
 	AdsVersion* pDLLVersion;
 	nErr = AdsGetDllVersion();
 	pDLLVersion = (AdsVersion *)&nErr;
-	printf ("ADS version: %i, revision: %i, build: %i\n", 
-		(int)pDLLVersion->version, (int)pDLLVersion->revision, (int)pDLLVersion->build);
+	ads_version = pDLLVersion->version;
+	ads_revision = pDLLVersion->revision;
+	ads_build = pDLLVersion->build;
+	printf("ADS version: %i, revision: %i, build: %i\n", 
+		   ads_version, ads_revision, ads_build);
 	nErr = AdsPortOpen();
 	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
 	if (nErr) errorPrintf(nErr);

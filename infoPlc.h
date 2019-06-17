@@ -63,8 +63,8 @@ public:
 	/// @param dval BaseRecord that this interface is part of
 	/// @param name Name of TCat symbol
 	/// @param type Name of TCat data type
-	InfoInterface (plc::BaseRecord& dval, const std::stringcase& name,
-		const std::stringcase& type);
+	InfoInterface (plc::BaseRecord& dval, const std::stringcase& id, 
+		const std::stringcase& name, const std::stringcase& type);
 	/// Deconstructor
 	~InfoInterface() {};
 
@@ -149,22 +149,34 @@ protected:
 	bool info_update_tpy_time_min();
 	/// info update: tpy_time_sec
 	bool info_update_tpy_time_sec();
-	/// info update: addr_port
-	bool info_update_addr_port();
-	/// info update: addr_netid_str
-	bool info_update_addr_netid_str();
-	/// info update: addr_netid_b0
-	bool info_update_addr_netid_b0();
-	/// info update: addr_netid_b1
-	bool info_update_addr_netid_b1();
-	/// info update: addr_netid_b2
-	bool info_update_addr_netid_b2();
-	/// info update: addr_netid_b3
-	bool info_update_addr_netid_b3();
-	/// info update: addr_netid_b4
-	bool info_update_addr_netid_b4();
-	/// info update: addr_netid_b5
-	bool info_update_addr_netid_b5();
+	/// info update: ads_version
+	bool info_update_ads_version();
+	/// info update: ads_revision
+	bool info_update_ads_revision();
+	/// info update: ads_build
+	bool info_update_ads_build();
+	/// info update: ads_port
+	bool info_update_ads_port();
+	/// info update: ads_netid_str
+	bool info_update_ads_netid_str();
+	/// info update: ads_netid_b0
+	bool info_update_ads_netid_b0();
+	/// info update: ads_netid_b1
+	bool info_update_ads_netid_b1();
+	/// info update: ads_netid_b2
+	bool info_update_ads_netid_b2();
+	/// info update: ads_netid_b3
+	bool info_update_ads_netid_b3();
+	/// info update: ads_netid_b4
+	bool info_update_ads_netid_b4();
+	/// info update: ads_netid_b5
+	bool info_update_ads_netid_b5();
+	/// info update: svn_local
+	bool info_update_svn_local();
+	/// info update: svn_revision
+	bool info_update_svn_revision();
+	/// info update: svn_time
+	bool info_update_svn_time();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

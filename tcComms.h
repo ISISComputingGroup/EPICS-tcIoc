@@ -290,6 +290,9 @@ public:
 	long get_nReadPort() const { return nReadPort; };
 	/// Get write port number
 	long get_nWritePort() const { return nWritePort; };
+	/// Get slowdown multiple for EPICS read
+	int get_read_scanner_multiple() const {
+		return scanRateMultiple; };
 	/// Set slowdown multiple for EPICS read
 	void set_read_scanner_multiple (int mult) { 
 		scanRateMultiple = mult; };
@@ -369,6 +372,9 @@ protected:
 	std::vector<DataPar> adsGroupReadRequestVector;
 	/// Vector of buffers for each read request group
 	std::vector<buffer_ptr>	adsResponseBufferVector;
+	/// List of all records that don't interface directly with a PLC (info)
+	plc::BaseRecordList	nonTcRecords;
+
 	/// Slowdown multiple for EPICS read
 	int	scanRateMultiple;
 	/** Cycles until EPICS read will be made
@@ -414,13 +420,37 @@ public:
 	/// get router notification
 	static AmsRouterEvent get_router_notification() {
 		return gAmsRouterNotification.ams_router_event.load(); };
+	///get global instance
+	static const AmsRouterNotification& get_instance() {
+		return gAmsRouterNotification; }
+
+	/// get ADS protocol/library version
+	int get_ads_version() const {
+		return ads_version; }
+	/// get ADS protocol/library revision
+	int get_ads_revision() const {
+		return ads_revision; }
+	/// get ADS protocol/library build
+	int get_ads_build() const {
+		return ads_build; }
+protected:
+	/// ADS protocol/library version
+	int ads_version;
+	/// ADS protocol/library revision
+	int ads_revision;
+	/// ADS protocol/library build
+	int ads_build;
 private:
 	/// AMS router state
 	std::atomic<AmsRouterEvent>	ams_router_event;
 	/// Constructor
 	AmsRouterNotification();
+	/// Copy constructor
+	AmsRouterNotification (const AmsRouterNotification&);
 	/// Destructor
 	~AmsRouterNotification();
+	/// Copy operator
+	AmsRouterNotification& operator= (const AmsRouterNotification&);
 	/// set router notification
 	static void set_router_notification(AmsRouterEvent routerevent);
 	/// one global instance

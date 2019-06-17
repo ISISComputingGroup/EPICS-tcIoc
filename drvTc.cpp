@@ -380,7 +380,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		const InfoPlc::process_arg_info* iarg = dynamic_cast<const InfoPlc::process_arg_info*>(&arg);
 		if (iarg) {
 			InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface(*pRecord,
-				tcatname, arg.get_type_name());
+				arg.get_name(), tcatname, arg.get_type_name());
 			iface = info;
 		}
 	}

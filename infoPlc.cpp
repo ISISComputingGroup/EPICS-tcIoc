@@ -1,5 +1,6 @@
 #include "infoPlc.h"
 #include "tcComms.h"
+#include "svn_version.h"
 
 using namespace std;
 using namespace ParseUtil;
@@ -10,6 +11,8 @@ using namespace plc;
  ************************************************************************/
 
 namespace InfoPlc {
+
+static bool debug = false;
 
 
 /// List of of db info tuples
@@ -247,94 +250,152 @@ info_dbrecord_type(
 	"INT", true, update_enum::forever,
 	&InfoInterface::info_update_tpy_time_sec),
 info_dbrecord_type(
-	variable_name("addr.port"),
+	variable_name("ads.version"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
 		})),
 	"UINT", true, update_enum::once,
-	&InfoInterface::info_update_addr_port),
+	&InfoInterface::info_update_ads_version),
+info_dbrecord_type(
+	variable_name("ads.revision"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		})),
+	"UINT", true, update_enum::once,
+	&InfoInterface::info_update_ads_revision),
+info_dbrecord_type(
+	variable_name("ads.build"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		})),
+	"UINT", true, update_enum::once,
+	&InfoInterface::info_update_ads_build),
+info_dbrecord_type(
+	variable_name("ads.port"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		})),
+	"UINT", true, update_enum::once,
+	&InfoInterface::info_update_ads_port),
 info_dbrecord_type (
-	variable_name("addr.netid.str"),
+	variable_name("ads.netid.str"),
 	process_type_enum::pt_string,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address of PLC")
 	})),
 	"STRING", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_str),
+	&InfoInterface::info_update_ads_netid_str),
 info_dbrecord_type(
-	variable_name("addr.netid.b0"),
+	variable_name("ads.netid.b0"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b0")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b0),
+	&InfoInterface::info_update_ads_netid_b0),
 info_dbrecord_type(
-	variable_name("addr.netid.b1"),
+	variable_name("ads.netid.b1"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b1")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b1),
+	&InfoInterface::info_update_ads_netid_b1),
 info_dbrecord_type(
-	variable_name("addr.netid.b2"),
+	variable_name("ads.netid.b2"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b2")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b2),
+	&InfoInterface::info_update_ads_netid_b2),
 info_dbrecord_type(
-	variable_name("addr.netid.b3"),
+	variable_name("ads.netid.b3"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b3")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b3),
+	&InfoInterface::info_update_ads_netid_b3),
 info_dbrecord_type(
-	variable_name("addr.netid.b4"),
+	variable_name("ads.netid.b4"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b4")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b4),
+	&InfoInterface::info_update_ads_netid_b4),
 info_dbrecord_type(
-	variable_name("addr.netid.b5"),
+	variable_name("ads.netid.b5"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b5")
 		})),
 	"BYTE", true, update_enum::once,
-	&InfoInterface::info_update_addr_netid_b5)
+	&InfoInterface::info_update_ads_netid_b5),
+info_dbrecord_type(
+	variable_name("svn.local"),
+	process_type_enum::pt_bool,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "SVN local modifications"),
+		property_el(OPC_PROP_CLOSE, "MODIFIED"),
+		property_el(OPC_PROP_OPEN, "COMMITTED")
+		})),
+	"BOOL", true, update_enum::once,
+	&InfoInterface::info_update_svn_local),
+info_dbrecord_type (
+	variable_name("svn.revision"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "SVN revision if fully committed")
+		})),
+	"DINT", true, update_enum::once,
+	&InfoInterface::info_update_svn_revision),
+info_dbrecord_type(
+	variable_name("svn.time"),
+	process_type_enum::pt_string,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "SVN compile time")
+		})),
+	"STRING", true, update_enum::once,
+	&InfoInterface::info_update_svn_time)
 });
 
 
 
 /* InfoInterface::InfoInterface
  ************************************************************************/
-InfoInterface::InfoInterface (plc::BaseRecord& dval,
-	const std::stringcase& name, const std::stringcase& tname)
+InfoInterface::InfoInterface (plc::BaseRecord& dval, 
+	const std::stringcase& id, const std::stringcase& name, 
+	const std::stringcase& tname)
 	: Interface(dval), tCatName(name), tCatType(tname), 
 	update_freq (update_enum::done), info_update (nullptr)
 {
 	// Look for variable by name
 	auto iter = find_if (dbinfo_list.cbegin(), dbinfo_list.cend(), 
-		[n = tCatName](const info_dbrecord_type& info) {
+		[n = id](const info_dbrecord_type& info) {
 			return (n == get<ParseUtil::variable_name>(info).get_name()); });
 	// Nothing found: disable
 	if (iter == dbinfo_list.cend()) {
+		if (debug) printf("Info record %s not found.\n", id.c_str());
 		record.set_process(false);
 	}
 	// Found it: setup
@@ -349,6 +410,12 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 		// check for struct
 		if (get<ParseUtil::process_type_enum>(*iter) == pt_binary) {
 			record.set_process(false);
+		}
+		if (debug) {
+			printf("Info record %s: update %s method %s.\n", id.c_str(),
+				(update_freq == update_enum::done) ? "done" : 
+					((update_freq == update_enum::once) ? "once" : "forever"),
+				info_update ? "set" : "nullptr");
 		}
 	}
 };
@@ -522,8 +589,8 @@ bool InfoInterface::info_update_timestamp_str()
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	char buf[100];
-	if ((gmtime_s(&utc, &tstamp) == 0) &&
-		(asctime_s (buf, sizeof (buf), &utc) == 0)) {
+	if (gmtime_s(&utc, &tstamp) == 0) {
+		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof (buf));
 	}
 	return false;
@@ -538,7 +605,7 @@ bool InfoInterface::info_update_timestamp_year()
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
-		return record.PlcWrite(utc.tm_year);
+		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
 }
@@ -619,7 +686,7 @@ bool InfoInterface::info_update_rate_read()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int rate = tc->get_read_scanner_period();
+	int rate = tc->get_read_scanner_period() * tc->get_read_scanner_multiple();
 	return record.PlcWrite (rate);
 }
 
@@ -660,9 +727,10 @@ bool InfoInterface::info_update_tpy_filename()
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
 	string tpyfname = tc->get_tpyfilename();
-	if (tpyfname.size() >= 40) {
-		auto pos = tpyfname.rfind ('\\');
-		if (pos != string::npos) tpyfname.erase (0, pos);
+	string::size_type pos;
+	while ((tpyfname.size() >= 40) && 
+		   ((pos = tpyfname.find('\\')) != string::npos)) {
+		tpyfname.erase (0, pos + 1);
 	}
 	if (tpyfname.size() >= 40) {
 		tpyfname.erase (39, string::npos);
@@ -689,8 +757,8 @@ bool InfoInterface::info_update_tpy_time_str()
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	char buf[100];
-	if ((gmtime_s(&utc, &tstamp) == 0) &&
-		(asctime_s(buf, sizeof(buf), &utc) == 0)) {
+	if (gmtime_s(&utc, &tstamp) == 0) {
+		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof(buf));
 	}
 	return false;
@@ -705,7 +773,7 @@ bool InfoInterface::info_update_tpy_time_year()
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
-		return record.PlcWrite(utc.tm_year);
+		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
 }
@@ -780,9 +848,33 @@ bool InfoInterface::info_update_tpy_time_sec()
 	return false;
 }
 
-/* InfoInterface::info_update_addr_port
+/* InfoInterface::info_update_ads_version
  ************************************************************************/
-bool InfoInterface::info_update_addr_port()
+bool InfoInterface::info_update_ads_version()
+{
+	return record.PlcWrite (
+		TcComms::AmsRouterNotification::get_instance().get_ads_version());
+}
+
+/* InfoInterface::info_update_ads_revision
+ ************************************************************************/
+bool InfoInterface::info_update_ads_revision()
+{
+	return record.PlcWrite(
+		TcComms::AmsRouterNotification::get_instance().get_ads_revision());
+}
+
+/* InfoInterface::info_update_ads_build
+ ************************************************************************/
+bool InfoInterface::info_update_ads_build()
+{
+	return record.PlcWrite(
+		TcComms::AmsRouterNotification::get_instance().get_ads_build());
+}
+
+/* InfoInterface::info_update_ads_port
+ ************************************************************************/
+bool InfoInterface::info_update_ads_port()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -790,9 +882,9 @@ bool InfoInterface::info_update_addr_port()
 	return record.PlcWrite(addr.port);
 }
 
-/* InfoInterface::info_update_addr_netid_str
+/* InfoInterface::info_update_ads_netid_str
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_str()
+bool InfoInterface::info_update_ads_netid_str()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -805,9 +897,9 @@ bool InfoInterface::info_update_addr_netid_str()
 	return record.PlcWrite(netid);
 }
 
-/* InfoInterface::info_update_addr_netid_b0
+/* InfoInterface::info_update_ads_netid_b0
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b0()
+bool InfoInterface::info_update_ads_netid_b0()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -815,9 +907,9 @@ bool InfoInterface::info_update_addr_netid_b0()
 	return record.PlcWrite(addr.netId.b[0]);
 }
 
-/* InfoInterface::info_update_addr_netid_b1
+/* InfoInterface::info_update_ads_netid_b1
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b1()
+bool InfoInterface::info_update_ads_netid_b1()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -825,9 +917,9 @@ bool InfoInterface::info_update_addr_netid_b1()
 	return record.PlcWrite(addr.netId.b[1]);
 }
 
-/* InfoInterface::info_update_addr_netid_b2
+/* InfoInterface::info_update_ads_netid_b2
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b2()
+bool InfoInterface::info_update_ads_netid_b2()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -835,9 +927,9 @@ bool InfoInterface::info_update_addr_netid_b2()
 	return record.PlcWrite(addr.netId.b[2]);
 }
 
-/* InfoInterface::info_update_addr_netid_b3
+/* InfoInterface::info_update_ads_netid_b3
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b3()
+bool InfoInterface::info_update_ads_netid_b3()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -845,9 +937,9 @@ bool InfoInterface::info_update_addr_netid_b3()
 	return record.PlcWrite(addr.netId.b[3]);
 }
 
-/* InfoInterface::info_update_addr_netid_b4
+/* InfoInterface::info_update_ads_netid_b4
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b4()
+bool InfoInterface::info_update_ads_netid_b4()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
@@ -855,14 +947,39 @@ bool InfoInterface::info_update_addr_netid_b4()
 	return record.PlcWrite(addr.netId.b[4]);
 }
 
-/* InfoInterface::info_update_addr_netid_b5
+/* InfoInterface::info_update_ads_netid_b5
  ************************************************************************/
-bool InfoInterface::info_update_addr_netid_b5()
+bool InfoInterface::info_update_ads_netid_b5()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
 	AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[5]);
+}
+
+/* InfoInterface::info_update_svn_local
+ ************************************************************************/
+bool InfoInterface::info_update_svn_local()
+{
+	return record.PlcWrite(svn_local_modifications);
+}
+
+/* InfoInterface::info_update_svn_revision
+ ************************************************************************/
+bool InfoInterface::info_update_svn_revision()
+{
+	return record.PlcWrite(svn_revision_committed);
+}
+/* InfoInterface::info_update_svn_time
+ ************************************************************************/
+bool InfoInterface::info_update_svn_time()
+{
+	std::string	svn_time (svn_time_now);
+	string::size_type pos;
+	while ((pos = svn_time.find('/')) != string::npos) {
+		svn_time[pos] = '-';
+	}
+	return record.PlcWrite (svn_time);
 }
 
 
