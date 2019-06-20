@@ -104,6 +104,7 @@ Bug Fixes:
 * Fix 64 bit issuses (thanks Freddie Akeroyd)
 * ALIAS has been added to the replacement rule list
 * Fix MT lock issue in record callback
+* Use MT-safe compare/exchange in record read/write
 * Documentation clean up
 
 * Version 1.3

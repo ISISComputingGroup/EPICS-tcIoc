@@ -177,6 +177,12 @@ protected:
 	bool info_update_svn_revision();
 	/// info update: svn_time
 	bool info_update_svn_time();
+	/// info update: callback_queue_size
+	bool info_update_callback_queue_size();
+	/// info update: callback_queue_used
+	bool info_update_callback_queue_used();
+	/// info update: callback_queue_free
+	bool info_update_callback_queue_free();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

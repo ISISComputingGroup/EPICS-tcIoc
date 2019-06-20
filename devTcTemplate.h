@@ -767,7 +767,7 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 		return ret;
 	}
 #else
-	if (precord->pact) {}
+	if (precord->pact) {
 		return ret;
 	}
 	precord->pact = TRUE;
@@ -829,7 +829,7 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 		return 0;
 	}
 #else
-	if (precord->pact) {}
+	if (precord->pact) {
 		return 0;
 	}
 	precord->pact = TRUE;

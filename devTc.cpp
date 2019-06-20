@@ -12,6 +12,7 @@
 #include "recSup.h"
 #include "epicsExport.h"
 #include "aitConvert.h"
+#include "epicsRingPointer.h"
 #include <iostream>
 #undef _CRT_SECURE_NO_WARNINGS
 
@@ -139,7 +140,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 register_devsup register_devsup::the_register_devsup;
 
 
-/** EpicsInterface::EpicsInterface
+/* EpicsInterface::EpicsInterface
  ************************************************************************/
 EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
 		: Interface (dval), isPassive (false), isCallback (false),
@@ -148,7 +149,7 @@ EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
 	memset (&callbackval, 0, sizeof (callbackval));
 }
 
-/** EpicsInterface::get_callbackRequestPending
+/* EpicsInterface::get_callbackRequestPending
  ************************************************************************/
 bool EpicsInterface::get_callbackRequestPending() const
 {
@@ -156,7 +157,7 @@ bool EpicsInterface::get_callbackRequestPending() const
 }
 
 
-/** EpicsInterface::push
+/* EpicsInterface::push
  ************************************************************************/
 bool EpicsInterface::push()
 {
@@ -179,6 +180,109 @@ bool EpicsInterface::push()
 	return true;
 }
 
+
+/* load_callback_queue variable
+ ************************************************************************/
+typedef epicsRingPointerId(__cdecl *callback_queue_func)();
+static bool load_callback_queue_func();
+static bool callback_queue_init = false;
+static epicsRingPointerId callback_queue = nullptr;
+
+/* load_callback_queue_func
+ ************************************************************************/
+static bool load_callback_queue_func()
+{
+	HINSTANCE hinstLib;
+	callback_queue_func func;
+	bool RunTimeLinkSuccess = false;
+	// Get a handle to the DLL module.
+	hinstLib = LoadLibrary ("dbCore.dll");
+	// If the handle is valid, try to get the function address.
+	if (hinstLib != nullptr) {
+		func = (callback_queue_func)GetProcAddress (hinstLib, "tcat_queuePriorityHigh");
+		// If the function address is valid, call the function.
+		if (func != nullptr) {
+			RunTimeLinkSuccess = true;
+			callback_queue = func();
+		}
+		// Free the DLL module.
+		FreeLibrary (hinstLib);
+	}
+	// If unable to call the DLL function, use an alternative.
+	if (!RunTimeLinkSuccess) {
+		printf("Unable to load callback queue information\n");
+	}
+	return RunTimeLinkSuccess;
+}
+
+/* EpicsInterface::get_callback_queue_size
+ ************************************************************************/
+int EpicsInterface::get_callback_queue_size()
+{
+	if (!plc::System::get().is_ioc_running()) {
+		return -1;
+	}
+	if (!callback_queue_init) {
+		load_callback_queue_func();
+		callback_queue_init = true;
+	}
+	if (callback_queue) {
+		return epicsRingPointerGetSize(callback_queue);
+	}
+	else {
+		return 0;
+	}
+}
+
+/* EpicsInterface::get_callback_queue_used
+ ************************************************************************/
+int EpicsInterface::get_callback_queue_used()
+{
+	if (!plc::System::get().is_ioc_running()) {
+		return -1;
+	}
+	if (!callback_queue_init) {
+		load_callback_queue_func();
+		callback_queue_init = true;
+	}
+	if (callback_queue) {
+		return epicsRingPointerGetUsed(callback_queue);
+	}
+	else {
+		return 0;
+	}
+}
+
+/* EpicsInterface::get_callback_queue_free
+ ************************************************************************/
+int EpicsInterface::get_callback_queue_free()
+{
+	if (!plc::System::get().is_ioc_running()) {
+		return -1;
+	}
+	if (!callback_queue_init) {
+		load_callback_queue_func();
+		callback_queue_init = true;
+	}
+	if (callback_queue) {
+		return epicsRingPointerGetFree(callback_queue);
+	}
+	else {
+		return 0;
+	}
+}
+
+extern "C" {
+	__declspec(dllexport) int get_callback_queue_size(void) {
+		return EpicsInterface::get_callback_queue_size();
+	}
+	__declspec(dllexport) int get_callback_queue_used(void) {
+		return EpicsInterface::get_callback_queue_used();
+	}
+	__declspec(dllexport) int get_callback_queue_free(void) {
+		return EpicsInterface::get_callback_queue_free();
+	}
+}
 
 /************************************************************************/
 /* Create and export device support entry tables (DSETs).

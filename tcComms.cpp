@@ -1,6 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
-#include "devTc.h"
 #include "ParseTpy.h"
 #include "windows.h"
 #include "TpyToEpics.h"

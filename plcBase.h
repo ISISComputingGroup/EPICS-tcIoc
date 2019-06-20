@@ -963,9 +963,9 @@ private:
 
 }
 
-/// Stop TwinCAT
-extern "C" {
-__declspec(dllexport) void __cdecl stopTc(void);
-}
+// Stop TwinCAT
+//extern "C" {
+//__declspec(dllexport) void __cdecl stopTc(void);
+//}
 
 #include "plcBaseTemplate.h"

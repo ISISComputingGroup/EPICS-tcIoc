@@ -6,6 +6,12 @@ using namespace std;
 using namespace ParseUtil;
 using namespace plc;
 
+extern "C" {
+	__declspec(dllimport) int get_callback_queue_size(void);
+	__declspec(dllimport) int get_callback_queue_used(void);
+	__declspec(dllimport) int get_callback_queue_free(void);
+}
+
 /** @file InfoPlc.cpp
 	Defines methods for the info PLC.
  ************************************************************************/
@@ -376,7 +382,34 @@ info_dbrecord_type(
 		property_el(OPC_PROP_DESC, "SVN compile time")
 		})),
 	"STRING", true, update_enum::once,
-	&InfoInterface::info_update_svn_time)
+	&InfoInterface::info_update_svn_time),
+info_dbrecord_type (
+	variable_name("cb.queue.size"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Size of EPICS callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue_size),
+info_dbrecord_type (
+	variable_name("cb.queue.used"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Used entries in EPICS callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue_used),
+info_dbrecord_type (
+	variable_name("cb.queue.free"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Free entries in EPICS callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue_free)
 });
 
 
@@ -970,6 +1003,7 @@ bool InfoInterface::info_update_svn_revision()
 {
 	return record.PlcWrite(svn_revision_committed);
 }
+
 /* InfoInterface::info_update_svn_time
  ************************************************************************/
 bool InfoInterface::info_update_svn_time()
@@ -980,6 +1014,27 @@ bool InfoInterface::info_update_svn_time()
 		svn_time[pos] = '-';
 	}
 	return record.PlcWrite (svn_time);
+}
+
+/* InfoInterface::info_update_callback_queue_size
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue_size()
+{
+	return record.PlcWrite (get_callback_queue_size());
+}
+
+/* InfoInterface::info_update_callback_queue_used
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue_used()
+{
+	return record.PlcWrite(get_callback_queue_used());
+}
+
+/* InfoInterface::info_update_callback_queue_free
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue_free()
+{
+	return record.PlcWrite(get_callback_queue_free());
 }
 
 

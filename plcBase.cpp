@@ -849,7 +849,7 @@ void System::stop()
 
 extern "C" {
 	/// Stop TwinCAT
-	void stopTc(void) {
+	__declspec(dllexport) void stopTc(void) {
 		plc::System::get().stop();
 	}
 }

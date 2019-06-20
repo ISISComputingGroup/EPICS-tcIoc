@@ -138,6 +138,37 @@ public:
 	/// Does nothing
 	virtual bool pull() override { return true; }
 
+	/** Get the size of the callback ring buffer
+	    For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following 
+		two lines  
+			epicsShareFunc epicsRingPointerId tcat_queuePriorityHigh()
+			{ return callbackQueue[priorityHigh].queue; }
+		after the declaration of
+			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+		@return size of the callback ring buffer */
+	static int get_callback_queue_size();
+	/** Get the used entries in the callback ring buffer
+		For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following
+		two lines
+			epicsShareFunc epicsRingPointerId tcat_queuePriorityHigh()
+			{ return callbackQueue[priorityHigh].queue; }
+		after the declaration of
+			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+		@return used entries in the callback ring buffer */
+	static int get_callback_queue_used();
+	/** Get the free entries in the callback ring buffer
+		For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following
+		two lines
+			epicsShareFunc epicsRingPointerId tcat_queuePriorityHigh()
+			{ return callbackQueue[priorityHigh].queue; }
+		after the declaration of
+			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+		@return free entries in the callback ring buffer */
+	static int get_callback_queue_free();
+
 protected:
 	/** Bool indicating passive scan
 		true : EPICS record SCAN field is set to PASSIVE */
