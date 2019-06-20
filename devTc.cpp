@@ -273,13 +273,13 @@ int EpicsInterface::get_callback_queue_free()
 }
 
 extern "C" {
-	__declspec(dllexport) int get_callback_queue_size(void) {
+	int get_callback_queue_size(void) {
 		return EpicsInterface::get_callback_queue_size();
 	}
-	__declspec(dllexport) int get_callback_queue_used(void) {
+	int get_callback_queue_used(void) {
 		return EpicsInterface::get_callback_queue_used();
 	}
-	__declspec(dllexport) int get_callback_queue_free(void) {
+	int get_callback_queue_free(void) {
 		return EpicsInterface::get_callback_queue_free();
 	}
 }

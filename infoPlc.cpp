@@ -7,9 +7,9 @@ using namespace ParseUtil;
 using namespace plc;
 
 extern "C" {
-	__declspec(dllimport) int get_callback_queue_size(void);
-	__declspec(dllimport) int get_callback_queue_used(void);
-	__declspec(dllimport) int get_callback_queue_free(void);
+	int get_callback_queue_size(void);
+	int get_callback_queue_used(void);
+	int get_callback_queue_free(void);
 }
 
 /** @file InfoPlc.cpp
