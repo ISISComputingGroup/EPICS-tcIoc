@@ -677,9 +677,10 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 	epics->set_isCallback(true); // readwrite record: need to generate callback to do a read
 	epics->set_isPassive(true);
 	// Set parameters for generating callbacks
-	callbackSetCallback (outRecordCallback, &(epics->callback())); 
-	callbackSetPriority (2, &(epics->callback()));
-	callbackSetUser (prec, &(epics->callback()));
+	callbackSetProcess(&(epics->callback()), priorityHigh, prec);
+//	callbackSetCallback (outRecordCallback, &(epics->callback())); 
+//	callbackSetPriority (2, &(epics->callback()));
+//	callbackSetUser (prec, &(epics->callback()));
 
     //initRecordDependants(pOpc2Epics);
 	return 0;

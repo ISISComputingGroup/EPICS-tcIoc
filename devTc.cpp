@@ -165,10 +165,12 @@ bool EpicsInterface::push()
 		// Generate IO intr request
 		if (isPassive) {
 //+			callbackRequestPending = true;
-			if (callback().priority !=2) {
+			if (callback().priority != priorityHigh) {
 				return false;
 			}
-			callbackRequest (&callback());
+			if (callbackRequest(&callback()) != 0) {
+				return false;
+			}
 		}
 		else {
 			scanIoRequest (get_ioscan());

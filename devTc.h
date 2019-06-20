@@ -26,13 +26,13 @@ namespace DevTc {
 	@brief Callback for output record
  ************************************************************************/
 	
-/// Callback function for output records
-inline void outRecordCallback(callbackPvt *pcallback) {
-    dbCommon* prec;
-	prec = (dbCommon*)((callbackPvt*)(pcallback))->user; 
-    if(prec)
-        dbProcess(prec);
-}
+// Callback function for output records
+//inline void outRecordCallback(callbackPvt *pcallback) {
+//    dbCommon* prec;
+//	prec = (dbCommon*)((callbackPvt*)(pcallback))->user; 
+//    if(prec)
+//        dbProcess(prec);
+//}
 
 /// Regex for indentifying TwinCAT records
 const std::regex tc_regex (
