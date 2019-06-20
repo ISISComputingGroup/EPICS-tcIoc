@@ -925,8 +925,8 @@ public:
 
 	/// Print all PLC record values to the console
 	void printVals();
-	/// Print all PLC record values to the console
-	/// @param var Variable name or regex
+	/// Print PLC record value to the console
+	/// @param var Variable name or wildcard
 	void printVal (const std::string& var);
 
 	/// Start scanning after ioc is running

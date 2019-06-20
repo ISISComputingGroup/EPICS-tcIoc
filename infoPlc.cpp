@@ -254,7 +254,7 @@ info_dbrecord_type(
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		property_el(OPC_PROP_DESC, "ADS library version")
 		})),
 	"UINT", true, update_enum::once,
 	&InfoInterface::info_update_ads_version),
@@ -263,7 +263,7 @@ info_dbrecord_type(
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		property_el(OPC_PROP_DESC, "ADS library revision")
 		})),
 	"UINT", true, update_enum::once,
 	&InfoInterface::info_update_ads_revision),
@@ -272,7 +272,7 @@ info_dbrecord_type(
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
+		property_el(OPC_PROP_DESC, "ADS library build")
 		})),
 	"UINT", true, update_enum::once,
 	&InfoInterface::info_update_ads_build),
@@ -369,7 +369,7 @@ info_dbrecord_type (
 	"DINT", true, update_enum::once,
 	&InfoInterface::info_update_svn_revision),
 info_dbrecord_type(
-	variable_name("svn.time"),
+	variable_name("svn.time.str"),
 	process_type_enum::pt_string,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
