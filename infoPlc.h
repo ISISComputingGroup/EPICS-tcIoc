@@ -56,12 +56,14 @@ class InfoInterface	:	public plc::Interface
 {
 public:
 	/// Constructor
+	/// @param dval BaseRecord that this interface is part of
 	explicit InfoInterface(plc::BaseRecord& dval)
 		: Interface(dval), update_freq (update_enum::done), 
 		info_update (nullptr) {};
 	/// Constructor
 	/// @param dval BaseRecord that this interface is part of
-	/// @param name Name of TCat symbol
+	/// @param id Short name info symbol
+	/// @param name Full name of TCat symbol
 	/// @param type Name of TCat data type
 	InfoInterface (plc::BaseRecord& dval, const std::stringcase& id, 
 		const std::stringcase& name, const std::stringcase& type);
@@ -77,15 +79,17 @@ public:
 	/// @param fp File to print symbol to
 	virtual void printVal(FILE* fp);
 
-	/// Porcess the EPICS datbacse for the info records
+	/// Processes all info records
 	/// @param prefix Prefix to channel names in the info datbase
-	/// @param proc database processing
-	/// @return Returns an EPICS database string describing the info records
+	/// @param plcaddr PLC associated with the info record
+	/// @param proc database processing class
+	/// @return Returns Number of info records processed
 	template <class Function>
 	static int get_infodb(const std::stringcase& prefix, 
 		const std::stringcase& plcaddr, Function& proc);
 
 	/// Get symbol name
+	/// @return Symbol name associated with this interface
 	virtual const char* get_symbol_name() const { return tCatName.c_str(); }
 
 protected:
@@ -200,7 +204,7 @@ public:
 	/// @param o OPC list
 	/// @param tname Type name
 	/// @param at Atomic type
-	/// #param plcaddr TwinCAT PLC address
+	/// @param plcaddr TwinCAT PLC address
 	process_arg_info (
 		const ParseUtil::variable_name& vname, ParseUtil::process_type_enum pt,
 		const ParseUtil::opc_list& o, const std::stringcase& tname, bool at,

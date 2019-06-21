@@ -28,10 +28,15 @@
 
 static bool dbg = 0;
 
+
 using namespace std;
 using namespace ParseUtil;
 using namespace ParseTpy;
 using namespace EpicsTpy;
+
+/** @defgroup iocshfunc Device driver functions
+ ************************************************************************/
+/** @{ */
 
 
 namespace DevTc {
@@ -94,6 +99,10 @@ static std::stringcase tc_infoprefix;
 class epics_tc_db_processing : public EpicsTpy::epics_db_processing {
 public:
 	/// Default constructor
+	/// @param p PLC
+	/// @param rules Replacement rules
+	/// @param l Pointer to list definitions
+	/// @param m Pointer to macro definition
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
 		ParseUtil::replacement_table& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
@@ -164,6 +173,8 @@ protected:
 	/// Number of EPICS records without tc records
 	int					invnum;
 };
+
+/// @cond Doxygen_Suppress
 
 /* epics_tc_db_processing::init_lists
  ************************************************************************/
@@ -454,15 +465,12 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 	}
 	return !err;
 }
-
-
-/** @defgroup iocshfunc Device driver functions
- ************************************************************************/
-/** @{ */
+//! @endcond
 
 /** Function for loading a TCat tpy file, and using it to generate 
 	internal record entries as well as the EPICs .db file
-	@brief TCat load records
+	@brief Load TwinCAT records
+	@param args Arguments for tcLoadRecords
  ************************************************************************/
 void tcLoadRecords (const iocshArgBuf *args) 
 {
@@ -626,8 +634,9 @@ void tcLoadRecords (const iocshArgBuf *args)
 }
 
 /** Set scan rate of the read scanner
-	@brief TCat set scan rate
- ************************************************************************/
+	@brief Set the scan rate
+ 	@param args Arguments for tcSetScanRate
+************************************************************************/
 void tcSetScanRate (const iocshArgBuf *args) 
 {
 	// Check if Ioc is running
@@ -682,7 +691,8 @@ void tcSetScanRate (const iocshArgBuf *args)
 }
 
 /** List function to generate separate listings
-    @brief channel lists
+    @brief Generate channel lists
+	@param args Arguments for tcList
  ************************************************************************/
 void tcList (const iocshArgBuf *args)
 {
@@ -706,8 +716,9 @@ void tcList (const iocshArgBuf *args)
 }
 
 /** Macro function to generate macro files
-    @brief macro files
- ************************************************************************/
+    @brief Generated macro files
+ 	@param args Arguments for tcMacro
+************************************************************************/
 void tcMacro (const iocshArgBuf *args)
 {
 	// Check if Ioc is running
@@ -730,7 +741,8 @@ void tcMacro (const iocshArgBuf *args)
 }
 
 /** Define a nick name or alias
-    @brief alias
+    @brief Define alias and replacement rules
+	@param args Arguments for tcAlias
  ************************************************************************/
 void tcAlias (const iocshArgBuf *args)
 {
@@ -783,8 +795,9 @@ void tcAlias (const iocshArgBuf *args)
 
 
 /** Sets the channel prefix for info PLC records
-	@brief TCat info prefix
- ************************************************************************/
+	@brief Sets the info prefix
+ 	@param args Arguments for tcInfoPrefix
+************************************************************************/
 void tcInfoPrefix(const iocshArgBuf *args)
 {
 	// Check if Ioc is running
@@ -812,17 +825,20 @@ void tcInfoPrefix(const iocshArgBuf *args)
 	return;
 }
 
-/** Debugging function that prints the values for all records on the PLCs
-	@brief TCat print vals
- ************************************************************************/
+/** Debugging function that prints the values for all records of the PLCs
+	@brief Print all values
+ 	@param args Arguments for tcPrintVals
+************************************************************************/
 void tcPrintVals(const iocshArgBuf *args)
 {
 	plc::System::get().printVals();
 	return;
 }
 
-/** Debugging function that prints the values for all records on the PLCs
-	@brief TCat print a values
+/** Debugging function that prints the values for one or multiple records 
+	of the PLCs. Supports wildcards.
+	@brief Print value
+	@param args Arguments for tcPrintVal
  ************************************************************************/
 void tcPrintVal (const iocshArgBuf *args)
 {
@@ -837,7 +853,7 @@ void tcPrintVal (const iocshArgBuf *args)
 	return;
 }
 
-/** Process hook
+/*  Process hook
     @brief piniProcessHook
  ************************************************************************/
 static void piniProcessHook(initHookState state)
@@ -866,7 +882,7 @@ static void piniProcessHook(initHookState state)
 }
 
 
-/** Register functions to EPICS IOC shell
+/*  Register functions to EPICS IOC shell
 	@brief Register to iocsh
  ************************************************************************/
 tcRegisterToIocShell::tcRegisterToIocShell () 

@@ -183,27 +183,34 @@ bool EpicsInterface::push()
 
 /* load_callback_queue variable
  ************************************************************************/
-typedef epicsRingPointerId(__cdecl *callback_queue_func)();
-static bool load_callback_queue_func();
-static bool callback_queue_init = false;
-static epicsRingPointerId callback_queue = nullptr;
+ /// @cond Doxygen_Suppress
+const char* const callback_queue_library = "dbCore.dll";
+const char* const callback_queue_symbol = "tcat_callbackQueue";
+typedef epicsRingPointerId(__cdecl *callback_queue_func)(int);
+static std::atomic<bool> callback_queue_init = false;
+static std::mutex callback_queue_mux;
+static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
 
 /* load_callback_queue_func
+   Looking for tcat_queuePriorityHigh in dbCore.dll
  ************************************************************************/
 static bool load_callback_queue_func()
 {
+	// Use dynamic DLL linking in case of unpatched EPICS base
 	HINSTANCE hinstLib;
 	callback_queue_func func;
 	bool RunTimeLinkSuccess = false;
 	// Get a handle to the DLL module.
-	hinstLib = LoadLibrary ("dbCore.dll");
+	hinstLib = LoadLibrary (callback_queue_library);
 	// If the handle is valid, try to get the function address.
 	if (hinstLib != nullptr) {
-		func = (callback_queue_func)GetProcAddress (hinstLib, "tcat_queuePriorityHigh");
+		func = (callback_queue_func)GetProcAddress (hinstLib, callback_queue_symbol);
 		// If the function address is valid, call the function.
 		if (func != nullptr) {
 			RunTimeLinkSuccess = true;
-			callback_queue = func();
+			callback_queue[priorityLow] = func(priorityLow);
+			callback_queue[priorityMedium] = func(priorityMedium);
+			callback_queue[priorityHigh] = func(priorityHigh);
 		}
 		// Free the DLL module.
 		FreeLibrary (hinstLib);
@@ -215,62 +222,48 @@ static bool load_callback_queue_func()
 	return RunTimeLinkSuccess;
 }
 
+/* load_callback_queue_func
+ ************************************************************************/
+static void check_callback_init()
+{
+	// Check if initialized
+	if (callback_queue_init) return;
+	// If not get the mutex
+	std::lock_guard<std::mutex> lock (callback_queue_mux);
+	// Check again!
+	if (callback_queue_init) return;
+	// No initialize
+	load_callback_queue_func();
+	callback_queue_init = true;
+}
+
 /* EpicsInterface::get_callback_queue_size
  ************************************************************************/
 int EpicsInterface::get_callback_queue_size()
 {
-	if (!plc::System::get().is_ioc_running()) {
-		return -1;
-	}
-	if (!callback_queue_init) {
-		load_callback_queue_func();
-		callback_queue_init = true;
-	}
-	if (callback_queue) {
-		return epicsRingPointerGetSize(callback_queue);
-	}
-	else {
-		return 0;
-	}
+	if (!plc::System::get().is_ioc_running()) return -1;
+	check_callback_init();
+	return callback_queue ? epicsRingPointerGetSize(callback_queue[priorityHigh]) : 0;
 }
 
 /* EpicsInterface::get_callback_queue_used
  ************************************************************************/
 int EpicsInterface::get_callback_queue_used()
 {
-	if (!plc::System::get().is_ioc_running()) {
-		return -1;
-	}
-	if (!callback_queue_init) {
-		load_callback_queue_func();
-		callback_queue_init = true;
-	}
-	if (callback_queue) {
-		return epicsRingPointerGetUsed(callback_queue);
-	}
-	else {
-		return 0;
-	}
+	if (!plc::System::get().is_ioc_running()) return -1;
+	check_callback_init();
+	return callback_queue ? epicsRingPointerGetUsed(callback_queue[priorityHigh]) : 0;
 }
 
 /* EpicsInterface::get_callback_queue_free
  ************************************************************************/
 int EpicsInterface::get_callback_queue_free()
 {
-	if (!plc::System::get().is_ioc_running()) {
-		return -1;
-	}
-	if (!callback_queue_init) {
-		load_callback_queue_func();
-		callback_queue_init = true;
-	}
-	if (callback_queue) {
-		return epicsRingPointerGetFree(callback_queue);
-	}
-	else {
-		return 0;
-	}
+	if (!plc::System::get().is_ioc_running()) return -1; 
+	check_callback_init();
+	return callback_queue ? epicsRingPointerGetFree(callback_queue[priorityHigh]) : 0;
 }
+
 
 extern "C" {
 	int get_callback_queue_size(void) {
@@ -283,6 +276,7 @@ extern "C" {
 		return EpicsInterface::get_callback_queue_free();
 	}
 }
+//! @endcond
 
 /************************************************************************/
 /* Create and export device support entry tables (DSETs).

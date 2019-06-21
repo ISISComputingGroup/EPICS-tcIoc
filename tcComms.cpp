@@ -350,6 +350,17 @@ bool TcPLC::set_addr(stringcase netIdStr, int port)
  ************************************************************************/
 bool TcPLC::start()
 {
+	// initialize update scanner
+	double ticks = 10.0 / fabs((double)update_scanner_period) * 1000.0;
+	if (ticks < 1) ticks = 1;
+	{
+		guard lock(mux);
+		update_workload = (int)((double)records.size() / ticks + 1);
+		if (!records.empty()) {
+			update_last = records.begin()->second;
+		}
+	}
+
 	// initialize read and write scanner
 	nReadPort = openPort();
 	nWritePort = openPort();
@@ -357,6 +368,7 @@ bool TcPLC::start()
 		printf("Failed to open ADS ports\n");
 		return false;
 	}
+	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
 		unsigned short port = addr.port;
@@ -369,16 +381,6 @@ bool TcPLC::start()
 		if(debug) printf("NetID is %i.%i.%i.%i.%i.%i, port is %i \n",
 			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], port);
-	}
-	// initialize update scanner
-	double ticks = 10.0 / fabs((double)update_scanner_period) * 1000.0;
-	if (ticks < 1) ticks = 1;
-	{
-		guard lock (mux);
-		update_workload = (int) ((double)records.size() / ticks + 1);
-		if (!records.empty()) {
-			update_last = records.begin()->second;
-		}
 	}
 
 	// Setup ADS notifications
@@ -814,7 +816,8 @@ void TcPLC::write_scanner()
 void TcPLC::update_scanner()
 {
 	static time_t last_restart = 0;
-
+	// Set the dirty flag on a few records to make sure they won't go 
+	// stale, i.e., EPICS and TwinCAT data values are diverging.
 	if (!update_last.get()) return;
 	BaseRecordPtr next;
 	for (int i = 0; i < update_workload; ++i) {

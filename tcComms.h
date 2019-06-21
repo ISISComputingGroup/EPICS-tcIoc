@@ -292,10 +292,13 @@ public:
 	/// Is read scanner active and successful
 	bool is_read_active() const { return read_active; }
 
+	/// Get the tpy filename
 	const std::string& get_tpyfilename() const {
 		return pathTpy; }
+	/// Is the tpy file valid?
 	bool is_tpyfile_valid() const {
 		return validTpy; }
+	/// Get the file modification time of the tpy file
 	time_t get_tpyfile_time() const {
 		return timeTpy;
 	}

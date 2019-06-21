@@ -344,7 +344,6 @@ class process_arg
 {
 public:
 	/// Constructor
-	/// @param loc Memory location
 	/// @param vname Variable name
 	/// @param pt Process type 
 	/// @param o OPC list
