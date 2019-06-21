@@ -32,3 +32,4 @@ cp .\doxygen.sty $latex
 cd $latex
 ./make
 cd ..
+copy $latex\refman.pdf $download\latex_documentation_${version}.pdf
