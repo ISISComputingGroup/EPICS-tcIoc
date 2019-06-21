@@ -465,7 +465,7 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 	}
 	return !err;
 }
-//! @endcond
+/// @endcond
 
 /** Function for loading a TCat tpy file, and using it to generate 
 	internal record entries as well as the EPICs .db file
@@ -856,7 +856,7 @@ void tcPrintVal (const iocshArgBuf *args)
 /*  Process hook
     @brief piniProcessHook
  ************************************************************************/
-static void piniProcessHook(initHookState state)
+static void piniProcessHook (initHookState state)
 {
     switch (state) {
     case initHookAtIocRun:
@@ -882,7 +882,7 @@ static void piniProcessHook(initHookState state)
 }
 
 
-/*  Register functions to EPICS IOC shell
+/** Register functions to EPICS IOC shell
 	@brief Register to iocsh
  ************************************************************************/
 tcRegisterToIocShell::tcRegisterToIocShell () 
@@ -901,7 +901,7 @@ tcRegisterToIocShell::tcRegisterToIocShell ()
 // Static object to make sure opcRegisterToIocShell is called first off
 tcRegisterToIocShell tcRegisterToIocShell::gtcRegisterToIocShell;
 
-/** @} */
-
 }
+
+/** @} */
 

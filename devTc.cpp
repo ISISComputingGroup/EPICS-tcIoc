@@ -276,7 +276,7 @@ extern "C" {
 		return EpicsInterface::get_callback_queue_free();
 	}
 }
-//! @endcond
+/// @endcond
 
 /************************************************************************/
 /* Create and export device support entry tables (DSETs).

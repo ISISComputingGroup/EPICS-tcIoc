@@ -12,7 +12,7 @@ extern "C" {
 	int get_callback_queue_used(void);
 	int get_callback_queue_free(void);
 }
-//! @endcond
+/// @endcond
 
 /** @file InfoPlc.cpp
 	Defines methods for the info PLC.
