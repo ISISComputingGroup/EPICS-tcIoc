@@ -73,7 +73,9 @@ public:
 	/// push data
 	virtual bool push() override {return true; };
 	/// pull data
-	virtual bool pull() override;
+	virtual bool pull() override {return true; };
+	/// write data
+	virtual bool update();
 
 	/// Prints TCat symbol value and information
 	/// @param fp File to print symbol to
@@ -181,12 +183,24 @@ protected:
 	bool info_update_svn_revision();
 	/// info update: svn_time
 	bool info_update_svn_time();
-	/// info update: callback_queue_size
-	bool info_update_callback_queue_size();
-	/// info update: callback_queue_used
-	bool info_update_callback_queue_used();
-	/// info update: callback_queue_free
-	bool info_update_callback_queue_free();
+	/// info update: callback_queue0_size
+	bool info_update_callback_queue0_size();
+	/// info update: callback_queue0_used
+	bool info_update_callback_queue0_used();
+	/// info update: callback_queue0_free
+	bool info_update_callback_queue0_free();
+	/// info update: callback_queue1_size
+	bool info_update_callback_queue1_size();
+	/// info update: callback_queue1_used
+	bool info_update_callback_queue1_used();
+	/// info update: callback_queue1_free
+	bool info_update_callback_queue1_free();
+	/// info update: callback_queue2_size
+	bool info_update_callback_queue2_size();
+	/// info update: callback_queue2_used
+	bool info_update_callback_queue2_used();
+	/// info update: callback_queue2_free
+	bool info_update_callback_queue2_free();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

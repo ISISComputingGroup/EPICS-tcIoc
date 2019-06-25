@@ -8,9 +8,9 @@ using namespace plc;
 
 /// @cond Doxygen_Suppress
 extern "C" {
-	int get_callback_queue_size(void);
-	int get_callback_queue_used(void);
-	int get_callback_queue_free(void);
+	int get_callback_queue_size(int pri);
+	int get_callback_queue_used(int pri);
+	int get_callback_queue_free(int pri);
 }
 /// @endcond
 
@@ -386,32 +386,86 @@ info_dbrecord_type(
 	"STRING", true, update_enum::once,
 	&InfoInterface::info_update_svn_time),
 info_dbrecord_type (
-	variable_name("cb.queue.size"),
+	variable_name("cb.queue[0].size"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Size of EPICS callback queue")
+		property_el(OPC_PROP_DESC, "Size of low pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue_size),
+	&InfoInterface::info_update_callback_queue0_size),
 info_dbrecord_type (
-	variable_name("cb.queue.used"),
+	variable_name("cb.queue[0].used"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Used entries in EPICS callback queue")
+		property_el(OPC_PROP_DESC, "Used entries in low pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue_used),
+	&InfoInterface::info_update_callback_queue0_used),
 info_dbrecord_type (
-	variable_name("cb.queue.free"),
+	variable_name("cb.queue[0].free"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Free entries in EPICS callback queue")
+		property_el(OPC_PROP_DESC, "Free entries low pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue_free)
+	&InfoInterface::info_update_callback_queue0_free),
+info_dbrecord_type (
+	variable_name("cb.queue[1].size"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Size of med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_size),
+info_dbrecord_type (
+	variable_name("cb.queue[1].used"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Used entries in med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_used),
+info_dbrecord_type (
+	variable_name("cb.queue[1].free"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Free entries med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_free),
+info_dbrecord_type (
+	variable_name("cb.queue[2].size"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_size),
+info_dbrecord_type (
+	variable_name("cb.queue[2].used"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_used),
+info_dbrecord_type (
+	variable_name("cb.queue[2].free"),
+	process_type_enum::pt_int,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_free)
 });
 
 
@@ -457,7 +511,7 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 
 /* InfoInterface::InfoInterface
  ************************************************************************/
-bool InfoInterface::pull() 
+bool InfoInterface::update() 
 {
 	if (!info_update) return false;
 	if (update_freq == update_enum::done) return true;
@@ -654,7 +708,7 @@ bool InfoInterface::info_update_timestamp_month()
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
-		return record.PlcWrite(utc.tm_mon);
+		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
 }
@@ -822,7 +876,7 @@ bool InfoInterface::info_update_tpy_time_month()
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
-		return record.PlcWrite(utc.tm_mon);
+		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
 }
@@ -1018,25 +1072,67 @@ bool InfoInterface::info_update_svn_time()
 	return record.PlcWrite (svn_time);
 }
 
-/* InfoInterface::info_update_callback_queue_size
+/* InfoInterface::info_update_callback_queue0_size
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue_size()
+bool InfoInterface::info_update_callback_queue0_size()
 {
-	return record.PlcWrite (get_callback_queue_size());
+	return record.PlcWrite (get_callback_queue_size(0));
 }
 
-/* InfoInterface::info_update_callback_queue_used
+/* InfoInterface::info_update_callback_queue0_used
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue_used()
+bool InfoInterface::info_update_callback_queue0_used()
 {
-	return record.PlcWrite(get_callback_queue_used());
+	return record.PlcWrite(get_callback_queue_used(0));
 }
 
-/* InfoInterface::info_update_callback_queue_free
+/* InfoInterface::info_update_callback_queue0_free
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue_free()
+bool InfoInterface::info_update_callback_queue0_free()
 {
-	return record.PlcWrite(get_callback_queue_free());
+	return record.PlcWrite(get_callback_queue_free(0));
+}
+
+/* InfoInterface::info_update_callback_queue1_size
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_size()
+{
+	return record.PlcWrite(get_callback_queue_size(1));
+}
+
+/* InfoInterface::info_update_callback_queue1_used
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_used()
+{
+	return record.PlcWrite(get_callback_queue_used(1));
+}
+
+/* InfoInterface::info_update_callback_queue1_free
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_free()
+{
+	return record.PlcWrite(get_callback_queue_free(1));
+}
+
+/* InfoInterface::info_update_callback_queue2_size
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_size()
+{
+	return record.PlcWrite(get_callback_queue_size(2));
+}
+
+/* InfoInterface::info_update_callback_queue2_used
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_used()
+{
+	return record.PlcWrite(get_callback_queue_used(2));
+}
+
+/* InfoInterface::info_update_callback_queue2_free
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_free()
+{
+	return record.PlcWrite(get_callback_queue_free(2));
 }
 
 

@@ -542,7 +542,7 @@ long devTcDefIo<RecType>::
         return 1;
 
 	BaseRecord* pRecord = (BaseRecord*)(prec->dpvt);
-	EpicsInterface* epics = dynamic_cast<EpicsInterface*>(pRecord->get_userInterface());
+	EpicsInterface* epics = pRecord ? dynamic_cast<EpicsInterface*>(pRecord->get_userInterface()) : NULL;
 
 	if (!epics) return 1;
 
@@ -580,7 +580,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
     if(prec->inp.type != INST_IO) {
         recGblRecordError(S_db_badField, prec,
             "init_record Illegal INP field (INST_IO expected: "
-            "check following in your db-file: field(DTYP,\"opc\";field(IN,\"@opcVar\")");
+            "check following in your db-file: field(DTYP,\"tcat\");field(IN,\"@tc://...\")");
         return S_db_badField;
     }
 	// Check for scan field
@@ -597,7 +597,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
     }
 	// Point EPICS record to internal record entry
     prec->dpvt = (void*) pRecord.get();
-	// Point EPICS interface of internal record to R/VAL field of EPICS record
+	// Check for EPICS interface
 	EpicsInterface* epics = dynamic_cast<EpicsInterface*>(pRecord->get_userInterface());
 	if (!epics) {
 		prec->pact = TRUE;
@@ -606,13 +606,12 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 		(void)getchar();
         exit(S_db_badField);
 	}
-//	epics->set_pEpicsVal (
-//		epics_record_traits<RecType>::val (prec));
 	// Set scan properties
 	pRecord->set_access_rights(read_only);
     if(prec->scan == SCAN_IO_EVENT) {
 		// Set properties for a read record with SCAN = I/O Intr
 		scanIoInit(&(epics->ioscan()));
+		scanIoSetComplete(epics->get_ioscan(), (io_scan_complete)complete_io_scan, (void*)epics);
 		epics->set_isCallback(true); // need to generate interrupt
 		epics->set_isPassive(false);
 	}
@@ -621,8 +620,8 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 		epics->set_isCallback(false); // do not need to generate interrupt
 		epics->set_ioscan(nullptr);
 	}
-    //initRecordDependants(pOpc2Epics);
-    return 0;
+    
+	return 0;
 }
 
 /* devTcDefOut<>::init_write_record
@@ -650,7 +649,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
     if( prec->out.type != INST_IO ) {
         recGblRecordError(S_db_badField, prec,
             "init_record Illegal OUT field (INST_IO expected: "
-            "check following in your db-file: field(DTYP,\"opc\",field(OUT,\"@opcVar\")");
+            "check following in your db-file: field(DTYP,\"tcat\");field(OUT,\"@tc://...\")");
         return S_db_badField;
     }
 	// Copy item name
@@ -662,7 +661,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
     }
 	// Point EPICS record to internal record entry
     prec->dpvt = (void*) pRecord.get();
-	// Point EPICS interface of internal record to the R/VAL field of the EPICS record
+	// Check for EPICS interface
 	EpicsInterface* epics = dynamic_cast<EpicsInterface*>(pRecord->get_userInterface());
 	if (!epics) {
 		recGblRecordError(S_db_badField, prec,
@@ -670,19 +669,13 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 		(void)getchar();
         exit(S_db_badField);
 	}
-//	epics->set_pEpicsVal (
-//		epics_record_traits<RecType>::val (prec));
 	// Set scan properties
 	pRecord->set_access_rights(read_write);
 	epics->set_isCallback(true); // readwrite record: need to generate callback to do a read
 	epics->set_isPassive(true);
 	// Set parameters for generating callbacks
 	callbackSetProcess(&(epics->callback()), priorityHigh, prec);
-//	callbackSetCallback (outRecordCallback, &(epics->callback())); 
-//	callbackSetPriority (2, &(epics->callback()));
-//	callbackSetUser (prec, &(epics->callback()));
 
-    //initRecordDependants(pOpc2Epics);
 	return 0;
 }
 
@@ -709,7 +702,7 @@ long devTcDefWaveformIn<RecType>::
     if( precord->inp.type != INST_IO ) {
         recGblRecordError(S_db_badField, (void*)precord,
             "init_record Illegal INP field (INST_IO expected: "
-            "check following in your db-file: field(DTYP,\"opc\";field(IN,\"@opcVar\")");
+            "check following in your db-file: field(DTYP,\"tcat\");field(IN,\"@tc://...\")");
         precord->pact = TRUE;     // disable this record
         return S_db_badField;
     }
@@ -754,7 +747,7 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 	long ret = epics_record_traits<RecType>::value_conversion;
 	// Get the IOC internal record entry and EPICS user interface
 	BaseRecord* pBaseRecord = (BaseRecord*)precord->dpvt;
-	EpicsInterface* epics = dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface());
+	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface()) : NULL;
 
 	if (!pBaseRecord || !epics) {
 		recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
@@ -789,10 +782,6 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 	BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
 	precord->time = epicsTime (*((_FILETIME*)&timestamp)); 
 
-    //if (pOpc2Epics->mask && (pOpc2Epics->recType == mbbirval || pOpc2Epics->recType == mbbiDirectrval)) /* true for raw-mbbi, -mbbiDirect */
-    //    *((aitUint32*)(pOpc2Epics->pRecVal)) &= pOpc2Epics->mask;
-    //if (pOpc2Epics->mask && (pOpc2Epics->recType == bival))
-    //    *((epicsEnum16*)(pOpc2Epics->pRecVal)) &= pOpc2Epics->mask;
 	precord->udf = udf;
 	precord->pact = FALSE;
     return ret;
@@ -803,11 +792,6 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 //template <>
 //long devTcDefIn<aaival>::read (rec_type_ptr precord);
 
-/* devTcDefIn<stringinval>::read
- ************************************************************************/
-//template <>
-//long devTcDefIn<stringinval>::read (rec_type_ptr precord);
-
 /* devTcDefOut<>::write
  ************************************************************************/
 template <epics_record_enum RecType>
@@ -815,7 +799,7 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 {
 	// Get the IOC internal record entry and EPICS user interface
 	BaseRecord* pBaseRecord = (BaseRecord*) precord->dpvt;
-	EpicsInterface* epics = dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() );
+	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() ) : NULL;
 
     if(!pBaseRecord || !epics) {
         recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
@@ -862,15 +846,6 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 		GetSystemTimeAsFileTime (&timestamp);
 		precord->time = epicsTime (timestamp);
 	}
-
-    //if (pOpc2Epics->mask && (pOpc2Epics->recType == mbborval || pOpc2Epics->recType == mbboDirectval)) {/* true for raw-mbbo, -mbboDirect */
-    //    *( (aitUint32*)(pOpc2Epics->pRecVal)) <<= pOpc2Epics->shft;
-    //    *( (aitUint32*)(pOpc2Epics->pRecVal)) &=  pOpc2Epics->mask;
-    //}
-    //if (pOpc2Epics->mask && (pOpc2Epics->recType == boval))
-    //    *((epicsEnum16*)(pOpc2Epics->pRecVal)) &=  pOpc2Epics->mask;
-    //if(opcSetScalar(pOpc2Epics))
-    //    return 1;
 
 	precord->udf = udf;
 	precord->pact = FALSE;

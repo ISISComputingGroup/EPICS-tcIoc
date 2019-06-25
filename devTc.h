@@ -26,14 +26,6 @@ namespace DevTc {
 	@brief Callback for output record
  ************************************************************************/
 	
-// Callback function for output records
-//inline void outRecordCallback(callbackPvt *pcallback) {
-//    dbCommon* prec;
-//	prec = (dbCommon*)((callbackPvt*)(pcallback))->user; 
-//    if(prec)
-//        dbProcess(prec);
-//}
-
 /// Regex for indentifying TwinCAT records
 const std::regex tc_regex (
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
@@ -93,6 +85,7 @@ protected:
  ************************************************************************/
 class EpicsInterface	:	public plc::Interface
 {
+	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 public:
 	/// Constructor
 	EpicsInterface (plc::BaseRecord& dval);
@@ -152,8 +145,9 @@ public:
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
+		@param pri Priority of ring buffer
 		@return size of the callback ring buffer */
-	static int get_callback_queue_size();
+	static int get_callback_queue_size (int pri);
 	/** Get the used entries in the callback ring buffer
 		For this function to return a valid value the EPICS
 		distribution needs to be patched. Add the following lines:
@@ -168,8 +162,9 @@ public:
 
 		    static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
+		@param pri Priority of ring buffer
 		@return used entries in the callback ring buffer */
-	static int get_callback_queue_used();
+	static int get_callback_queue_used (int pri);
 	/** Get the free entries in the callback ring buffer
 		For this function to return a valid value the EPICS
 		distribution needs to be patched. Add the following lines:
@@ -184,10 +179,13 @@ public:
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
+		@param pri Priority of ring buffer
 		@return free entries in the callback ring buffer */
-	static int get_callback_queue_free();
+	static int get_callback_queue_free(int pri);
 
 protected:
+	/// Reset ioscan use flag
+	void ioscan_reset(int bitnum);
 	/** Bool indicating passive scan
 		true : EPICS record SCAN field is set to PASSIVE */
 	bool				isPassive;
@@ -196,8 +194,12 @@ protected:
 	bool				isCallback;
 	/// Pointer to the EPICS record
 	dbCommon*			pEpicsRecord;
+	/// IOSCAN mutex
+	std::mutex			ioscanmux;
 	/// Pointer to IO scan list
 	IOSCANPVT			ioscanpvt;
+	/// Scan in progress (bit encoded value from priorities)
+	std::atomic<unsigned int>	ioscan_inuse;
 	/// Callback structure
 	CALLBACK			callbackval;
 };

@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
+#include "infoPlc.h"
 #include "ParseTpy.h"
 #include "windows.h"
 #include "TpyToEpics.h"
@@ -783,9 +784,9 @@ void TcPLC::read_scanner()
 	// update non tc records (try using a different cycle to distribute load)
 	if (cyclesLeft == 1) {
 		for (auto const& it : nonTcRecords) {
-			plc::Interface* iface = it.second->get_plcInterface();
+			InfoPlc::InfoInterface* iface = dynamic_cast<InfoPlc::InfoInterface*> (it.second->get_plcInterface());
 			if (iface) {
-				iface->pull();
+				iface->update();
 			}
 		}
 	}

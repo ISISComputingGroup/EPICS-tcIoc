@@ -144,7 +144,7 @@ register_devsup register_devsup::the_register_devsup;
  ************************************************************************/
 EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
 		: Interface (dval), isPassive (false), isCallback (false),
-		pEpicsRecord (nullptr), ioscanpvt (nullptr)
+		pEpicsRecord (nullptr), ioscanpvt (nullptr), ioscan_inuse (0)
 {
 	memset (&callbackval, 0, sizeof (callbackval));
 }
@@ -156,26 +156,63 @@ bool EpicsInterface::get_callbackRequestPending() const
 	return (get_record().UserIsDirty());
 }
 
+/* Callback complete_io_scan
+ ************************************************************************/
+static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+{
+	epics->ioscan_reset(prio);
+}
+
+/* EpicsInterface::ioscan_reset
+ ************************************************************************/
+void EpicsInterface::ioscan_reset (int bitnum)
+{
+	std::lock_guard<std::mutex> guard(ioscanmux);
+	std::atomic_fetch_and(&ioscan_inuse, ~(1 << bitnum));
+}
 
 /* EpicsInterface::push
  ************************************************************************/
 bool EpicsInterface::push()
 {
+	static int skip = 0;
+	static int proc = 0;
+
 	if (isCallback) {
 		
 		// Generate IO intr request
 		if (isPassive) {
-//+			callbackRequestPending = true;
 			if (callback().priority != priorityHigh) {
 				return false;
 			}
 			if (callbackRequest(&callback()) != 0) {
 				return false;
 			}
+//+			callbackRequestPending = true;
 		}
 		else {
-			scanIoRequest (get_ioscan());
+			std::lock_guard<std::mutex> guard(ioscanmux);
+			if (ioscan_inuse.load() == 0) ++proc; else ++skip;
+			std::atomic_store (&ioscan_inuse, scanIoRequest(get_ioscan()));
+			/*
+			if (ioscan_inuse.load() == 0) {
+				std::lock_guard<std::mutex> guard(ioscanmux);
+				std::atomic_store(&ioscan_inuse, scanIoRequest(get_ioscan()));
+				++proc;
+				//printf("Processing %s %4.1f %%\n", record.get_name().c_str(), 100.0*(double)skip / (double)(skip + proc));
+			}
+			else {
+				// skip  ioscan due to overload
+				++skip;
+				//std::lock_guard<std::mutex> guard(ioscanmux);
+				//std::atomic_store(&ioscan_inuse, 0);
+				//if (skip % 100 == 0) {
+				//	printf("Skipping %s %4.1f %%\n", record.get_name().c_str(), 100.0*(double)skip / (double)(skip + proc));
+				//}
+			}
+			*/
 		}
+
 	}
 	return true;
 }
@@ -239,41 +276,44 @@ static void check_callback_init()
 
 /* EpicsInterface::get_callback_queue_size
  ************************************************************************/
-int EpicsInterface::get_callback_queue_size()
+int EpicsInterface::get_callback_queue_size (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 	check_callback_init();
-	return callback_queue ? epicsRingPointerGetSize(callback_queue[priorityHigh]) : 0;
+	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+		epicsRingPointerGetSize(callback_queue[pri]) : 0;
 }
 
 /* EpicsInterface::get_callback_queue_used
  ************************************************************************/
-int EpicsInterface::get_callback_queue_used()
+int EpicsInterface::get_callback_queue_used (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 	check_callback_init();
-	return callback_queue ? epicsRingPointerGetUsed(callback_queue[priorityHigh]) : 0;
+	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+		epicsRingPointerGetUsed(callback_queue[pri]) : 0;
 }
 
 /* EpicsInterface::get_callback_queue_free
  ************************************************************************/
-int EpicsInterface::get_callback_queue_free()
+int EpicsInterface::get_callback_queue_free (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1; 
 	check_callback_init();
-	return callback_queue ? epicsRingPointerGetFree(callback_queue[priorityHigh]) : 0;
+	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+		epicsRingPointerGetFree(callback_queue[pri]) : 0;
 }
 
 
 extern "C" {
-	int get_callback_queue_size(void) {
-		return EpicsInterface::get_callback_queue_size();
+	int get_callback_queue_size(int pri) {
+		return EpicsInterface::get_callback_queue_size(pri);
 	}
-	int get_callback_queue_used(void) {
-		return EpicsInterface::get_callback_queue_used();
+	int get_callback_queue_used(int pri) {
+		return EpicsInterface::get_callback_queue_used(pri);
 	}
-	int get_callback_queue_free(void) {
-		return EpicsInterface::get_callback_queue_free();
+	int get_callback_queue_free(int pri) {
+		return EpicsInterface::get_callback_queue_free(pri);
 	}
 }
 /// @endcond
