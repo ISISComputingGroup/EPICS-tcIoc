@@ -576,7 +576,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	if (dbg) tpyfile.set_export_all (TRUE);
 	int num = tpyfile.process_symbols (dbproc);
 
-	// generate df file from info  records
+	// generate db file from info  records
 	if (!infoprefix.empty()) {
 		num += InfoPlc::InfoInterface::get_infodb (infoprefix, 
 			tpyfile.get_project_info().get(), dbproc);

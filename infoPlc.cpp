@@ -25,6 +25,15 @@ static bool debug = false;
 
 /// List of of db info tuples
 const info_dbrecord_list InfoInterface::dbinfo_list({
+info_dbrecord_type(
+	variable_name(""),
+	process_type_enum::pt_binary,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "3"),
+		property_el(OPC_PROP_DESC, "PLC Info structure")
+	})),
+	"InfoStruct", false, update_enum::once,
+	&InfoInterface::info_update_name),
 info_dbrecord_type (
 	variable_name("name"),
 	process_type_enum::pt_string,
