@@ -280,7 +280,7 @@ int EpicsInterface::get_callback_queue_size (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 	check_callback_init();
-	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
 		epicsRingPointerGetSize(callback_queue[pri]) : 0;
 }
 
@@ -290,7 +290,7 @@ int EpicsInterface::get_callback_queue_used (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 	check_callback_init();
-	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
 		epicsRingPointerGetUsed(callback_queue[pri]) : 0;
 }
 
@@ -300,7 +300,7 @@ int EpicsInterface::get_callback_queue_free (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1; 
 	check_callback_init();
-	return (callback_queue && (pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES)) ?
+	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
 		epicsRingPointerGetFree(callback_queue[pri]) : 0;
 }
 

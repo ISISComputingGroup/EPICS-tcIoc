@@ -918,6 +918,7 @@ AmsRouterNotification::AmsRouterNotification()
 	ads_build = pDLLVersion->build;
 	printf("ADS version: %i, revision: %i, build: %i\n", 
 		   ads_version, ads_revision, ads_build);
+	return;
 	nErr = AdsPortOpen();
 	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
 	if (nErr) errorPrintf(nErr);
