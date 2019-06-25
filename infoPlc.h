@@ -105,102 +105,108 @@ protected:
 	/// pointer to info update method
 	info_update_method	info_update;
 
-	/// info update: name
+	/// info update: Name of PLC
 	bool info_update_name ();
-	/// info update: alias
+	/// info update: Alias name
 	bool info_update_alias();
-	/// info update: active
+	/// info update: Running state of PLC
 	bool info_update_active();
-	/// info update: state
+	/// info update: AMS state of PLC
 	bool info_update_state();
-	/// info update: statestr
+	/// info update: AMS state of PLC
 	bool info_update_statestr();
-	/// info update: timestamp_str
+	/// info update: PLC time stamp
 	bool info_update_timestamp_str();
-	/// info update: timestamp_year
+	/// info update: Year of PLC time stamp
 	bool info_update_timestamp_year();
-	/// info update: timestamp_month
+	/// info update: Month of PLC time stamp
 	bool info_update_timestamp_month();
-	/// info update: timestamp_day
+	/// info update: Day of PLC time stamp
 	bool info_update_timestamp_day();
-	/// info update: timestamp_hour
+	/// info update: Hour of PLC time stamp
 	bool info_update_timestamp_hour();
-	/// info update: timestamp_min
+	/// info update: Minute of PLC time stamp
 	bool info_update_timestamp_min();
-	/// info update: timestamp_sec
+	/// info update: Second of PLC time stamp
 	bool info_update_timestamp_sec();
-	/// info update: rate_read
+	/// info update: Period of read scanner in ms
 	bool info_update_rate_read();
-	/// info update: rate_write
+	/// info update: Period of write scanner in ms
 	bool info_update_rate_write();
-	/// info update: rate_update
+	/// info update: Period of update scanner in ms
 	bool info_update_rate_update();
-	/// info update: records_num
+	/// info update: Number of EPICS records
 	bool info_update_records_num();
-	/// info update: tpy_filename
+	/// info update: Name of typ file
 	bool info_update_tpy_filename();
-	/// info update: tpy_valid
+	/// info update: Validity of tpy file
 	bool info_update_tpy_valid();
-	/// info update: tpy_time_str
+	/// info update: Modifcation time of tpy file
 	bool info_update_tpy_time_str();
-	/// info update: tpy_time_year
+	/// info update: Year of tpy file time
 	bool info_update_tpy_time_year();
-	/// info update: tpy_time_month
+	/// info update: Month of tpy file time
 	bool info_update_tpy_time_month();
-	/// info update: tpy_time_day
+	/// info update: Day of tpy file time
 	bool info_update_tpy_time_day();
-	/// info update: tpy_time_hour
+	/// info update: Hour of tpy file time
 	bool info_update_tpy_time_hour();
-	/// info update: tpy_time_min
+	/// info update: Minute of tpy file time
 	bool info_update_tpy_time_min();
-	/// info update: tpy_time_sec
+	/// info update: Second of tpy file time
 	bool info_update_tpy_time_sec();
-	/// info update: ads_version
+	/// info update: ADS library version
 	bool info_update_ads_version();
-	/// info update: ads_revision
+	/// info update: ADS library revision
 	bool info_update_ads_revision();
-	/// info update: ads_build
+	/// info update: ADS library build
 	bool info_update_ads_build();
-	/// info update: ads_port
+	/// info update: ADS/AMS port of PLC
 	bool info_update_ads_port();
-	/// info update: ads_netid_str
+	/// info update: ADS/AMS address of PLC
 	bool info_update_ads_netid_str();
-	/// info update: ads_netid_b0
+	/// info update: ADS/AMS address b0
 	bool info_update_ads_netid_b0();
-	/// info update: ads_netid_b1
+	/// info update: ADS/AMS address b1
 	bool info_update_ads_netid_b1();
-	/// info update: ads_netid_b2
+	/// info update: ADS/AMS address b2
 	bool info_update_ads_netid_b2();
-	/// info update: ads_netid_b3
+	/// info update: ADS/AMS address b3
 	bool info_update_ads_netid_b3();
-	/// info update: ads_netid_b4
+	/// info update: ADS/AMS address b4
 	bool info_update_ads_netid_b4();
-	/// info update: ads_netid_b5
+	/// info update: ADS/AMS address b5
 	bool info_update_ads_netid_b5();
-	/// info update: svn_local
+	/// info update: SVN local modifications
 	bool info_update_svn_local();
-	/// info update: svn_revision
+	/// info update: SVN revision, if fully committed
 	bool info_update_svn_revision();
-	/// info update: svn_time
+	/// info update: SVN compile time
 	bool info_update_svn_time();
-	/// info update: callback_queue0_size
+	/// info update: Size of low priority callback queue
 	bool info_update_callback_queue0_size();
-	/// info update: callback_queue0_used
+	/// info update: Used entries in low priority callback queue
 	bool info_update_callback_queue0_used();
-	/// info update: callback_queue0_free
+	/// info update: Free entries low priority callback queue
 	bool info_update_callback_queue0_free();
-	/// info update: callback_queue1_size
+	/// info update: Usage percentage of low priority callback queue
+	bool info_update_callback_queue0_percent();
+	/// info update: Size of medium priority callback queue
 	bool info_update_callback_queue1_size();
-	/// info update: callback_queue1_used
+	/// info update: Used entries in medium priority callback queue
 	bool info_update_callback_queue1_used();
-	/// info update: callback_queue1_free
+	/// info update: Free entries medium priority callback queue
 	bool info_update_callback_queue1_free();
-	/// info update: callback_queue2_size
+	/// info update: Usage percentage of medium priority callback queue
+	bool info_update_callback_queue1_percent();
+	/// info update: Size of high priority callback queue
 	bool info_update_callback_queue2_size();
-	/// info update: callback_queue2_used
+	/// info update: Used entries in high priority callback queue
 	bool info_update_callback_queue2_used();
-	/// info update: callback_queue2_free
+	/// info update: Free entries high priority callback queue
 	bool info_update_callback_queue2_free();
+	/// info update: Usage percentage of high priority callback queue
+	bool info_update_callback_queue2_percent();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

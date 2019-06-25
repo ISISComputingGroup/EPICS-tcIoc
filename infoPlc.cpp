@@ -413,6 +413,19 @@ info_dbrecord_type (
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_free),
 info_dbrecord_type (
+	variable_name("cb.queue[0].percent"),
+	process_type_enum::pt_real,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Use % of low pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue0_percent),
+info_dbrecord_type (
 	variable_name("cb.queue[1].size"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
@@ -440,6 +453,19 @@ info_dbrecord_type (
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue1_free),
 info_dbrecord_type (
+	variable_name("cb.queue[1].percent"),
+	process_type_enum::pt_real,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Use % of med pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_percent),
+info_dbrecord_type (
 	variable_name("cb.queue[2].size"),
 	process_type_enum::pt_int,
 	opc_list(publish, property_map({
@@ -465,7 +491,20 @@ info_dbrecord_type (
 		property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_free)
+	&InfoInterface::info_update_callback_queue2_free),
+info_dbrecord_type (
+	variable_name("cb.queue[2].percent"),
+	process_type_enum::pt_real,
+	opc_list(publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_percent)
 });
 
 
@@ -1093,6 +1132,20 @@ bool InfoInterface::info_update_callback_queue0_free()
 	return record.PlcWrite(get_callback_queue_free(0));
 }
 
+/* InfoInterface::info_update_callback_queue0_percent
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue0_percent()
+{
+	double sz = (double)get_callback_queue_size(0);
+	double usd = (double)get_callback_queue_used(0);
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd/sz);
+	}
+	else {
+		return 0.0;
+	}
+}
+
 /* InfoInterface::info_update_callback_queue1_size
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue1_size()
@@ -1114,6 +1167,20 @@ bool InfoInterface::info_update_callback_queue1_free()
 	return record.PlcWrite(get_callback_queue_free(1));
 }
 
+/* InfoInterface::info_update_callback_queue1_percent
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_percent()
+{
+	double sz = (double)get_callback_queue_size(1);
+	double usd = (double)get_callback_queue_used(1);
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd / sz);
+	}
+	else {
+		return 0.0;
+	}
+}
+
 /* InfoInterface::info_update_callback_queue2_size
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue2_size()
@@ -1133,6 +1200,20 @@ bool InfoInterface::info_update_callback_queue2_used()
 bool InfoInterface::info_update_callback_queue2_free()
 {
 	return record.PlcWrite(get_callback_queue_free(2));
+}
+
+/* InfoInterface::info_update_callback_queue2_percent
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_percent()
+{
+	double sz = (double)get_callback_queue_size(2);
+	double usd = (double)get_callback_queue_used(2);
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd / sz);
+	}
+	else {
+		return 0.0;
+	}
 }
 
 
