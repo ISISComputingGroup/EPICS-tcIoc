@@ -578,6 +578,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	// generate db file from info  records
 	if (!infoprefix.empty()) {
+		dbproc.flush();
 		num += InfoPlc::InfoInterface::get_infodb (infoprefix, 
 			tpyfile.get_project_info().get(), dbproc);
 	}

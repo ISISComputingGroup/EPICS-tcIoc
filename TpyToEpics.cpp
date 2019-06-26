@@ -805,7 +805,10 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	}
 
 	// Add the new field
-	procstack.top().fields.push_back (minfo);
+	if (arg.get_opc().is_published() || !arg.is_atomic()) {
+		procstack.top().fields.push_back(minfo);
+	}
+	// Check if this is an error structure
 	int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
 	bool iserror = (minfo.type_n == errorstruct) ||
 		((pos > 0) && (minfo.type_n[(stringcase::size_type)pos-1] == '.') && 
