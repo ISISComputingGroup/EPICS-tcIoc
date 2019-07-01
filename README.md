@@ -101,6 +101,7 @@ Added features:
 * New Download directory with binary files.
 
 Bug Fixes:
+* OPC comment for non-publish was ignored by EPICS 
 * Fix 64 bit issuses (thanks Freddie Akeroyd)
 * ALIAS has been added to the replacement rule list
 * Fix MT lock issue in record callback

@@ -1246,6 +1246,11 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		return false;
 	}
 
+	// published?
+	if (!arg.get_opc().is_published()) {
+		return false;
+	}
+
 	// readonly?
 	bool readonly = arg.get_opc().is_readonly();
 	increment (readonly);
