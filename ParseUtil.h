@@ -11,13 +11,65 @@
  ************************************************************************/
 namespace ParseUtil {
 
-/** @defgroup parseopt Option processing
-    These function and classes are used to parse command line options
+
+/** @defgroup parseutilities Parser utility functions and classes
  ************************************************************************/
 /** @{ */
 
-/** This class transforms a string into a standard program argument.
+/** Table of replacement rules
  ************************************************************************/
+typedef std::map <std::stringcase, std::stringcase> replacement_table;
+
+/** Epics channel conversion arguments
+    Epics channels are generated from opc through a conversion rule
+	@brief Replacement rules
+ ************************************************************************/
+class replacement_rules {
+public:
+	/// Default constructor
+	replacement_rules (bool rec = true) : recursive (rec) {}
+	/// Constructor
+	replacement_rules (const replacement_table& t, bool rec = true)
+		: table (t), recursive(rec) {}
+	/// Add a rule
+	void add_rule (const std::stringcase& var, const std::stringcase& val) {
+		table[var] = val; }
+	/// set table
+	void set_rule_table (const replacement_table& t) {
+		table = t; }
+	/// get table
+	replacement_table& get_rule_table() { 
+		return table; }
+	/// get table
+	const replacement_table& get_rule_table() const { 
+		return table; }
+	/// replace
+	std::stringcase apply_replacement_rules (const std::stringcase& s) const;
+	/// Has rules
+	bool HasRules() const {
+		return !table.empty(); }
+
+	/// Is recursive?
+	bool is_recursive() const { return recursive; }
+	/// Set recursive
+	void set_recursive (bool rec) {
+		recursive = rec; }
+
+	/// prefix for replacement rule: ${
+	static const char* const prefix;
+	/// suffix for replacement rule: }
+	static const char* const suffix;
+protected:
+	/// Replacement table
+	replacement_table		table;
+	/// Recusrsive replacement
+	bool					recursive;
+};
+
+
+/** This class transforms a string into a standard program argument.
+    @brief Optional arguments
+************************************************************************/
 class optarg 
 {
 public:
@@ -64,16 +116,10 @@ protected:
 	bool*		myargp;
 };
 
-/** @} */
-
-/** @defgroup parsetpyopc OPC related functions and classes
-    These function and classes are generally used to describe channel 
-	properties
- ************************************************************************/
-/** @{ */
 
 /** This enum denotes the opc state.
- ************************************************************************/
+     @brief OPC state enum
+************************************************************************/
 enum opc_enum 
 {
 	/// Do not change inherited behaviour
@@ -93,12 +139,16 @@ typedef std::map<int, std::stringcase> property_map;
 typedef std::pair<int, std::stringcase> property_el;
 
 /** This class stores OPC properties.
+	@brief OPC list
 ************************************************************************/
 class opc_list 
 {
 public:
 	/// Default constructor
 	opc_list() : opc (no_change) {}
+	/// Constructor
+	opc_list (opc_enum state, const property_map& map) 
+		: opc(state), opc_prop(map) {}
 
 	/// Get opc state
 	opc_enum get_opc_state () const { return opc; }
@@ -135,13 +185,9 @@ protected:
 	property_map	opc_prop;
 };
 
-/** @} */
-
-/** @defgroup parsetpyparseinfo Classes for describing a parser argument
- ************************************************************************/
-/** @{ */
 
 /** This is a class for storing a variable name and an alias
+	@brief Variable name
 ************************************************************************/
 class variable_name
 {
@@ -150,6 +196,8 @@ public:
 	variable_name () {}
 	/// Constructor
 	explicit variable_name (const std::stringcase& n) : name (n), alias (n) {}
+	/// Constructor
+	explicit variable_name (const char* s) : name(s), alias(s) {}
 	/// Constructor
 	variable_name (const std::stringcase& n, const std::stringcase& a) 
 		: name (n), alias (a) {}
@@ -180,6 +228,7 @@ protected:
 	
 	
 /** This is a class for storing bit offset and size in a structure
+	@brief Bit location
 ************************************************************************/
 class bit_location
 {
@@ -209,7 +258,8 @@ protected:
 };
 
 /** This structure holds a memory location
- ************************************************************************/
+    @brief Memory location
+************************************************************************/
 class memory_location 
 {
 public:
@@ -267,6 +317,7 @@ protected:
 
 
 /** Enumerated type to describe the process type
+	@brief Process type 
  ************************************************************************/
 enum process_type_enum 
 {
@@ -287,21 +338,20 @@ enum process_type_enum
 };
 
 /** Argument which is passed to the name/tag processing function.
+	@brief Arguments for processing
 ************************************************************************/
 class process_arg
 {
 public:
 	/// Constructor
-	/// @param loc Memory location
 	/// @param vname Variable name
 	/// @param pt Process type 
 	/// @param o OPC list
 	/// @param tname Type name
 	/// @param at Atomic type
-	process_arg (const memory_location& loc,
-		const variable_name& vname, process_type_enum pt, 
+	process_arg (const variable_name& vname, process_type_enum pt, 
 		const opc_list& o, const std::stringcase& tname, bool at) 
-		: name (vname), type_n (tname), opc (o), memloc (loc),
+		: name (vname), type_n (tname), opc (o), 
 		ptype (pt), atomic (at) {}
 
 	/// Get variable
@@ -322,18 +372,9 @@ public:
 	/// Is atomic (or structured) type
 	bool is_atomic() const { return atomic; }
 
-	/// Get IGroup
-	int get_igroup () const { return memloc.get_igroup(); }
-	/// Get IOffset
-	int get_ioffset () const { return memloc.get_ioffset(); }
-	/// Get BitSize
-	int get_bytesize () const { return memloc.get_bytesize(); }
-	/// Gets a string representation of a memory location
-	/// @return string with format "igroup/ioffset:size", empty on error
-	std::stringcase get() const { return memloc.get(); }
 	/// Gets a string representation of a PLC & memory location
 	/// @return string with format "prefixigroup/ioffset:size", empty on error
-	std::stringcase get_full() const;
+	virtual std::stringcase get_full() const = 0;
 
 protected:
 	/// name of type
@@ -342,16 +383,50 @@ protected:
 	const std::stringcase&	type_n;
 	/// list of opc properties
 	const opc_list&			opc;
-	/// memory location
-	const memory_location&	memloc;
-
 	/// Process Type
 	process_type_enum		ptype;
 	/// Atomic element
 	bool					atomic;
 };
 
+/** Argument which is passed to the name/tag processing function.
+	@brief Arguments for processing
+************************************************************************/
+class process_arg_tc : public process_arg
+{
+public:
+	/// Constructor
+	/// @param loc Memory location
+	/// @param vname Variable name
+	/// @param pt Process type 
+	/// @param o OPC list
+	/// @param tname Type name
+	/// @param at Atomic type
+	process_arg_tc (const memory_location& loc,
+		const variable_name& vname, process_type_enum pt,
+		const opc_list& o, const std::stringcase& tname, bool at)
+		: process_arg (vname, pt, o, tname, at), memloc(loc) {}
+
+	/// Get IGroup
+	int get_igroup() const { return memloc.get_igroup(); }
+	/// Get IOffset
+	int get_ioffset() const { return memloc.get_ioffset(); }
+	/// Get BitSize
+	int get_bytesize() const { return memloc.get_bytesize(); }
+	/// Gets a string representation of a memory location
+	/// @return string with format "igroup/ioffset:size", empty on error
+	std::stringcase get() const { return memloc.get(); }
+	/// Gets a string representation of a PLC & memory location
+	/// @return string with format "prefixigroup/ioffset:size", empty on error
+	virtual std::stringcase get_full() const;
+
+protected:
+	/// memory location
+	const memory_location&	memloc;
+};
+
 /** Enumerated type to describe the tag processing
+	@brief Tag preoicessing enum
 ************************************************************************/
 enum process_tag_enum 
 {
@@ -364,6 +439,7 @@ enum process_tag_enum
 };
 
 /** Class to specify which symbols and tags/names to process
+	@brief Tag processing selection
 ************************************************************************/
 class tag_processing 
 {

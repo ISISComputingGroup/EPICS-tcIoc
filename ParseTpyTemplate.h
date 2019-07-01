@@ -29,9 +29,17 @@ namespace ParseTpy {
 	{
 		ParseUtil::variable_name n (prefix);
 		n.append (symbol.get_name(), symbol.get_opc(), "");
+		// Check for pointer: if so, do not follow
 		if (symbol.get_type_pointer()) {
-			return process_type_tree ("DINT", 0, 
-				symbol.get_opc(), symbol, process, n, 0);
+			// check for 64 bit pointers
+			if (symbol.get_bytesize() == 8) {
+				return process_type_tree("ULINT", 0,
+					symbol.get_opc(), symbol, process, n, 0);
+			}
+			else {
+				return process_type_tree("UDINT", 0,
+					symbol.get_opc(), symbol, process, n, 0);
+			}
 		}
 		else if (!n.get_name().empty()) {
 			return process_type_tree (symbol.get_type_name(), 
@@ -102,7 +110,7 @@ namespace ParseTpy {
 						defopc.get_properties().insert (property_el (102, std::to_string (max).c_str()));
 						defopc.get_properties().insert (property_el (103, std::to_string (min).c_str()));
 					}
-					process_arg arg (loc, varname, pt_int, defopc, typ.get_name(), true);
+					process_arg_tc arg (loc, varname, pt_int, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 				// add opc property for enum values
@@ -113,7 +121,7 @@ namespace ParseTpy {
 							defopc.get_properties().insert (
 								property_el (8510 + e->first, e->second));
 					}
-					process_arg arg (loc, varname, pt_enum, defopc, typ.get_name(), true);
+					process_arg_tc arg (loc, varname, pt_enum, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 			}
@@ -124,7 +132,7 @@ namespace ParseTpy {
 				int num = 0;
 				if (get_process_tags() == process_structured || 
 					get_process_tags() == process_all) {
-					process_arg arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
+					process_arg_tc arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
 					num = process (arg) ? 1 : 0;
 				}
 				// iterate over all structure items
@@ -165,7 +173,7 @@ namespace ParseTpy {
 			(typ == "BYTE")  || (typ == "WORD") || (typ == "DWORD") || (typ == "LWORD")) {
 			if (get_process_tags() == process_atomic || 
 				get_process_tags() == process_all) {
-				process_arg arg (loc, varname, pt_int, defopc, typ, true);
+				process_arg_tc arg (loc, varname, pt_int, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
@@ -173,7 +181,7 @@ namespace ParseTpy {
 		else if (typ == "REAL" || typ == "LREAL") {
 			if (get_process_tags() == process_atomic || 
 				get_process_tags() == process_all) {
-				process_arg arg (loc, varname, pt_real, defopc, typ, true);
+				process_arg_tc arg (loc, varname, pt_real, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
@@ -181,7 +189,7 @@ namespace ParseTpy {
 		else if (typ == "BOOL") {
 			if (get_process_tags() == process_atomic || 
 				get_process_tags() == process_all) {
-				process_arg arg (loc, varname, pt_bool, defopc, typ, true);
+				process_arg_tc arg (loc, varname, pt_bool, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
@@ -190,7 +198,7 @@ namespace ParseTpy {
 			if ((get_process_tags() == process_atomic || 
 				 get_process_tags() == process_all) &&
 				 !get_no_strings()) {
-				process_arg arg (loc, varname, pt_string, defopc, typ, true);
+				process_arg_tc arg (loc, varname, pt_string, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
@@ -228,7 +236,7 @@ namespace ParseTpy {
 				return 0;
 			}
 			// Call process for entire array (not an atomic type)
-			process_arg arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
+			process_arg_tc arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
 			int num = 0;
 			if (get_process_tags() == process_structured || 
 				get_process_tags() == process_all) {

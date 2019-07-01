@@ -14,52 +14,12 @@
  ************************************************************************/
 namespace EpicsTpy {
 
-/** @defgroup epicstpyutil Utility functions and classes
+/** @defgroup epicstpyutil EPICS utility functions and classes
  ************************************************************************/
 /** @{ */
 
-/** Table of replacement rules
- ************************************************************************/
-typedef std::map <std::stringcase, std::stringcase> replacement_table;
-
-/** Epics channel conversion arguments
- Epics channels are generated from opc through a conversion rule
- ************************************************************************/
-class replacement_rules {
-public:
-	/// Default constructor
-	replacement_rules() {}
-	/// Constructor
-	replacement_rules (const replacement_table& t) 
-		: table (t) {}
-	/// Add a rule
-	void add_rule (const std::stringcase& var, const std::stringcase& val) {
-		table[var] = val; }
-	/// set table
-	void set_rule_table (const replacement_table& t) {
-		table = t; }
-	/// get table
-	replacement_table& get_rule_table() { 
-		return table; }
-	/// get table
-	const replacement_table& get_rule_table() const { 
-		return table; }
-	/// replace
-	std::stringcase apply_replacement_rules (const std::stringcase& s) const;
-	/// Has rules
-	bool HasRules() const {
-		return !table.empty(); }
-
-	/// prefix for replacement rule: $(
-	static const char* const prefix;
-	/// suffix for replacement rule: )
-	static const char* const suffix;
-protected:
-	/// Replacement table
-	replacement_table		table;
-};
-
 /** This enum describes the TwinCAT/opc to EPICS conversion rule
+	@brief Conversion rules for TC/EPICS
  ************************************************************************/
 enum tc_epics_conv {
 	/// No conversion
@@ -81,7 +41,8 @@ enum tc_epics_conv {
 };
 
 /** This enum describes the case conversion rule
- ************************************************************************/
+     @brief Case conversion rule enum
+************************************************************************/
 enum case_type {
 	/// Preserve the case
 	preserve_case, 
@@ -92,9 +53,10 @@ enum case_type {
 };
 
 /** Epics channel conversion arguments
-Epics channels are generated from opc through a conversion rule
+    Epics channels are generated from opc through a conversion rule
+	@brief Epics conversion
 ************************************************************************/
-class epics_conversion : public replacement_rules {
+class epics_conversion : public ParseUtil::replacement_rules {
 public:
 	/// Default constructor
 	epics_conversion()
@@ -193,8 +155,9 @@ protected:
 };
 
 /** Split file IO support
-Output can be split in multiple files if the number of channels
-exceeds the maximum specified for a file
+    Output can be split in multiple files if the number of channels
+    exceeds the maximum specified for a file
+	@brief Split IO support
 ************************************************************************/
 class split_io_support {
 public:
@@ -217,6 +180,7 @@ public:
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
+	/// @param fname Filename for output
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
@@ -343,7 +307,8 @@ enum class io_filestat {
 };
 
 /** Multi file IO support
-Supports a directory argument and opens files within
+    Supports a directory argument and opens files within
+	@brief Multiple IO support
 ************************************************************************/
 class multi_io_support {
 public:
@@ -360,6 +325,7 @@ public:
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
+	/// @param dname Name of output directory
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
@@ -442,15 +408,10 @@ protected:
 	int				file_num_out;
 };
 
-/** @} */
-
-/** @defgroup epicstpyprocessing Classes for converting a parsed tpy
-    into an EPICS database
- ************************************************************************/
-/** @{ */
 
 /** This enum describes the type of listing to produce
- ************************************************************************/
+     @brief Listing type enum
+************************************************************************/
 enum listing_type {
 	/// Standard listing using TwinCAT/OPC names
 	listing_standard, 
@@ -461,6 +422,7 @@ enum listing_type {
 };
 
 /** Class for generatig a channel list
+	@brief List processing
 ************************************************************************/
 class epics_list_processing : 
 	public epics_conversion, public split_io_support {
@@ -473,7 +435,7 @@ public:
 	/// @param ll long listing
 	explicit epics_list_processing (listing_type ltype, 
 		bool ll = false) 
-		: listing (listing_standard), verbose (ll) {}
+		: listing (ltype), verbose (ll) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -549,7 +511,8 @@ enum class macrofile_type {
 };
 
 /** This structure describes a field
- ************************************************************************/
+    @brief Macro information
+************************************************************************/
 struct macro_info {
 	/// Default constructor
 	macro_info () : ptype (ParseUtil::pt_invalid), readonly (false) {}
@@ -569,7 +532,8 @@ struct macro_info {
 typedef std::vector<macro_info> macro_list;
 
 /** This structure describes a record/struct
- ************************************************************************/
+    @brief Macro record
+************************************************************************/
 struct macro_record {
 	macro_record () : iserror (false), haserror (false), erroridx (-1) {}
 	/// name of structure
@@ -595,6 +559,7 @@ typedef std::stack<macro_record> macro_stack;
 typedef std::unordered_set<std::stringcase> filename_set;
 
 /** Class for generatig macro files to be used by medm
+	@brief Macro file processing
 ************************************************************************/
 class epics_macrofiles_processing : 
 	public epics_conversion, public multi_io_support {
@@ -626,6 +591,7 @@ public:
 	/// multi_io_support::getopt and mygetopt().
 	/// @param pname PLC name
 	/// @param dname Directory name
+	/// @param tcat3 True if we are processing TwinCAT 3.1 files
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
@@ -713,6 +679,7 @@ protected:
 };
 
 /** This enum describes the type of listing to produce
+	@brief Device support enum
 ************************************************************************/
 enum device_support_type {
 	/// Use opc names in the INPUT/OUTPUT epics fields
@@ -722,12 +689,13 @@ enum device_support_type {
 };
 
 /** Class for generatig an EPICS database record 
+	@brief pics database record processing
 ************************************************************************/
 class epics_db_processing : 
 	public epics_conversion, public split_io_support {
 public:
 	/// Default constructor
-	epics_db_processing () {}
+	epics_db_processing () : device_support (device_support_tc_name) {}
 
 	/// Constructor
 	/// Command line arguments will override default parameters when specified

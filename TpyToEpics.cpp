@@ -7,7 +7,7 @@
 #include <filesystem>
 
 using namespace std;
-using namespace std::tr2::sys;
+using namespace std::experimental::filesystem::v1; 
 using namespace ParseTpy;
 using namespace ParseUtil;
 
@@ -19,46 +19,6 @@ using namespace ParseUtil;
 
 namespace EpicsTpy {
 
-/* Static const variables
- ************************************************************************/
-const char* const replacement_rules::prefix = "${";
-const char* const replacement_rules::suffix = "}";
-
-/* Static const variables
- ************************************************************************/
-std::stringcase replacement_rules::apply_replacement_rules (const std::stringcase& arg) const
-{
-	stringcase ret (arg);
-	stringcase var;
-	stringcase val;
-	stringcase::size_type pos1;
-	stringcase::size_type pos2;
-	stringcase::size_type prefixlen = strlen (prefix);
-	stringcase::size_type suffixlen = strlen (suffix);
-	replacement_table::const_iterator rep;
-
-	// look for prefix
-	while ((pos1 = ret.find (prefix)) != stringcase::npos) {
-		// look for suffix
-		pos2 = ret.find (suffix, pos1 + prefixlen);
-		// no suffix? What's up? remove prefix and move on
-		if (pos2 == stringcase::npos) {
-			ret.erase (pos1, prefixlen);
-			continue;
-		}
-		// determine variable name
-		var = ret.substr (pos1 + prefixlen, pos2 - (pos1 + prefixlen));
-		trim_space (var);
-		// check for value in table
-		if (!var.empty() &&
-			(rep = table.find (var)) != table.end()) {
-			var = rep->second;
-		}
-		// replace var with value
-		ret.replace (pos1, pos2 - pos1 + 1, var);
-	}
-	return ret;
-}
 
 /* Parse command line arguments
  ************************************************************************/
@@ -238,7 +198,9 @@ split_io_support::~split_io_support()
 split_io_support::~split_io_support
 ************************************************************************/
 split_io_support::split_io_support (const split_io_support& iosup)
-	: outf(0), outf_io (0), outf_in (0)
+	: error(true), split_io(false), split_n(0), outf(0), 
+	outf_in(nullptr), outf_io(nullptr), rec_num(0), rec_num_in(0), 
+	rec_num_io(0), file_num_in(1), file_num_io(1)
 {
 	*this = iosup;
 }
@@ -326,8 +288,7 @@ void split_io_support::set_filename (const stringcase& fn)
 	// check for non-empty (no stdout) filename
 	if (!outfilename.empty()) {
 		if (split_io || (split_n > 0)) {
-			int nn = -123;
-			if ((nn = outfilename.rfind (".db")) == outfilename.size() - 3) {
+			if (outfilename.rfind (".db") == outfilename.size() - 3) {
 				outfilename.erase (outfilename.size() - 3);
 			}
 			if (split_n > 0) {
@@ -500,15 +461,15 @@ bool multi_io_support::open (const std::stringcase& fname,
 	}
 	path newfile ((filestat == io_filestat::read ? indirname : outdirname).c_str());
 	newfile /= fname.c_str();
-	FILE* fio = fopen (newfile.file_string().c_str(), io.c_str());
+	FILE* fio = fopen (newfile.string().c_str(), io.c_str());
 	if (!fio) {
 		filestat = io_filestat::closed;
 		if (!superrmsg) {
-			fprintf (stderr, "Failed to open %s.\n", newfile.file_string().c_str());
+			fprintf (stderr, "Failed to open %s.\n", newfile.string().c_str());
 		}
 		return false;
 	}
-	filename = newfile.file_string().c_str();
+	filename = newfile.string().c_str();
 	filehandle = fio;
 	if (filestat == io_filestat::read) {
 		file_num_in += 1;
@@ -539,10 +500,10 @@ void multi_io_support::set_indirname (const std::stringcase& dname)
 {
 	path fname (dname.c_str());
 	if (is_directory (fname)) {
-		indirname = fname.directory_string().c_str();
+		indirname = fname.string().c_str();
 	}
 	else {
-		indirname = fname.parent_path().directory_string().c_str();
+		indirname = fname.parent_path().string().c_str();
 	}
 }
 
@@ -552,7 +513,7 @@ void multi_io_support::set_indirname (const std::stringcase& dname)
 void multi_io_support::set_outdirname (const std::stringcase& dname) 
 {
 	path fname (dname.c_str());
-	outdirname = fname.directory_string().c_str();
+	outdirname = fname.string().c_str();
 	try {
 		create_directories (fname);
 	}
@@ -567,7 +528,8 @@ epics_list_processing::epics_list_processing (
 		const std::stringcase& fname, 
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
-	  split_io_support (fname, argc, argv, argp) 
+	  split_io_support (fname, argc, argv, argp), 
+	  listing(listing_standard), verbose(false)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -838,19 +800,22 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	while ((procstack.size() > 1) && 
 		   (minfo.name.compare (0, procstack.top().record.name.length(), 
 		                        procstack.top().record.name) != 0)) {
-		process_record (procstack.top(), procstack.size() - 1);
+		process_record (procstack.top(), static_cast<int>(procstack.size()) - 1);
 		procstack.pop();
 	}
 
 	// Add the new field
-	procstack.top().fields.push_back (minfo);
-	int pos = minfo.type_n.length() - errorstruct.length();
+	if (arg.get_opc().is_published() || !arg.is_atomic()) {
+		procstack.top().fields.push_back(minfo);
+	}
+	// Check if this is an error structure
+	int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
 	bool iserror = (minfo.type_n == errorstruct) ||
-		((pos > 0) && (minfo.type_n[pos-1] == '.') && 
+		((pos > 0) && (minfo.type_n[(stringcase::size_type)pos-1] == '.') && 
 		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
 	if (iserror) {
 		procstack.top().haserror = true;
-		procstack.top().erroridx = procstack.top().fields.size()-1;
+		procstack.top().erroridx = static_cast<int>(procstack.top().fields.size()-1);
 	}
 
 	// check, if this is a structure
@@ -998,13 +963,13 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			// read file with list of error messages
 			FILE* fp = get_file();
 			fseek (fp, 0L, SEEK_END);
-			int sz = ftell (fp);
+			size_t sz = ftell (fp);
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
 			unsigned char* buf = new unsigned char [sz+1];
 			sz = fread (buf, sizeof (char), sz, fp);
 			buf[sz] = 0;
-			for (int i = 0; i < sz; ++i) {
+			for (size_t i = 0; i < sz; ++i) {
 				if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
 			}
 			// check if it is formatted correctly
@@ -1222,7 +1187,8 @@ epics_db_processing::epics_db_processing (
 		const std::stringcase& fname,
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
-	  split_io_support (fname, argc, argv, argp) 
+	  split_io_support (fname, argc, argv, argp),
+	  device_support (device_support_tc_name)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -1317,7 +1283,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	string epicsname = to_epics (arg.get_alias());
 	if (epicsname.size() > MAX_EPICS_CHANNEL) {
 		fprintf (stderr, "Warning: channel name %s too long by %i\n", 
-			epicsname.c_str(), epicsname.size() - MAX_EPICS_CHANNEL);
+			epicsname.c_str(), static_cast<int>(epicsname.size() - MAX_EPICS_CHANNEL));
 		return false;
 	}
 	// now print header
@@ -1327,7 +1293,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	if (arg.get_opc().get_property (OPC_PROP_DESC, s)) {
 		if (s.size() > MAX_EPICS_DESC) {
 			fprintf (stderr, "Warning: DESC for %s too long by %i\n", 
-				arg.get_name().c_str(), s.size() - MAX_EPICS_DESC);
+				arg.get_name().c_str(), static_cast<int>(s.size() - MAX_EPICS_DESC));
 		}
 		process_field_string (EPICS_DB_DESC, s);
 	}

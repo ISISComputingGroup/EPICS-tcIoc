@@ -19,7 +19,7 @@ struct dbCommon;
  ************************************************************************/
 namespace TcComms {
 
-/** @defgroup scansettings Constants related to read/write scanning
+/** @defgroup tccommgroup TwinCAT read/write scanning
  ************************************************************************/
 /** @{ */
 
@@ -45,15 +45,11 @@ const int minimum_multiple = 1;
 /// maximum multiple for PLC EPICS scan rate (200) 
 const int maximum_multiple = 200;
 
-/** @} */
 
 /** Forward declaration
  ************************************************************************/
 class TcPLC;
 
-/** @defgroup tccommssymbol Classes for describing TC symbol
- ************************************************************************/
-/** @{ */
 
 /** Struct for storing index group, index offset, and size of a TC symbol
 	@brief Memory location struct
@@ -76,7 +72,8 @@ class TCatInterface	:	public plc::Interface
 public:
 	/// Constructor
 	explicit TCatInterface (plc::BaseRecord& dval)
-		: Interface(dval) {} ;
+		: Interface(dval), tCatSymbol({ 0,0,0 }), requestNum (0), 
+		requestOffs (0) {};
 	/// Constructor
 	/// @param dval BaseRecord that this interface is part of
 	/// @param name Name of TCat symbol
@@ -93,11 +90,14 @@ public:
 	~TCatInterface() {};
 
 	/// Get name of TCat symbol
-	const std::stringcase get_tCatName() { 
+	const std::stringcase get_tCatName() const { 
 		return tCatName; };							
 	/// Set name of TCat symbol
 	void set_tCatName(std::stringcase name) { 
 		tCatName = name; };
+	/// Get symbol name
+	virtual const char* get_symbol_name() const { 
+		return tCatName.c_str(); }
 	/// Get TCat data type
 	const std::stringcase get_tCatType() { 
 		return tCatType; };
@@ -144,7 +144,7 @@ public:
 
 	/// Prints TCat symbol value and information
 	/// @param fp File to print symbol to
-	void printTCatVal(FILE* fp);
+	virtual void printVal (FILE* fp);
 
 	/// Does nothing
 	virtual bool push() override;
@@ -163,11 +163,6 @@ protected:
 	size_t				requestOffs;
 };
 
-/** @} */
-
-/** @defgroup tccommsplc Classes for managing groups of TC symbols
- ************************************************************************/
-/** @{ */
 
 /** Class for collecting and processing write requests
 	This class iterates through the entire record list on the PLC and 
@@ -190,7 +185,9 @@ public:
 	/// Destructor: will porcess the TCat writes
 	~tcProcWrite();
 	/// Move constructor
-	tcProcWrite (tcProcWrite&& tp) : ptr (nullptr) {
+	tcProcWrite (tcProcWrite&& tp) noexcept 
+		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), port(0), ptr(nullptr),
+		data (nullptr), maxrec (0), size (0), alloc (0), count (0) {
 		*this = std::move (tp); }
 
 	/// Process on record
@@ -232,7 +229,7 @@ protected:
 	void tcwrite();
 
 	/// Move operator
-	tcProcWrite&  operator= (tcProcWrite&&);
+	tcProcWrite&  operator= (tcProcWrite&&) noexcept;
 private:
 	/// Copy constructor (disabled)
 	tcProcWrite (const tcProcWrite&);
@@ -276,25 +273,35 @@ public:
 	bool is_valid_tpy();
 
 	/// Get AMS netID of TwinCAT system and port number for this PLC
-	AmsAddr	get_addr() { return addr; };
+	AmsAddr	get_addr() const { return addr; };
 	/// Set AMS address
 	/// @return true if successful
 	bool set_addr(std::stringcase netid, int port);
 	/// Get read port number
-	long get_nReadPort() { return nReadPort; };
+	long get_nReadPort() const { return nReadPort; };
 	/// Get write port number
-	long get_nWritePort() { return nWritePort; };
-	/// Get run-time system number
-	int get_nRTS() { return nRTS; };		
-	/// Set run-time system number
-	void set_nRTS(int RTS) { nRTS = RTS; };
+	long get_nWritePort() const { return nWritePort; };
+	/// Get slowdown multiple for EPICS read
+	int get_read_scanner_multiple() const {
+		return scanRateMultiple; };
 	/// Set slowdown multiple for EPICS read
-	void set_read_scanner_multiple(int mult) { 
+	void set_read_scanner_multiple (int mult) { 
 		scanRateMultiple = mult; };
 	/// Get ADS state
 	ADSSTATE get_ads_state() const { return ads_state.load(); }
 	/// Is read scanner active and successful
 	bool is_read_active() const { return read_active; }
+
+	/// Get the tpy filename
+	const std::string& get_tpyfilename() const {
+		return pathTpy; }
+	/// Is the tpy file valid?
+	bool is_tpyfile_valid() const {
+		return validTpy; }
+	/// Get the file modification time of the tpy file
+	time_t get_tpyfile_time() const {
+		return timeTpy;
+	}
 
 	/// Starts the appropriate scanners
 	virtual bool start();
@@ -309,12 +316,16 @@ public:
 	bool optimizeRequests();
 
 	/// Get pointer to the beginning of a read request response buffer
-	buffer_ptr get_responseBuffer (size_t idx) {
-		return (idx >= 0 && idx < adsResponseBufferVector.size()) ?  
-			adsResponseBufferVector [idx] : buffer_ptr(); }
+	/// @param idx Index of response buffer
+	/// @return pointer to buffer
+	buffer_ptr get_responseBuffer(size_t idx);
 
 	/// Prints symbol information for entire list of symbols to console
 	virtual void printAllRecords();
+	/// Print a record values to stdout. (override for action)
+	/// @param var variable name (accepts wildcards)
+	virtual void printRecord(const std::string& var);
+
 protected:
 	/// Makes read requests to ADS, makes PlcWrite on all data values
 	virtual void read_scanner();
@@ -323,24 +334,23 @@ protected:
 	/// Makes sure we don't have stale values.
 	virtual void update_scanner();
 	
-	// Set ADS state
+	/// Set ADS state
 	void set_ads_state(ADSSTATE state);
-	// Set up ADS status change notification
+	/// Set up ADS status change notification
 	void setup_ads_notification();
-	// Remove ADS status change notification
+	/// Remove ADS status change notification
 	void remove_ads_notification();
 
 	/// Opens a new ADS communication port
 	long openPort();
 	/// Closes an ADS communication port
-	/// @param Number of port to close
+	/// @param nPort Number of port to close
 	void closePort(long nPort);
 
+	/// Mutex
 	std::mutex	sync;
 	/// AMS netID of TwinCAT system and port number for this PLC
 	AmsAddr	addr;
-	/// Run-time system number
-	int	nRTS;
 	/// The path of the tpy file
 	std::string	pathTpy;
 	/// Modification time of file
@@ -356,6 +366,9 @@ protected:
 	std::vector<DataPar> adsGroupReadRequestVector;
 	/// Vector of buffers for each read request group
 	std::vector<buffer_ptr>	adsResponseBufferVector;
+	/// List of all records that don't interface directly with a PLC (info)
+	plc::BaseRecordList	nonTcRecords;
+
 	/// Slowdown multiple for EPICS read
 	int	scanRateMultiple;
 	/** Cycles until EPICS read will be made
@@ -380,6 +393,13 @@ protected:
 	long nNotificationPort;
 	/// read active and successful
 	bool read_active;
+private:
+	/// Map PLC instance to an integer for use in ADScallback
+	static std::vector<TcPLC*> plcVec;
+	/// Mutex for PLC instance vector
+	static std::mutex plcVecMutex;
+	/// PLC ID
+	unsigned plcId;
 };
 
 /** Class for a AMS router notifications
@@ -394,13 +414,37 @@ public:
 	/// get router notification
 	static AmsRouterEvent get_router_notification() {
 		return gAmsRouterNotification.ams_router_event.load(); };
+	///get global instance
+	static const AmsRouterNotification& get_instance() {
+		return gAmsRouterNotification; }
+
+	/// get ADS protocol/library version
+	int get_ads_version() const {
+		return ads_version; }
+	/// get ADS protocol/library revision
+	int get_ads_revision() const {
+		return ads_revision; }
+	/// get ADS protocol/library build
+	int get_ads_build() const {
+		return ads_build; }
+protected:
+	/// ADS protocol/library version
+	int ads_version;
+	/// ADS protocol/library revision
+	int ads_revision;
+	/// ADS protocol/library build
+	int ads_build;
 private:
 	/// AMS router state
 	std::atomic<AmsRouterEvent>	ams_router_event;
 	/// Constructor
 	AmsRouterNotification();
+	/// Copy constructor
+	AmsRouterNotification (const AmsRouterNotification&);
 	/// Destructor
 	~AmsRouterNotification();
+	/// Copy operator
+	AmsRouterNotification& operator= (const AmsRouterNotification&);
 	/// set router notification
 	static void set_router_notification(AmsRouterEvent routerevent);
 	/// one global instance

@@ -9,14 +9,16 @@
 
 /** @namespace ParseTpy
 	ParseTpy name space 
- ************************************************************************/
+ 	@brief Namespace for parsing
+************************************************************************/
 namespace ParseTpy {
 
-/** @defgroup parsetpyopc Classes for describing project information
+/** @defgroup parsetpyopc TwinCAT tpy file parser
  ************************************************************************/
 /** @{ */
 
 /** This is a base class for storing the ADS routing information
+    @brief ADS routing information
  ************************************************************************/
 class ads_routing_info {
 public:
@@ -72,12 +74,14 @@ protected:
 	std::stringcase	ads_targetname;
 };
 
-/* This is a base class for storing the compiler information
+/** This is a base class for storing the compiler information
+	@brief Compiler information
 ************************************************************************/
 class compiler_info {
 public:
 	/// Default constructor
-	compiler_info() : cmpl_version (0), tcat_version (0) {}
+	compiler_info() : cmpl_version (0), tcat_version_major(0), 
+		tcat_version_minor(0), tcat_version_build(0) {}
 
 	/// Get compiler version string
 	const std::stringcase& get_cmpl_versionstr() const { return cmpl_versionstr; }
@@ -90,8 +94,12 @@ public:
 	const std::stringcase& get_tcat_versionstr() const { return tcat_versionstr; }
 	/// Set twincat version string
 	void set_tcat_versionstr (const std::stringcase& versionstr);
-	/// Get twincat version
-	double get_tcat_version() const { return tcat_version; }
+	/// Get twincat major version
+	unsigned int get_tcat_version_major() const { return tcat_version_major; }
+	/// Get twincat minor version
+	unsigned int get_tcat_version_minor() const { return tcat_version_minor; }
+	/// Get twincat build version
+	unsigned int get_tcat_version_build() const { return tcat_version_build; }
 
 	/// Get cpu familiy string
 	const std::stringcase& get_cpu_family() const { return cpu_family; }
@@ -110,8 +118,12 @@ protected:
 	double			cmpl_version;
 	/// twincat version string
 	std::stringcase	tcat_versionstr;
-	/// twincat version number
-	double			tcat_version;
+	/// twincat major version number
+	unsigned int	tcat_version_major;
+	/// twincat minor version number
+	unsigned int	tcat_version_minor;
+	/// twincat build version number
+	unsigned int	tcat_version_build;
 	/// cpu family string
 	std::stringcase	cpu_family;
 };
@@ -120,6 +132,7 @@ protected:
 ************************************************************************/
 
 /** This is a base class for storing the project information
+	@brief Project information
 ************************************************************************/
 class project_record : public ads_routing_info, public compiler_info {
 public:
@@ -129,28 +142,24 @@ public:
 protected:
 };
 
-/** @} */
-
-/** @defgroup parsetpyitem Classes for describing a structure element
- ************************************************************************/
-/** @{ */
 
 /** This is a base class for storing name, type, type id and opc list
- ************************************************************************/
+     @brief Base record definition
+************************************************************************/
 class base_record 
 {
 public:
 	/// Default constructor
-	base_record() : type_decoration (0) {}
+	base_record() : type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	explicit base_record (const std::stringcase& n) 
-		: name (n), type_decoration (0) {}
+		: name (n), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o) 
-		: name (n), opc (o), type_decoration (0) {}
+		: name (n), opc (o), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
@@ -158,7 +167,7 @@ public:
 	/// @param td Type decortation or id
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o,
 		const std::stringcase& tn, int td = 0) 
-		: name (n), opc (o), type_n (tn), type_decoration (td) {}
+		: name (n), opc (o), type_n (tn), type_decoration (td), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param tn Type name
@@ -224,6 +233,7 @@ typedef std::map<int, std::stringcase> enum_map;
 typedef std::pair<int, std::stringcase> enum_pair;
 
 /** This class stores typed items.
+	@brief item record
 ************************************************************************/
 class item_record : public base_record, public ParseUtil::bit_location
 {
@@ -236,14 +246,10 @@ public:
 ************************************************************************/
 typedef std::list<item_record> item_list;
 
-/** @} */
-
-/** @defgroup parsetpytype Classes for describing a type
- ************************************************************************/
-/** @{ */
 
 /** This structure describes a type record
- ************************************************************************/
+     @brief Type enum
+************************************************************************/
 enum type_enum 
 {
 	/// Unknown type
@@ -261,7 +267,8 @@ enum type_enum
 };
 
 /** This structure holds a type record
- ************************************************************************/
+    @brief Type record information
+************************************************************************/
 class type_record : public base_record, public ParseUtil::bit_location
 {
 public:
@@ -300,7 +307,7 @@ protected:
 	dimensions		array_list;
 	/// map of enum id and name
 	enum_map		enum_list;
-	// list of structure elements
+	/// list of structure elements
 	item_list		struct_subitems;
 };
 
@@ -309,6 +316,7 @@ protected:
 typedef std::multimap<unsigned int, type_record> type_multipmap;
 
 /** This is a map of type records, index is type number as defined in tpy
+	@brief Type dictionary
 ************************************************************************/
 class type_map : protected type_multipmap
 {
@@ -325,13 +333,9 @@ public:
 	find (value_type::first_type id, const std::stringcase& typn) const;
 };
 
-/** @} */
-
-/** @defgroup parsetpysymbol Classes for describing a symbol
- ************************************************************************/
-/** @{ */
 
 /** This structure holds a symbol record
+	@brief Symbol record
 ************************************************************************/
 class symbol_record : public base_record, public ParseUtil::memory_location
 {
@@ -349,13 +353,9 @@ public:
 ************************************************************************/
 typedef std::list<symbol_record> symbol_list;
 
-/** @} */
-
-/** @defgroup parsetpyparseinfo Classes for describing the parser
- ************************************************************************/
-/** @{ */
 
 /** This class holds the structure of a tpy file
+	@brief Tpy file parsing
 ************************************************************************/
 class tpy_file : public ParseUtil::tag_processing
 {
@@ -457,7 +457,6 @@ protected:
 	/** Resolves the type information for an array. Calls the process 
 	function for each index with an argument of type process_arg.
 	@param typ Name of type to resolve
-	@param id Decoration or unique ID of type
 	@param dim Dimensions of the array
 	@param defopc Default list of OPC parameters
 	@param loc Memory location of variable

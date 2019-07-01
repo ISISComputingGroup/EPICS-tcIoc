@@ -2,7 +2,7 @@
 #include "ParseTpy.h"
 #include "ParseUtilConst.h"
 #include "ParseTpyConst.h"
-#define XML_STATIC
+#define XML_STATIC ///< Static linking
 #include "Expat/expat.h"
 #if defined(__amigaos__) && defined(__USE_INLINE__)
 #include <proto/expat.h>
@@ -10,12 +10,12 @@
 
 #ifdef XML_LARGE_SIZE
 #if defined(XML_USE_MSC_EXTENSIONS) && _MSC_VER < 1400
-#define XML_FMT_INT_MOD "I64"
+#define XML_FMT_INT_MOD "I64" ///< Int format
 #else
-#define XML_FMT_INT_MOD "ll"
+#define XML_FMT_INT_MOD "ll" ///< Int format
 #endif
 #else
-#define XML_FMT_INT_MOD "l"
+#define XML_FMT_INT_MOD "l" ///< Int format
 #endif
 
 using namespace ParseUtil;
@@ -35,12 +35,13 @@ static void XMLCALL startCData (void *userData);
 static void XMLCALL endCData (void *userData);
 static void XMLCALL dataElement (void *userData, const char *data, int len);
 
-/* This structure keeps track of the parser information.
+/** This structure keeps track of the parser information.
+	@brief Parser information
  ************************************************************************/
 class parserinfo_type 
 {
 public:
-	// Constructor
+	/// Constructor
 	parserinfo_type (project_record& p, symbol_list& s, type_map& t) 
 		: ignore (0), projects (false), routing (0), compiler (0), types (0), 
 		symbols(0), name_parse (0), type_parse (0), opc_cur (0), 
@@ -50,41 +51,41 @@ public:
 		struct_parse (0), fb_parse(0),
 		project_info (&p), sym_list (&s), type_list (&t) {}
 
-	// Get symbol list
+	/// Get symbol list
 	symbol_list& get_symbols() { return *sym_list; }
-	// Get type list
+	/// Get type list
 	type_map& get_types() { return *type_list; }
-	// Get project information
+	/// Get project information
 	project_record& get_projectinfo() { return *project_info; }
 
-	// Initialze temporary parser info
+	/// Initialze temporary parser info
 	void init ();
-	// Get type of parsed object
+	/// Get type of parsed object
 	type_enum get_type_description() const;
 
-	// the very top of the xml tag hierarchy (not within any tag)
+	/// the very top of the xml tag hierarchy (not within any tag)
 	bool verytop() {
 		return !projects && !ignore && !routing && !compiler && !types && !symbols; }
-	// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
+	/// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
 	bool top() {
 		return projects && !ignore && !routing && !compiler && !types && !symbols; }
 
-	// ignore elements during parsing (with level)
+	/// ignore elements during parsing (with level)
 	int				ignore;
-	// parsing withing PlcProjectInfo tag
+	/// parsing withing PlcProjectInfo tag
 	bool			projects;
-	// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
+	/// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
 	int				routing;
-	// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
+	/// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
 	int				compiler;
-	// parsing within DataTypes tag (1) or DataType tag (2)
+	/// parsing within DataTypes tag (1) or DataType tag (2)
 	int				types;
-	// parsing within Symbols tag (1) or Symbol tag (2)
+	/// parsing within Symbols tag (1) or Symbol tag (2)
 	int				symbols;
 
-	// temporary symbol information during parsing
+	/// temporary symbol information during parsing
 	symbol_record	sym;
-	// temporary type information during parsing
+	/// temporary type information during parsing
 	type_record		rec;
 
 	/// level indicator for type name parsing
@@ -139,20 +140,20 @@ public:
 	int				fb_parse;
 
 protected:
-	// pointer to symbol list
+	/// pointer to symbol list
 	symbol_list*	sym_list;
-	// pointer to type list
+	/// pointer to type list
 	type_map*		type_list;
-	// pointer to project info
+	/// pointer to project info
 	project_record*	project_info;
 
 private:
-	// Default constructor
+	/// Default constructor
 	parserinfo_type();
 };
 
 
-/* type:record::init
+/* parserinfo_type::init
  ************************************************************************/
  void parserinfo_type::init() 
  {
@@ -180,7 +181,7 @@ private:
 	 fb_parse = 0;
  }
 
-/* type:record::get_type_description
+/* parserinfo_type::get_type_description
  ************************************************************************/
  type_enum parserinfo_type::get_type_description() const
  {
@@ -251,12 +252,13 @@ bool ads_routing_info::set (const std::stringcase& s)
 	int p = 0;
 	int end = 0;
 	int num = sscanf_s (s.c_str(), " tc://%255s:%i%n", 
-		buf, sizeof (buf), p, &end);
+		buf, static_cast<unsigned>(sizeof (buf)), &p, &end);
 	if ((num != 2) || (end != s.length())) {
 		ads_netid = "";
 		ads_port = 0;
 		return false;
 	}
+	buf[255] = 0;
 	std::stringcase	ads_netid_old = ads_netid;
 	int ads_port_old = ads_port;
 	ads_netid = buf;
@@ -303,7 +305,7 @@ bool compiler_info::is_cmpl_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (cmpl_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	int num = sscanf_s (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
 	if ((num != 0) || (end != cmpl_versionstr.length())) {
 		return false;
 	}
@@ -316,23 +318,13 @@ void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr)
 { 
 	tcat_versionstr = versionstr; 
 	if (is_tcat_Valid ()) {
-		int v1, v2;
-		sscanf_s (tcat_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
-		if (v2 > 99) {
-			tcat_version = v1 + (double)v2/1000;
-		} 
-		else if (v2 > 9) {
-			tcat_version = v1 + (double)v2/100;
-		}
-		else if (v2 > 0) {
-			tcat_version = v1 + (double)v2/10;
-		}
-		else {
-			tcat_version = 0;
-		}
+		sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u", &tcat_version_major, 
+			&tcat_version_minor, &tcat_version_build);
 	}
 	else {
-		tcat_version = 0;
+		tcat_version_major = 0;
+		tcat_version_minor = 0;
+		tcat_version_build = 0;
 	}
 }
 
@@ -344,7 +336,7 @@ bool compiler_info::is_tcat_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (tcat_versionstr.c_str(), "%*i.%*i.%*s%n", &end);
+	int num = sscanf_s (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
 	if ((num != 0) || (end != tcat_versionstr.length())) {
 		return false;
 	}
@@ -357,18 +349,18 @@ void type_map::insert (value_type val)
 	type_multipmap::insert (val);
 }
 
-/* compareNamesWoNamespace
+/** compareNamesWoNamespace
  ************************************************************************/
 bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
 {
-	int pos = p1.length() - p2.length();
+	int pos = static_cast<int>(p1.length() - p2.length());
 	if (pos > 0) {
-		return (p1[pos-1] == '.') &&
+		return (p1[(std::stringcase::size_type)pos-1] == '.') &&
 			(p1.compare (pos, std::stringcase::npos, p2) == 0);
 	}
 	else if (pos < 0) {
 		pos = -pos;
-		return (p2[pos-1] == '.') &&
+		return (p2[(std::stringcase::size_type)pos-1] == '.') &&
 			(p2.compare (pos, std::stringcase::npos, p1) == 0);
 	}
 	else {
@@ -492,7 +484,7 @@ void tpy_file::parse_finish ()
 /* XML Parsing
  ************************************************************************/
 
-/* XML get decoration number from attribute
+/** XML get decoration number from attribute
  ************************************************************************/
 bool get_decoration (const char **atts, unsigned int& decoration)
 {
@@ -506,7 +498,7 @@ bool get_decoration (const char **atts, unsigned int& decoration)
 	return false;
 }
 
-/* XML get pointer from attribute
+/** XML get pointer from attribute
  ************************************************************************/
 bool get_pointer (const char **atts)
 {

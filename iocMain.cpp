@@ -5,22 +5,25 @@
 #include <ctime>
 
 extern "C" {
-__declspec(dllimport) void stopTc(void);
+__declspec(dllimport) void stopTc(void); ///< DLL import for stopTc
 }
 
 
 
 // Time the initialization process
-clock_t begin;
-clock_t end;
+static clock_t begin;
+static clock_t end;
 
 /** @file iocMain.cpp
 	The main program for the TwinCAT IOC.
  ************************************************************************/
 
 
-bool debug;
+static bool debug;
 
+/** Main program for tcIoc
+	@brief tcIoc
+ */
 int main(int argc,char *argv[])
 {
 	// Start timer
