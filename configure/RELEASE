@@ -41,11 +41,9 @@ EPICS_BASE = C:/Instrument/Apps/EPICS/base/master
 -include $(TOP)/../RELEASE.local
 -include $(TOP)/configure/RELEASE.local
 
-#ASYN=$(SUPPORT)/asyn/master
-#ONCRPC=$(SUPPORT)/oncrpc/master
-
 # optional extra local definitions here
 -include $(TOP)/configure/RELEASE.private
 
+# ISIS specific config, comment out if not at ISIS
 include $(TOP)/../../../ISIS_CONFIG
 -include $(TOP)/../../../ISIS_CONFIG.$(EPICS_HOST_ARCH)

@@ -369,6 +369,7 @@ bool TcPLC::start()
 		printf("Failed to open ADS ports\n");
 		return false;
 	}
+	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
 		unsigned short port = addr.port;
