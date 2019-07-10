@@ -11,47 +11,62 @@ namespace plc {
 
 System System::tCat;
 
+/* Interface::get_parent
+ ************************************************************************/
+BasePLC* Interface::get_parent()
+{
+	return record.get_parent();
+}
+
+/* Interface::get_parent
+ ************************************************************************/
+const BasePLC* Interface::get_parent() const
+{
+	return record.get_parent();
+}
+
+
 /* DataValueTraits: template specialization
  ************************************************************************/
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_bool>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = dtBool;
+	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = dtBool; ///< Bool specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = dtInt8;
+	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = dtInt8; ///< Int8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = dtUInt8;
+	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = dtUInt8; ///< UInt8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = dtInt16;
+	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = dtInt16; ///< Int16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = dtInt16;
+	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = dtInt16; ///< UInt16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = dtInt32;
+	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = dtInt32; ///< Int32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = dtInt32;
+	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = dtInt32; ///< UInt32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_float>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_float>::data_enum = dtFloat;
+	DataValueTraits<DataValueTypeDef::type_float>::data_enum = dtFloat; ///< Float specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_double>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_double>::data_enum = dtDouble;
+	DataValueTraits<DataValueTypeDef::type_double>::data_enum = dtDouble; ///< Double specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_string>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_string>::data_enum = dtString;
+	DataValueTraits<DataValueTypeDef::type_string>::data_enum = dtString; ///< String specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_wstring>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = dtWString;
+	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = dtWString; ///< WString specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_binary>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = dtBinary;
+	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = dtBinary; ///< Binary specialization for DataValueTraits
 
 
-/* Will read the value and reset the dirty flag (wstring from string).
+/** Will read the value and reset the dirty flag (wstring from string).
    @brief Reset and read
  ************************************************************************/
 template<>
@@ -67,7 +82,7 @@ bool reset_and_read (DataValueTypeDef::atomic_bool& dirty,
 	return true;
 }
 
-/* Will set the dirty bit, when the newly written value is different 
+/** Will set the dirty bit, when the newly written value is different 
    from the old one (string to wstring).
    @brief Write and test
  ************************************************************************/
@@ -273,8 +288,7 @@ bool DataValue::Read (atomic_bool& dirty, type_string& data) const
 {
 	switch (mytype) {
 	case dtString:
-		//plc::DataValueTraits<type_string>::traits_atomic
-		return reset_and_read(dirty, data, (atomic_string*)mydata);
+		return reset_and_read (dirty, data, (atomic_string*)mydata);
 	default:
 		return false;
 	}
@@ -297,7 +311,7 @@ bool DataValue::Read (atomic_bool& dirty, type_wstring& data) const
 
 /* DataValue::Read (type_string_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_string_value* data, int max) const
+bool DataValue::Read (atomic_bool& dirty, type_string_value* data, size_type max) const
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -311,7 +325,7 @@ bool DataValue::Read (atomic_bool& dirty, type_string_value* data, int max) cons
 
 /* DataValue::Read (type_wstring_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, int max) const
+bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -355,7 +369,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_string_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_string_value* data, int max)
+					   const type_string_value* data, size_type max)
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -368,7 +382,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_wstring_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_wstring_value* data, int max)
+					   const type_wstring_value* data, size_type max)
 {
 	if (!data || (max <= 0)) {
 		return false;
@@ -509,7 +523,6 @@ BasePLC::time_type BaseRecord::get_timestamp() const
 	return parent->get_timestamp();
 }
 
-
 /************************************************************************/
 /* BasePLC */
 /************************************************************************/
@@ -615,10 +628,10 @@ void BasePLC::update_timestamp()
 
 /* BasePLC::count
  ************************************************************************/
-int BasePLC::count()
+int BasePLC::count() const
 {
 	guard lock (mux);
-	return records.size();
+	return (int)records.size();
 }
 
 /* BasePLC::test
@@ -641,7 +654,8 @@ void BasePLC::plc_data_set_valid (bool valid)
 	});
 }
 
-/* Structure for arguments sent to a scanner thread
+/** Structure for arguments sent to a scanner thread
+    @brief Scanner thread arguments
  ************************************************************************/
 typedef struct 
 { 
@@ -653,11 +667,8 @@ typedef struct
 	plc::BasePLC::scanner_func scanner; 
 } scanner_thread_args;
 
-/* Scanner thread with periodic timer
-	This function uses the windows waitable timer which will call a 
-	completion routine at a regular interval. The completion routine in 
-	this case is one of either read_scanner, write_scanner, or 
-	update_scanner.
+/** Scanner thread callback with periodic timer
+	@brief Scanner thread callback
  ************************************************************************/
 VOID CALLBACK ScannerProc (
    LPVOID lpArg,               // Data value
@@ -671,6 +682,13 @@ VOID CALLBACK ScannerProc (
 	}
 }
 
+/** Scanner thread with periodic timer
+	This function uses the windows waitable timer which will call a
+	completion routine at a regular interval. The completion routine in
+	this case is one of either read_scanner, write_scanner, or
+	update_scanner.
+    @brief Scanner thread
+************************************************************************/
 DWORD WINAPI scannerThread (scanner_thread_args args)
 {
 	HANDLE				hTimer;
@@ -783,11 +801,20 @@ void System::printVals()
 {
 	guard lock (mux);
 
-	for (auto it = PLCs.begin(); it != PLCs.end(); ++it)
-	{
-		if (it->second.get()) it->second.get()->printAllRecords();
+	for (auto const& it : PLCs)	{
+		if (it.second.get()) it.second.get()->printAllRecords();
 	}
+}
 
+/* System::printVal
+ ************************************************************************/
+void System::printVal(const std::string& var)
+{
+	guard lock(mux);
+
+	for (auto const& it : PLCs) {
+		if (it.second.get()) it.second.get()->printRecord (var);
+	}
 }
 
 /* System::find
@@ -821,7 +848,8 @@ void System::stop()
 }
 
 extern "C" {
-	void stopTc(void) {
+	/// Stop TwinCAT
+	__declspec(dllexport) void stopTc(void) {
 		plc::System::get().stop();
 	}
 }

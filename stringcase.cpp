@@ -1,4 +1,3 @@
-//#include "stdafx.h"
 #include "stringcase.h"
 
 /** @file stringcase.cpp
@@ -9,37 +8,37 @@ namespace std {
 
 /* This string comparison function is not case sensitive.
  ************************************************************************/
-int _strncasecmp (const char *s1, const char *s2, int n) 
-{
-	int d, i = 0;
-	if (n <= 0) {
-		return 0;
-	}
-	while (s1[i] || s2[i]) {
-		if ((d = tolower (s1[i]) - tolower (s2[i])))
-			return d;
-		if (++i == n)
-			break;
-	}
-	return 0;
-}
+//int _strncasecmp (const char *s1, const char *s2, int n) 
+//{
+//	int d, i = 0;
+//	if (n <= 0) {
+//		return 0;
+//	}
+//	while (s1[i] || s2[i]) {
+//		if ((d = tolower (s1[i]) - tolower (s2[i])))
+//			return d;
+//		if (++i == n)
+//			break;
+//	}
+//	return 0;
+//}
 
 /* This unicode string comparison function is not case sensitive.
  ************************************************************************/
-int _wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, int n) 
-{
-	int d, i = 0;
-	if (n <= 0) {
-		return 0;
-	}
-	while (s1[i] || s2[i]) {
-		if ((d = towlower (s1[i]) - towlower (s2[i])))
-			return d;
-		if (++i == n)
-			break;
-	}
-	return 0;
-}
+//int _wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, int n) 
+//{
+//	int d, i = 0;
+//	if (n <= 0) {
+//		return 0;
+//	}
+//	while (s1[i] || s2[i]) {
+//		if ((d = towlower (s1[i]) - towlower (s2[i])))
+//			return d;
+//		if (++i == n)
+//			break;
+//	}
+//	return 0;
+//}
 
 /* trim space on both ends.
  ************************************************************************/

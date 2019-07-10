@@ -8,13 +8,13 @@ namespace plc {
 	the DataValue class.
  ************************************************************************/
 
-/* DataValue::data_enum
+/** DataValue::data_enum
  ************************************************************************/
 template <typename T> 
 	const typename DataValueTraits<T>::data_type_enum 
 	DataValueTraits<T>::data_enum = dtInvalid;
 
-/* Will read the value and reset the dirty flag.
+/** Will read the value and reset the dirty flag.
    @brief Reset and read
  ************************************************************************/
 template<typename T, typename U>
@@ -27,7 +27,7 @@ bool reset_and_read (DataValueTypeDef::atomic_bool& dirty,
 	return true;
 }
 
-/* Will read the value and reset the dirt flag (same type).
+/** Will read the value and reset the dirt flag (same type).
    @brief Reset and read
  ************************************************************************/
 template<typename T>
@@ -40,7 +40,7 @@ bool reset_and_read (DataValueTypeDef::atomic_bool& dirty, T& dest,
 	return true;
 }
 
-/* Will set the dirty bit, when the newly written value is different 
+/** Will set the dirty bit, when the newly written value is different 
    from the old one.
    @brief Write and test
  ************************************************************************/
@@ -60,7 +60,7 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	return true;
 }
 
-/* Will set the dirty bit, when the newly written value is different 
+/** Will set the dirty bit, when the newly written value is different 
    from the old one (same type).
    @brief Write and test
  ************************************************************************/
@@ -81,7 +81,7 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	return true;
 }
 
-/* DataValue::Read (bool, Inegral and floating point types)
+/** DataValue::Read (bool, Inegral and floating point types)
  ************************************************************************/
 template <typename T> 
 bool DataValue::Read (atomic_bool& dirty, T& data) const
@@ -114,7 +114,7 @@ bool DataValue::Read (atomic_bool& dirty, T& data) const
 	}
 }
 
-/* DataValue::UserWrite (bool, Inegral and floating point types)
+/** DataValue::UserWrite (bool, Inegral and floating point types)
  ************************************************************************/
 template<typename T> 
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& data)
@@ -148,7 +148,8 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& dat
 }
 
 /* BaseRecord::UserPush
- ************************************************************************/inline
+ ************************************************************************/
+inline
 bool BaseRecord::UserPush (bool force) 
 { 
 	if (user.get() && (force || UserIsDirty())) {
@@ -160,7 +161,8 @@ bool BaseRecord::UserPush (bool force)
 }
 
 /* BaseRecord::UserPull
- ************************************************************************/inline
+ ************************************************************************/
+inline
 bool BaseRecord::UserPull() 
 { 
 	if (user.get()) {
@@ -172,7 +174,8 @@ bool BaseRecord::UserPull()
 }
 
 /* BaseRecord::PlcPush
- ************************************************************************/inline
+ ************************************************************************/
+inline
 bool BaseRecord::PlcPush (bool force) 
 { 
 	if (plc.get() && (force || PlcIsDirty())) {
@@ -184,7 +187,8 @@ bool BaseRecord::PlcPush (bool force)
 }
 
 /* BaseRecord::PlcPull
- ************************************************************************/inline
+ ************************************************************************/
+inline
 bool BaseRecord::PlcPull() 
 { 
 	if (plc.get()) {

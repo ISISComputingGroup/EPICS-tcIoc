@@ -9,22 +9,28 @@
 
 /** @namespace ParseTpy
 	ParseTpy name space 
- ************************************************************************/
+ 	@brief Namespace for parsing
+************************************************************************/
 namespace ParseTpy {
 
-/** @defgroup parsetpyopc Classes for describing project information
+/** @defgroup parsetpyopc TwinCAT tpy file parser
  ************************************************************************/
 /** @{ */
 
 /** This is a base class for storing the ADS routing information
+    @brief ADS routing information
  ************************************************************************/
 class ads_routing_info {
 public:
 	/// Default constructor
-	ads_routing_info() : ads_port () {}
+	ads_routing_info() : ads_port (0) {}
 	/// Constructor
 	explicit ads_routing_info (const std::stringcase& netid, int port = 801)
 		: ads_netid (netid), ads_port (port) {}
+	/// Constructor
+	explicit ads_routing_info (const std::stringcase& netid, int port,
+							   const std::stringcase& targetname)
+		: ads_netid (netid), ads_port (port), ads_targetname(targetname) {}
 
 	/// Get ADS net id
 	const std::stringcase& get_netid() const { return ads_netid; }
@@ -34,6 +40,10 @@ public:
 	int get_port() const { return ads_port; }
 	/// Set ADS port
 	void set_port (int port) { ads_port = port; }
+	/// Get ADS target name
+	const std::stringcase& get_targetname() const { return ads_targetname; }
+	/// Set ADS target name
+	void set_targetname (const std::stringcase& targetname) { ads_targetname = targetname; }
 
 	/// Checks, if net id is of the form n.n.n.n.n.n
 	bool isValid() const;
@@ -60,17 +70,71 @@ protected:
 	std::stringcase	ads_netid;
 	/// ADS port
 	int				ads_port;
+	/// ADS target name
+	std::stringcase	ads_targetname;
 };
 
-/* This is a base class for storing the target information
+/** This is a base class for storing the compiler information
+	@brief Compiler information
 ************************************************************************/
+class compiler_info {
+public:
+	/// Default constructor
+	compiler_info() : cmpl_version (0), tcat_version_major(0), 
+		tcat_version_minor(0), tcat_version_build(0) {}
+
+	/// Get compiler version string
+	const std::stringcase& get_cmpl_versionstr() const { return cmpl_versionstr; }
+	/// Set compiler version string
+	void set_cmpl_versionstr (const std::stringcase& versionstr);
+	/// Get compiler version
+	double get_cmpl_version() const { return cmpl_version; }
+
+	/// Get twincat version string
+	const std::stringcase& get_tcat_versionstr() const { return tcat_versionstr; }
+	/// Set twincat version string
+	void set_tcat_versionstr (const std::stringcase& versionstr);
+	/// Get twincat major version
+	unsigned int get_tcat_version_major() const { return tcat_version_major; }
+	/// Get twincat minor version
+	unsigned int get_tcat_version_minor() const { return tcat_version_minor; }
+	/// Get twincat build version
+	unsigned int get_tcat_version_build() const { return tcat_version_build; }
+
+	/// Get cpu familiy string
+	const std::stringcase& get_cpu_family() const { return cpu_family; }
+	/// Set cpu familiy string
+	void set_cpu_family (const std::stringcase& family) {cpu_family = family; };
+
+	/// Checks, if version is of the form n.n...
+	bool is_cmpl_Valid() const;
+	/// Checks, if twincat version is of the form n.n...
+	bool is_tcat_Valid() const;
+
+protected:
+	/// version string
+	std::stringcase	cmpl_versionstr;
+	/// version number
+	double			cmpl_version;
+	/// twincat version string
+	std::stringcase	tcat_versionstr;
+	/// twincat major version number
+	unsigned int	tcat_version_major;
+	/// twincat minor version number
+	unsigned int	tcat_version_minor;
+	/// twincat build version number
+	unsigned int	tcat_version_build;
+	/// cpu family string
+	std::stringcase	cpu_family;
+};
 
 /* This is a base class for storing the task information
 ************************************************************************/
 
-/** This is a base class for storing name, type, type id and opc list
+/** This is a base class for storing the project information
+	@brief Project information
 ************************************************************************/
-class project_record : public ads_routing_info {
+class project_record : public ads_routing_info, public compiler_info {
 public:
 	/// Default constructor
 	project_record () {}
@@ -78,28 +142,24 @@ public:
 protected:
 };
 
-/** @} */
-
-/** @defgroup parsetpyitem Classes for describing a structure element
- ************************************************************************/
-/** @{ */
 
 /** This is a base class for storing name, type, type id and opc list
- ************************************************************************/
+     @brief Base record definition
+************************************************************************/
 class base_record 
 {
 public:
 	/// Default constructor
-	base_record() : type_decoration (0) {}
+	base_record() : type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	explicit base_record (const std::stringcase& n) 
-		: name (n), type_decoration (0) {}
+		: name (n), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o) 
-		: name (n), opc (o), type_decoration (0) {}
+		: name (n), opc (o), type_decoration (0), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param o OPC list
@@ -107,14 +167,14 @@ public:
 	/// @param td Type decortation or id
 	base_record (const std::stringcase& n, const ParseUtil::opc_list& o,
 		const std::stringcase& tn, int td = 0) 
-		: name (n), opc (o), type_n (tn), type_decoration (td) {}
+		: name (n), opc (o), type_n (tn), type_decoration (td), type_pointer(false) {}
 	/// Constructor
 	/// @param n Name
 	/// @param tn Type name
 	/// @param td Type decortation or id
 	base_record (const std::stringcase& n, 
 		const std::stringcase& tn, int td = 0) 
-		: name (n), type_n (tn), type_decoration (td) {}
+		: name (n), type_n (tn), type_decoration (td), type_pointer(false) {}
 
 	/// Get name
 	const std::stringcase& get_name() const { return name; }
@@ -132,6 +192,10 @@ public:
 	unsigned int get_type_decoration () const { return type_decoration; }
 	/// Set type decoration 
 	void set_type_decoration (unsigned int id) {type_decoration = id; }
+	/// Get type pointer
+	bool get_type_pointer () const { return type_pointer; }
+	/// Set type pointer 
+	void set_type_pointer (bool isPointer) {type_pointer = isPointer; }
 
 	/// Get OPC list
 	const ParseUtil::opc_list& get_opc() const { return opc; }
@@ -145,6 +209,8 @@ protected:
 	std::stringcase		type_n;
 	/// decoration or type ID of type definition
 	unsigned int		type_decoration;
+	/// this is a pointer
+	bool				type_pointer;
 
 	/// list of opc properties
 	ParseUtil::opc_list	opc;
@@ -167,6 +233,7 @@ typedef std::map<int, std::stringcase> enum_map;
 typedef std::pair<int, std::stringcase> enum_pair;
 
 /** This class stores typed items.
+	@brief item record
 ************************************************************************/
 class item_record : public base_record, public ParseUtil::bit_location
 {
@@ -179,14 +246,10 @@ public:
 ************************************************************************/
 typedef std::list<item_record> item_list;
 
-/** @} */
-
-/** @defgroup parsetpytype Classes for describing a type
- ************************************************************************/
-/** @{ */
 
 /** This structure describes a type record
- ************************************************************************/
+     @brief Type enum
+************************************************************************/
 enum type_enum 
 {
 	/// Unknown type
@@ -204,7 +267,8 @@ enum type_enum
 };
 
 /** This structure holds a type record
- ************************************************************************/
+    @brief Type record information
+************************************************************************/
 class type_record : public base_record, public ParseUtil::bit_location
 {
 public:
@@ -243,15 +307,16 @@ protected:
 	dimensions		array_list;
 	/// map of enum id and name
 	enum_map		enum_list;
-	// list of structure elements
+	/// list of structure elements
 	item_list		struct_subitems;
 };
 
-/** This is a multimap toi store type records
+/** This is a multimap to store type records
 ************************************************************************/
 typedef std::multimap<unsigned int, type_record> type_multipmap;
 
 /** This is a map of type records, index is type number as defined in tpy
+	@brief Type dictionary
 ************************************************************************/
 class type_map : protected type_multipmap
 {
@@ -268,13 +333,9 @@ public:
 	find (value_type::first_type id, const std::stringcase& typn) const;
 };
 
-/** @} */
-
-/** @defgroup parsetpysymbol Classes for describing a symbol
- ************************************************************************/
-/** @{ */
 
 /** This structure holds a symbol record
+	@brief Symbol record
 ************************************************************************/
 class symbol_record : public base_record, public ParseUtil::memory_location
 {
@@ -292,13 +353,9 @@ public:
 ************************************************************************/
 typedef std::list<symbol_record> symbol_list;
 
-/** @} */
-
-/** @defgroup parsetpyparseinfo Classes for describing the parser
- ************************************************************************/
-/** @{ */
 
 /** This class holds the structure of a tpy file
+	@brief Tpy file parsing
 ************************************************************************/
 class tpy_file : public ParseUtil::tag_processing
 {
@@ -400,7 +457,6 @@ protected:
 	/** Resolves the type information for an array. Calls the process 
 	function for each index with an argument of type process_arg.
 	@param typ Name of type to resolve
-	@param id Decoration or unique ID of type
 	@param dim Dimensions of the array
 	@param defopc Default list of OPC parameters
 	@param loc Memory location of variable
