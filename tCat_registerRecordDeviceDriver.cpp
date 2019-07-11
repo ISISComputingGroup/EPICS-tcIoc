@@ -211,8 +211,8 @@ static const dset * const devsl[] = {
 
 typedef void (*reg_func)(void);
 epicsShareExtern reg_func pvar_func_arrInitialize, pvar_func_asSub,
-    pvar_func_dbndInitialize, pvar_func_syncInitialize,
-    pvar_func_tsInitialize;
+    pvar_func_caPutLogRegister, pvar_func_dbndInitialize,
+    pvar_func_syncInitialize, pvar_func_tsInitialize;
 
 epicsShareExtern int * const pvar_int_CASDEBUG;
 epicsShareExtern int * const pvar_int_asCaDebug;
@@ -256,10 +256,14 @@ static struct iocshVarDef vardefs[] = {
 int tCat_registerRecordDeviceDriver(DBBASE *pbase)
 {
     static int executed = 0;
-    const char *bldTop = "C:/devel/github/tcIoc/TCatDeviceSupport";
-    const char *envTop = getenv("TOP");
+    const char *bldTop = "C:/SlowControls/EPICS/Utilities/tcIoc/TCatDeviceSupport";
+	char envTop[1024];
+	size_t ret;
+	if (getenv_s (&ret, envTop, sizeof(envTop), "TOP") || (ret >= sizeof (envTop))) {
+		envTop[0] = 0;
+	}
 
-    if (envTop && strcmp(envTop, bldTop)) {
+	if ((strlen (envTop) > 0) && strcmp(envTop, bldTop)) {
         printf("Warning: IOC is booting with TOP = \"%s\"\n"
                "          but was built with TOP = \"%s\"\n",
                envTop, bldTop);
@@ -279,6 +283,7 @@ int tCat_registerRecordDeviceDriver(DBBASE *pbase)
     registerDevices(pbase, NELEMENTS(devsl), deviceSupportNames, devsl);
     pvar_func_arrInitialize();
     pvar_func_asSub();
+    //pvar_func_caPutLogRegister();
     pvar_func_dbndInitialize();
     pvar_func_syncInitialize();
     pvar_func_tsInitialize();

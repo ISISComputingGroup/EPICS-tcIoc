@@ -104,8 +104,7 @@ stringT atomic_string<stringT>::operator= (const stringT& right)
 
 // Store
 template <typename stringT>
-void atomic_string<stringT>::store (stringT value,
-	memory_order order) 
+void atomic_string<stringT>::store (stringT value, memory_order order) 
 {
 	while (flag.test_and_set()) {}
 	data = value;
@@ -123,8 +122,7 @@ stringT atomic_string<stringT>::load (memory_order order) const
 
 // Exchange
 template <typename stringT>
-stringT atomic_string<stringT>::exchange(const stringT& value, 
-					 memory_order order) 
+stringT atomic_string<stringT>::exchange(const stringT& value, memory_order order) 
 {
 	while (flag.test_and_set()) {}
 	stringT ret = data;

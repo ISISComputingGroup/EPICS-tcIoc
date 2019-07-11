@@ -17,49 +17,26 @@
  ************************************************************************/
 
 /** @namespace DevTc
-	DevTc name space 
+	DevTc Name space
+	@brief Namespace for TCat device support
  ************************************************************************/
-
 namespace DevTc {
 
 /** Callback function to process EPICS out record
-	@brief outRecordCallback
+	@brief Callback for output record
  ************************************************************************/
 	
-/// Callback function for output records
-inline void outRecordCallback(callbackPvt *pcallback) {
-    dbCommon* prec;
-	prec = (dbCommon*)((callbackPvt*)(pcallback))->user; 
-    if(prec)
-        dbProcess(prec);
-}
-
-/** Initialization function that matches an EPICS record with an internal
-	record entry
-	@param name Name of record (INP/OUT field)
-	@param pEpicsRecord Pointer to EPICS record
-	@param pRecord Pointer to a base record
-	@return true if successful
-	@brief linkRecord
- ************************************************************************/
-bool linkRecord (std::stringcase name, dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
-
-/** Initialization function that matches an EPICS record with an internal
-	TwinCAT record entry
-	@param pEpicsRecord Pointer to EPICS record
-	@param pRecord Pointer to a base record
-	@return true if successful
-	@brief linkTcRecord
- ************************************************************************/
-bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
-
 /// Regex for indentifying TwinCAT records
 const std::regex tc_regex (
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
 
+/// Regex for indentifying info records
+const std::regex info_regex(
+	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(info)/([A-Za-z0-9_]+)");
+
 /** This is a class for managing device support for multiple record
     types, such as TwinCAT/ADS and Info.
-    @brief device support registration.
+    @brief Device support registration.
  ************************************************************************/
 class register_devsup
 {
@@ -86,9 +63,8 @@ public:
 		plc::BaseRecordPtr& pRecord);
 
 protected:
-	/// Default constructor; adds a linkTcRecord entry
-	register_devsup() {
-		add (tc_regex, linkTcRecord); }
+	/// Default constructor (adds linkTcRecord entry)
+	register_devsup();
 	/// Disabled copy constructor
 	register_devsup (const register_devsup&);
 	/// Disabled assignment operator
@@ -100,15 +76,16 @@ protected:
 	static register_devsup the_register_devsup;
 };
 
-/** @devtc device support for TwinCAT/ADS
+/** @defgroup devsup Device support for TwinCAT/ADS
  ************************************************************************/
 /** @{ */
 
 /** This is a class for an EPICS Interface
-    @brief epics interface class.
+    @brief Epics interface class.
  ************************************************************************/
 class EpicsInterface	:	public plc::Interface
 {
+	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 public:
 	/// Constructor
 	EpicsInterface (plc::BaseRecord& dval);
@@ -127,18 +104,6 @@ public:
 	/// Set pEpicsRecord
 	void set_pEpicsRecord(dbCommon* pEpRecord) {
 		pEpicsRecord = pEpRecord;};
-	/// Get pEpicsVal
-	void* get_pEpicsVal() const { 
-		return pEpicsVal; };
-	/// Set pEpicsVal
-	void set_pEpicsVal(void* pVal) { 
-		pEpicsVal = pVal;};
-	/// Get size
-	unsigned long get_size() const { 
-		return size; };
-	/// Set size
-	void set_size (unsigned long nBytes) { 
-		size = nBytes; };
 	/// Get callbackRequestPending
 	bool get_callbackRequestPending() const;
 
@@ -166,7 +131,61 @@ public:
 	/// Does nothing
 	virtual bool pull() override { return true; }
 
+	/** Get the size of the callback ring buffer
+		For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following lines:
+
+			epicsShareFunc epicsRingPointerId tcat_callbackQueue (int Priority)
+			{
+				return (Priority >= 0) && (Priority < NUM_CALLBACK_PRIORITIES) ?
+					callbackQueue[Priority].queue : NULL;
+			}
+
+		after the declaration of
+
+			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+
+		@param pri Priority of ring buffer
+		@return size of the callback ring buffer */
+	static int get_callback_queue_size (int pri);
+	/** Get the used entries in the callback ring buffer
+		For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following lines:
+
+		    epicsShareFunc epicsRingPointerId tcat_callbackQueue (int Priority)
+		    {
+		        return (Priority >= 0) && (Priority < NUM_CALLBACK_PRIORITIES) ?
+		            callbackQueue[Priority].queue : NULL;
+		    }
+
+		after the declaration of
+
+		    static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+
+		@param pri Priority of ring buffer
+		@return used entries in the callback ring buffer */
+	static int get_callback_queue_used (int pri);
+	/** Get the free entries in the callback ring buffer
+		For this function to return a valid value the EPICS
+		distribution needs to be patched. Add the following lines:
+
+			epicsShareFunc epicsRingPointerId tcat_callbackQueue (int Priority)
+			{
+				return (Priority >= 0) && (Priority < NUM_CALLBACK_PRIORITIES) ?
+					callbackQueue[Priority].queue : NULL;
+			}
+
+		after the declaration of
+
+			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+
+		@param pri Priority of ring buffer
+		@return free entries in the callback ring buffer */
+	static int get_callback_queue_free(int pri);
+
 protected:
+	/// Reset ioscan use flag
+	void ioscan_reset(int bitnum);
 	/** Bool indicating passive scan
 		true : EPICS record SCAN field is set to PASSIVE */
 	bool				isPassive;
@@ -175,24 +194,19 @@ protected:
 	bool				isCallback;
 	/// Pointer to the EPICS record
 	dbCommon*			pEpicsRecord;
-	/// Pointer to the R\VAL field of the EPICS record
-	void*				pEpicsVal;
-	/// Size (bytes) of the data
-	unsigned long		size;
-	/** Bool indicating that a read callback is pending
-		Set to true for in/out records when callback request is made.
-		true : if this is an in/out record, then dbProcess will do an 
-		EPICS read instead of write, then reset this value to false */
-//+	bool				callbackRequestPending;
+	/// IOSCAN mutex
+	std::mutex			ioscanmux;
 	/// Pointer to IO scan list
 	IOSCANPVT			ioscanpvt;
+	/// Scan in progress (bit encoded value from priorities)
+	std::atomic<unsigned int>	ioscan_inuse;
 	/// Callback structure
 	CALLBACK			callbackval;
 };
 
 
 /** This record type enums are used as index the epics traits class
-    @brief epics record type enum.
+    @brief Epics record type enum.
  ************************************************************************/
 enum epics_record_enum
 {
@@ -253,13 +267,16 @@ enum epics_record_enum
 };
 
 /** This traits class for Epics records.
-    @brief epics record traits.
+    @brief Epics record traits.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct epics_record_traits
 {
 	/// Epics record type
-	typedef struct { double val; } traits_type;
+	typedef struct { 
+		/// Value
+		double val; 
+	} traits_type;
 	/// Value type of (raw) value field
 	typedef epicsFloat64 value_type;
 	/// Name of the record
@@ -289,7 +306,7 @@ struct epics_record_traits
 /** Deviced Support Record for generic TwinCAT/ADS IO
     This structure defines the callback functions for the TC device support.
 	This is a base class for both read and write records.
-    @brief device support record.
+    @brief Device support record.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct devTcDefIo 
@@ -324,7 +341,7 @@ protected:
 /** Deviced Support Record for TwinCAT/ADS input
     This structure defines the callback functions for the TC device support.
 	This is a base class for both read and write records.
-    @brief device support input record.
+    @brief Device support input record.
  ************************************************************************/
 template <epics_record_enum RecType>
 struct devTcDefIn : public devTcDefIo <RecType>

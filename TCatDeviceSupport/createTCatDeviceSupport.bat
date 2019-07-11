@@ -1,10 +1,19 @@
 set DEVICE=tCat
-set EPICS_BASE=C:\instrument\apps\EPICS\base\master
-set EPICS_HOST_ARCH=win32-x86-debug
-set PATH=%EPICS_BASE%\bin\%EPICS_HOST_ARCH%;%PATH%
-rem %EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -t ioc %DEVICE%
-rem %EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -i -t ioc %DEVICE%
-copy /y %DEVICE%Support.dbd %DEVICE%App\src
-make
-copy /y %DEVICE%App\src\O.Common\%DEVICE%.dbd ..\%DEVICE%.dbd
-copy /y %DEVICE%App\src\O.%EPICS_HOST_ARCH%\%DEVICE%_registerRecordDeviceDriver.cpp ..\%DEVICE%_registerRecordDeviceDriver.cpp
+set DEVICE2=info
+set perlpath=C:\Straberry\perl\site\bin;C:\Straberry\perl\bin
+set makepath=C:\Straberry\c\bin
+set EPICS_BASE=C:\SlowControlsMaggie\EPICS\base-3.15.6
+set PATH=%EPICS_BASE%\bin\win32-x86;%perlpath%;%makepath%;%PATH%
+set EPICS_HOST_ARCH=win32-x86
+call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x86
+%EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -t ioc %DEVICE%
+%EPICS_BASE%\bin\%EPICS_HOST_ARCH%\makeBaseApp.pl -a %EPICS_HOST_ARCH% -p %DEVICE% -i -t ioc %DEVICE%
+gmake
+copy %DEVICE%Support.dbd %DEVICE%App\src\O.Common
+copy %DEVICE2%Support.dbd %DEVICE%App\src\O.Common
+echo tCat_DBD += %DEVICE%Support.dbd %DEVICE2%Support.dbd >> "%DEVICE%App\src\Makefile"
+del %DEVICE%App\src\O.Common\%DEVICE%.dbd
+gmake
+copy %DEVICE%App\src\O.Common\%DEVICE%.dbd ..\%DEVICE%.dbd
+copy %DEVICE%App\src\O.win32-x86\%DEVICE%_registerRecordDeviceDriver.cpp ..\%DEVICE%_registerRecordDeviceDriver.cpp
+echo "Ignore unresolved external symbols!"

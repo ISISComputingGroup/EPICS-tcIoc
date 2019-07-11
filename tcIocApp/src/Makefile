@@ -1,9 +1,76 @@
 TOP=../..
-# This file should do very little - it's purpose is to set the APPNAME and then load build.mak
 
-# this definition is used in build.mak
-APPNAME=tcIoc
+include $(TOP)/configure/CONFIG
 
-# If we are ###-IOC-01 leave this as is, if we are ###-IOC-02 or higher change to ###-IOC-01 and delete build.mak from this directory
-# there should only be a single build.mak for all IOCs of a given family and it is located in the ###-IOC-01 directory
-include $(TOP)/tcIocApp/src/build.mak
+SRC_DIRS += $(TOP)
+EXPAT = $(TOP)/Expat
+ADSROOT = C:/TwinCAT/AdsApi/TcAdsDll
+ifneq ($(findstring windows,$(EPICS_HOST_ARCH)),)
+EXPATLIB = $(EXPAT)/win64
+ADSLIBROOT = $(ADSROOT)/x64
+else
+EXPATLIB = $(EXPAT)/win32
+ADSLIBROOT = $(ADSROOT)
+endif
+
+ifneq ($(findstring debug,$(EPICS_HOST_ARCH)),)
+EXPATLIB := $(EXPATLIB)/Debug
+else
+EXPATLIB := $(EXPATLIB)/Release
+endif
+
+EXPATLIB := $(EXPATLIB)/libexpatMT
+
+ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
+USR_DBDFLAGS += -I$(TOP)/InfoDeviceSupport -I$(TOP)/TCatDeviceSupport
+USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include
+
+TYPLIBSRC = ParseTpy.cpp ParseUtil.cpp stringcase.cpp
+EPICSDBLIBSRC = TpyToEpics.cpp
+
+LIBRARY_IOC += tcIocSupport
+
+#tcIocSupport_SRCS += devInfo.cpp
+#tcIocSupport_SRCS += drvInfo.cpp
+tcIocSupport_SRCS += devTc.cpp
+tcIocSupport_SRCS += drvTc.cpp
+tcIocSupport_SRCS += infoPlc.cpp
+tcIocSupport_SRCS += plcBase.cpp
+tcIocSupport_SRCS += tcComms.cpp
+tcIocSupport_SRCS += $(EPICSDBLIBSRC)
+tcIocSupport_SRCS += $(TYPLIBSRC)
+tcIocSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
+tcIocSupport_SYS_LIBS_WIN32 += $(EXPATLIB)
+tcIocSupport_SYS_LIBS_WIN32 += $(ADSLIB)
+
+PROD_IOC = tpyinfo epicsdbgen tcIoc
+
+DBD += tcIocSupport.dbd tcIoc.dbd
+tcIoc_DBD += base.dbd
+tcIoc_DBD += tcIocSupport.dbd
+
+tpyinfo_SRCS += ParseTpyInfo.cpp
+tpyinfo_SRCS += $(TYPLIBSRC)
+tpyinfo_SYS_LIBS_WIN32 += $(EXPATLIB)
+
+epicsdbgen_SRCS += EpicsDbGen.cpp
+epicsdbgen_SRCS += $(EPICSDBLIBSRC)
+epicsdbgen_SRCS += $(TYPLIBSRC)
+epicsdbgen_SYS_LIBS_WIN32 += $(EXPATLIB)
+
+# tcIoc_registerRecordDeviceDriver.cpp derives from tcIoc.dbd
+tcIoc_SRCS += iocMain.cpp
+tcIoc_SRCS += tcIoc_registerRecordDeviceDriver.cpp
+
+# Finally link to the EPICS Base libraries
+tcIoc_LIBS += tcIocSupport
+tcIoc_LIBS += $(EPICS_BASE_IOC_LIBS)
+tcIoc_SYS_LIBS_WIN32 += $(EXPATLIB)
+tcIoc_SYS_LIBS_WIN32 += $(ADSLIB)
+
+#===========================
+
+include $(TOP)/configure/RULES
+#----------------------------------------
+#  ADD RULES AFTER THIS LINE
+
