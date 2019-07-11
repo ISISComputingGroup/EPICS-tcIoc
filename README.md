@@ -82,21 +82,99 @@ available options can be found on page TwinCAT EPICS Options.
 Versions
 --------
 
-* Version 1.0: Initial release.
-* Version 1.1
+* Version 2.0
+*************
 
 Added features:
 
+* Updated to Visual Studio Community Edition 2017
+* Updated to EPICS base-3.15.6
+* Updated to expat version 2.6.6
+* Support 64 bit libraries and applications
+* Support for info records
+  Info records reside in the tcIoc and describe local parameters,
+  such as the state of the PLC, the tpy filename, ADS/AMS address, etc.
+  This features is enabled by using the new tcInfoPrefix function to
+  specify a channel prefix string.
+* Support for a new print command tcPrintVal 'var name' which can be 
+  used to print a single or multiple variables using wildcards.
+* New Download directory with binary files.
+
+Bug Fixes:
+* OPC comment for non-publish was ignored by EPICS 
+* Fix 64 bit issuses (thanks Freddie Akeroyd)
+* ALIAS has been added to the replacement rule list
+* Fix MT lock issue in record callback
+* Use MT-safe compare/exchange in record read/write
+* Documentation clean up
+
+* Version 1.3
+*************
+
+Added features:
+* Support for replacement rules in aliases 
+  The OPC alias comment, OPC_PROP[8620], can now include variable
+  names of the form ${varname}. They will get replaced by the tcIoc, 
+  when adding a second argument to the tcAlias command of the 
+  form "varname=replavement,...".
+* Support for pointers
+* Periodically check the timestamp of the tpy file, when the PLC is 
+  online. Go and stay offline, if the tpy file is updated. The tcIoc
+  needs to be restarted in order to accommodate changes to the PLC
+  code!
+
+Bug Fixes:
+* Fix lost namespace issues in TwinCAT 3.1
+* Fix macro support for TwinCAT 3.1
+* Fix record database problem with long enum lists that are mapped 
+  into a long. Removed tags and added LOPR and HOPR.
+* Fix problem with multi-dimensional arrays
+
+* Version 1.2
+*************
+
+Added features:
+* Add support for TwinCAT 3.1
+  TwinCAT 3.1 no longer generates a tpy file automatically. One has 
+  to select this option in the PLC settings. OPC comments could start 
+  either on the same line or the next with TwinCAT 2.11. For 
+  TwinCAT 3.1 the comments must start on the same line. OPC comments 
+  are no longer supported for enumerated types. This was used to 
+  support different EPICS names for enumeration elements, using the 
+  OPC_PROP[8510] properties. The tpy parser now looks for a normal 
+  comment (* EPICSname *) following each element name. However, 
+  TwinCAT 3.11 no longer places the element names of enumerations 
+  into the global name space. So, it is now possible to reuse element 
+  names and avoid these OPC comments all together. Namespace names 
+  are inconsistently added to type names in the tpy file. The parser 
+  now accounts for that. Since the ADS interface didn't change, the 
+  TwinCAT EPICS IOC will work with both TwinCAT 2.11 and 3.1. 
+* Add support for automatic generation of medm adl files.
+  The parser can now generate an aml file for each structure that 
+  contains a list of fields, links to sub structures and the parent, 
+  as well as error message lists for structures that support this 
+  feature. A powershell script then takes the aml files and translates 
+  them into adl screens. 
+
+Bug Fixes:
+* Fix lost namespace issues in TwinCAT 3.1
+* Fix macro support for TwinCAT 3.1
+
+* Version 1.1
+*************
+
+Added features:
 * Add support for alias OPC properties to assign alternate names to
   symbols and structure elements.
-
 * Add support for initial LIGO vacuum channels of the form
   HVE-EY:IP_...
 
 Bug Fixes:
-
 * Fixed severity for analog alarm values.
 * Added additional messages for ADS errors.
+
+* Version 1.0: Initial release.
+*************
 
 Future Features
 ---------------
@@ -135,10 +213,10 @@ Building the IOC
 Requirements
 ------------
 
-* Microsoft Visual Studio 2012
-* EPICS (3.14.12.3 was used)
-* Perl
-* Make
+* Microsoft Visual Studio Community Edition 2017
+* EPICS (3.15.6 was used)
+* Perl (e.g., Strawberry Perl which includes gmake)
+* Make (gmake)
 
 Building tcIoc
 --------------
@@ -163,7 +241,7 @@ Miscellenaous
   The expat libraries are provided in
   C:\SlowControls\EPICS\Utilities\expat. In case a new built is
   required, download from http://expat.sourceforge.net/. Build static,
-  multithreaded release and debug versions and save them as
+  multithreaded release (/MD) and debug (/MDd) versions and save them as
   libexpatMT.lib and libexpatMTD.lib in the above directory.
 
 * Generate tc device support:

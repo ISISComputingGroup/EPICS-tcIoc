@@ -9,6 +9,52 @@ using namespace std;
  ************************************************************************/
 namespace ParseUtil {	
 
+/* Static const variables
+	************************************************************************/
+const char* const replacement_rules::prefix = "${";
+const char* const replacement_rules::suffix = "}";
+
+/* Static const variables
+	************************************************************************/
+std::stringcase replacement_rules::apply_replacement_rules(const std::stringcase& arg) const
+{
+	stringcase ret(arg);
+	stringcase var;
+	stringcase val;
+	stringcase::size_type pos1;
+	stringcase::size_type pos2;
+	stringcase::size_type prefixlen = strlen(prefix);
+	stringcase::size_type suffixlen = strlen(suffix);
+	replacement_table::const_iterator rep;
+
+	// start from beginning
+	pos2 = 0;
+	while ((pos1 = ret.find(prefix, pos2)) != stringcase::npos) {
+		// look for suffix
+		pos2 = ret.find(suffix, pos1 + prefixlen);
+		// no suffix? What's up? remove prefix and move on
+		if (pos2 == stringcase::npos) {
+			ret.erase(pos1, prefixlen);
+			// if recursive start from beginning
+			pos2 = is_recursive() ? 0 : pos1;
+			continue;
+		}
+		// determine variable name
+		var = ret.substr(pos1 + prefixlen, pos2 - (pos1 + prefixlen));
+		trim_space(var);
+		// check for value in table
+		if (!var.empty() &&
+			(rep = table.find(var)) != table.end()) {
+			var = rep->second;
+		}
+		// replace var with value
+		ret.replace(pos1, pos2 - pos1 + 1, var);
+		// if recursive start from beginning
+		pos2 = is_recursive() ? 0 : pos1 + var.size();
+	}
+	return ret;
+}
+
 /* optarg::parse
  ************************************************************************/
 int optarg::parse (const std::stringcase& arg)
@@ -16,11 +62,11 @@ int optarg::parse (const std::stringcase& arg)
 	vector<stringcase> list;
 	split_string (list, stringcase ("optarg ") + arg, 
 		[] (char c)->bool { return isspace (c) != 0; }, true);
-	setup (list.size());
-	myargc = list.size();
+	setup (static_cast<int>(list.size()));
+	myargc = static_cast<int>(list.size());
 	if (list.empty()) return 0;
 	for (size_t i = 0; i < list.size(); ++i) {
-		int len = list[i].size() + 4;
+		size_t len = list[i].size() + 4;
 		myargv[i] = new (std::nothrow) char[len];
 		if (myargv[i]) 
 			strncpy_s (myargv[i], len, list[i].c_str(), list[i].size());
@@ -57,7 +103,17 @@ void optarg::setup (int size)
 	if (size <= 0) return;
 
 	myargv = new (std::nothrow) char* [size];
+	if (!myargv) {
+		mysize = 0;
+		return;
+	}
 	myargp = new (std::nothrow) bool [size];
+	if (!myargp) {
+		mysize = 0;
+		delete[] myargv;
+		myargv = nullptr;
+		return;
+	}
 	for (int i = 0; i < size; ++i) {
 		myargv[i] = nullptr;
 		myargp[i] = false;
@@ -264,7 +320,7 @@ std::stringcase process_arg::get_process_string () const
 
 /* process_arg::get
  ************************************************************************/
-std::stringcase process_arg::get_full () const
+std::stringcase process_arg_tc::get_full () const
 {
 	std::stringcase servername = "tc://0.0.0.0.0.0:801/";
 	opc.get_property (OPC_PROP_PLCNAME, servername);

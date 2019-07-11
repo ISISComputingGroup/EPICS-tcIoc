@@ -21,46 +21,55 @@ class BasePLC;
 
 
 /** This is a smart pointer to a PLC 
-    @brief smart pointer to PLC
+    @brief Smart pointer to PLC
 ************************************************************************/
 typedef std::shared_ptr<BasePLC> BasePLCPtr;
 
 
 /** This is a base class for an abstract interface to access the PLC 
     (slave) or the user side (master).
-    @brief abstract interface
+    @brief Abstract interface
 ************************************************************************/
 class Interface
 {
 public:
 	/// Constructor
 	/// @param dval Reference to a tag/channel record
-	explicit Interface (BaseRecord& dval) : record (&dval) {}
+	explicit Interface (BaseRecord& dval) : record (dval) {}
 	/// Desctructor
 	virtual ~Interface() {};
 
 	/// Return a pointer to the tag/channel record
-	BaseRecord* get_record() const { return record; };
-	/// Set the tag/channel record reference
-	void set_record (BaseRecord& rec) { record = &rec; };
+	BaseRecord& get_record() { return record; };
+	/// Return a pointer to the tag/channel record
+	const BaseRecord& get_record() const { return record; };
 
 	/// Pure virtual method indicating that the value needs to be pushed
 	virtual bool push() = 0;
 	/// Pure virtual method indicating that the value needs to be pulled
 	virtual bool pull() = 0;
 
+	/// Get parent PLC that owns this record
+	BasePLC* get_parent();
+	/// Get parent PLC that owns this record
+	const BasePLC* get_parent() const;
+	/// Print values to file
+	/// @param fp File pointer
+	virtual void printVal (FILE* fp) {}
+	/// Get symbol name
+	virtual const char* get_symbol_name() const { return nullptr; }
 protected:
 	/// Pointer to tag/channel record associated with this interface
-	BaseRecord*			record;
+	BaseRecord&			record;
 };
 
 /** This is a smart pointer for Interface
-    @brief smart pointer to interface
+    @brief Smart pointer to interface
  ************************************************************************/
 typedef std::unique_ptr<Interface> InterfacePtr;
 
 /** This is an enumerated type listing all the available data types
-    @brief data type enumeration
+    @brief Data type enumeration
  ************************************************************************/
 enum data_type_enum 
 {
@@ -97,7 +106,7 @@ enum data_type_enum
 };
 
 /** Traits class for data value
-    @brief data value traits
+    @brief Data value traits
  ************************************************************************/
 template <typename T>
 struct DataValueTraits
@@ -115,7 +124,7 @@ struct DataValueTraits
 };
 
 /** Type definitions for data value
-    @brief collection of type definitions
+    @brief Collection of type definitions
  ************************************************************************/
 struct DataValueTypeDef
 {
@@ -209,7 +218,7 @@ struct DataValueTypeDef
 	binary read/write operations. However, all data can be accessed 
 	through binary access.
 
-    @brief data value
+    @brief Data value
  ************************************************************************/
 class DataValue : public DataValueTypeDef
 {
@@ -222,6 +231,7 @@ public:
 		myvalid (false), myuserdirty (false), myplcdirty (false) {}
 	/// Constructor
 	/// @param rt Data type enumeration value
+	/// @param len Length of data
 	explicit DataValue (data_type_enum rt, size_type len = 0) 
 		: mydata (nullptr), mytype (dtInvalid), mysize (0), 
 		myvalid (false), myuserdirty (false), myplcdirty (false) { 
@@ -254,12 +264,12 @@ public:
 	template <size_type N> bool UserRead (type_string_value (& data)[N]) const {
 		return ReadBinary (myuserdirty, &data, N) > 0; }
 	/// Read character array (pchar) by the user
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
 	bool UserRead (type_string_value* data, size_type max) const {
 		return Read (myuserdirty, data, max); }
 	/// Read character array (pwchar) by the user
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
 	bool UserRead (type_wstring_value* data, size_type max) const {
 		return Read (myuserdirty, data, max); }
@@ -273,12 +283,12 @@ public:
 		return WriteBinary (myplcdirty, myuserdirty, &data, N) > 0; }
 
 	/// Write character array (pchar) by the user
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool UserWrite (const type_string_value* data, size_type max) {
 		return Write (myplcdirty, myuserdirty, data, max); }
 	/// Write character array (wpchar) by the user
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool UserWrite (const type_wstring_value* data, size_type max) {
 		return Write (myplcdirty, myuserdirty, data, max); }
@@ -314,12 +324,12 @@ public:
 	template <size_type N> bool PlcRead (type_string_value (& data)[N]) const {
 		return ReadBinary (myplcdirty, &data, N) > 0; }
 	/// Read character array (pchar) by the plc
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
 	bool PlcRead (type_string_value* data, size_type max) const {
 		return Read (myplcdirty, data, max); }
 	/// Read character array (pwchar) by the plc
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
 	bool PlcRead (type_wstring_value* data, size_type max) const {
 		return Read (myplcdirty, data, max); }
@@ -332,12 +342,12 @@ public:
 	template <size_type N> bool PlcWrite (const type_string_value (& data)[N]) {
 		return WriteBinary (myuserdirty, myplcdirty, &data, N) > 0; }
 	/// Write character array (pchar) by the plc
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool PlcWrite (const type_string_value* data, size_type max) {
 		return Write (myuserdirty, myplcdirty, data, max); }
 	/// Write character array (wpchar) by the plc
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool PlcWrite (const type_wstring_value* data, size_type max) {
 		return Write (myuserdirty, myplcdirty, data, max); }
@@ -365,6 +375,7 @@ public:
 	bool PlcGetValid() const { return GetValid (myuserdirty); }
 
 protected:
+	/// Constructor (hidden)
 	DataValue (const DataValue&&);
 	/// Assignment operator
 	DataValue& operator= (const DataValue&&);
@@ -383,14 +394,14 @@ protected:
 	bool Read (atomic_bool& dirty, type_wstring& data) const;
 	/// Read character array (pchar)
 	/// @param dirty Reference to dirty flag (user or plc)
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_string_value* data, int max) const;
+	bool Read (atomic_bool& dirty, type_string_value* data, size_type max) const;
 	/// Read character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
-	/// @param pchar Destination buffer
+	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_wstring_value* data, int max) const;
+	bool Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const;
 
 	/// Write data
 	/// @param dirty Reference to dirty flag (user or plc)
@@ -413,17 +424,17 @@ protected:
 	/// Write character array (pchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_string_value* data, int max);
+		const type_string_value* data, size_type max);
 	/// Write character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
-	/// @param pchar Source buffer
+	/// @param data Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_wstring_value* data, int max);
+		const type_wstring_value* data, size_type max);
 
 	/// Read data as binary
 	/// @param dirty Reference to dirty flag (user or plc)
@@ -463,6 +474,7 @@ protected:
 };
 
 /** Enum for access rights of a record
+	@brief Access righths enum
 ************************************************************************/
 enum access_rights_enum 
 {
@@ -490,9 +502,10 @@ public:
 	explicit BaseRecord (const std::stringcase& tag)
 		: name (tag), access (read_write), process (true), parent (nullptr) {}
 	/// Constructor
-	/// @param tag Name of tag/channel
+	/// @param recordName Name of tag/channel
+	/// @param rt Data type
 	/// @param puser Pointer to user interface object (will be adopted!)
-	/// @param puser Pointer to plc interface object (will be adopted!)
+	/// @param pplc Pointer to plc interface object (will be adopted!)
 	BaseRecord (const std::stringcase& recordName, 
 		data_type_enum rt, Interface* puser = nullptr, Interface* pplc = nullptr)
 		: name (recordName), access (read_write), process (true), value (rt), 
@@ -543,11 +556,13 @@ public:
 		PlcPull(); return value.UserRead (data); }
 	/// Execute a user read, but pull plc first
 	/// @param data character pointer, pchar (return)
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserRead (type_string_value* data, size_type max) {
 		PlcPull(); return value.UserRead (data, max); }
 	/// Execute a user read, but pull plc first
 	/// @param data character pointer, pwchar (return)
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserRead (DataValue::type_wstring_value* data, size_type max) {
 		PlcPull(); return value.UserRead (data, max); }
@@ -558,11 +573,13 @@ public:
 		bool ret = value.UserWrite (data); if (ret) PlcPush(); return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pchar
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_string_value* data, size_type max) {
 		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pwchar
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_wstring_value* data, size_type max) {
 		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
@@ -605,23 +622,31 @@ public:
 		UserPull(); return value.PlcRead (data); }
 	/// Execute a plc read, but pull user first
 	/// @param data character pointer, pchar (return)
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcRead (type_string_value* data, size_type max) {
 		UserPull(); return value.PlcRead (data, max); }
 	/// Execute a plc read, but pull user first
 	/// @param data character pointer, pwchar (return)
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcRead (type_wstring_value* data, size_type max) {
 		UserPull(); return value.PlcRead (data, max); }
+
+	/// Execute a plc write and push user
+	/// @param data Reference to data
+	/// @return true if successfull
 	template <typename T> bool PlcWrite (const T& data) {
 		bool ret = value.PlcWrite (data); if (ret) UserPush(); return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pchar
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_string_value* data, size_type max) {
 		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pwchar
+	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_wstring_value* data, size_type max) {
 		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
@@ -690,7 +715,7 @@ typedef std::unordered_map<std::stringcase, BaseRecordPtr> BaseRecordList;
 
 	This class is MT safe and uses a mutex to synchronize access.
 
-    @brief base PLC
+    @brief Base PLC
  ************************************************************************/
 class BasePLC
 {
@@ -754,12 +779,12 @@ public:
 	void reserve (BaseRecordList::size_type n) {
 		records.reserve (n); }
 	/// Add a new tag/channel record. Adding a duplicate is not possible.
-	/// @param record Pointer to record. Will be adopted
+	/// @param precord Pointer to record. Will be adopted
 	/// @return true, if it could be added
 	bool add (BaseRecord* precord) {
 		return precord ? add (BaseRecordPtr (precord)) : false; }
 	/// Add a new tag/channel record. Adding a duplicate is not possible.
-	/// @param record Smart pointer to record. 
+	/// @param precord Smart pointer to record. 
 	/// @return true, if it could be added
 	bool add (BaseRecordPtr precord);
 	/// Find a new tag/channel record. 
@@ -776,7 +801,7 @@ public:
 	/// method to cycle through the list. However, it is not high 
 	/// performance and is meant for slow external acecss.
 	/// @param next Next tag/channel record (return)
-	/// @param previous tag/channel record 
+	/// @param prev tag/channel record 
 	/// @return true if successful
 	bool get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const;
 	/// Iterate over all list elements
@@ -785,10 +810,13 @@ public:
 	/// @param f Function which takes BaseRecord* as the argument
 	template <typename func> void for_each (func& f);
 	/// Count the number of records
-	int count();
+	int count() const;
 
 	/// Print all records and vals to stdout. (override for action)
 	virtual void printAllRecords() {};
+	/// Print a record values to stdout. (override for action)
+	/// @param var variable name (accepts wildcards)
+	virtual void printRecord (const std::string& var) {};
 
 	/// Get time stamp
 	virtual time_type get_timestamp() const { return timestamp; }
@@ -866,8 +894,7 @@ typedef std::map<std::stringcase, BasePLCPtr> BasePLCList;
 
 
 /** This is a class for managing multiple PLCs.
-
-    @brief System
+    @brief System to keep track of PLCs
  ************************************************************************/
 class System
 {
@@ -880,12 +907,12 @@ public:
 	/// Return a reference to the gloabl System variable
 	static System& get() { return tCat; }
 	/// Add a new PLC, PLC will be adopted
-	/// @param Pointer to plc
+	/// @param plc Pointer to plc
 	/// @return true if successful
 	bool add (BasePLC* plc) {
 		return plc ? add (BasePLCPtr (plc)) : false; }
 	/// Add a new PLC
-	/// @param Smart pointer to plc
+	/// @param plc Smart pointer to plc
 	/// @return true if successful
 	bool add (BasePLCPtr plc);
 	/// Finds a PLC by its name
@@ -898,6 +925,9 @@ public:
 
 	/// Print all PLC record values to the console
 	void printVals();
+	/// Print PLC record value to the console
+	/// @param var Variable name or wildcard
+	void printVal (const std::string& var);
 
 	/// Start scanning after ioc is running
 	void start();
@@ -933,8 +963,9 @@ private:
 
 }
 
-extern "C" {
-__declspec(dllexport) void __cdecl stopTc(void);
-}
+// Stop TwinCAT
+//extern "C" {
+//__declspec(dllexport) void __cdecl stopTc(void);
+//}
 
 #include "plcBaseTemplate.h"

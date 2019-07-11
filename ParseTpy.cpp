@@ -2,7 +2,7 @@
 #include "ParseTpy.h"
 #include "ParseUtilConst.h"
 #include "ParseTpyConst.h"
-#define XML_STATIC
+#define XML_STATIC ///< Static linking
 #include "Expat/expat.h"
 #if defined(__amigaos__) && defined(__USE_INLINE__)
 #include <proto/expat.h>
@@ -10,12 +10,12 @@
 
 #ifdef XML_LARGE_SIZE
 #if defined(XML_USE_MSC_EXTENSIONS) && _MSC_VER < 1400
-#define XML_FMT_INT_MOD "I64"
+#define XML_FMT_INT_MOD "I64" ///< Int format
 #else
-#define XML_FMT_INT_MOD "ll"
+#define XML_FMT_INT_MOD "ll" ///< Int format
 #endif
 #else
-#define XML_FMT_INT_MOD "l"
+#define XML_FMT_INT_MOD "l" ///< Int format
 #endif
 
 using namespace ParseUtil;
@@ -35,14 +35,15 @@ static void XMLCALL startCData (void *userData);
 static void XMLCALL endCData (void *userData);
 static void XMLCALL dataElement (void *userData, const char *data, int len);
 
-/* This structure keeps track of the parser information.
+/** This structure keeps track of the parser information.
+	@brief Parser information
  ************************************************************************/
 class parserinfo_type 
 {
 public:
-	// Constructor
+	/// Constructor
 	parserinfo_type (project_record& p, symbol_list& s, type_map& t) 
-		: ignore (0), projects (false), routing (0), types (0), 
+		: ignore (0), projects (false), routing (0), compiler (0), types (0), 
 		symbols(0), name_parse (0), type_parse (0), opc_cur (0), 
 		opc_parse (0), opc_cdata (0), igroup_parse (0), 
 		ioffset_parse (0), bitsize_parse (0), 
@@ -50,39 +51,41 @@ public:
 		struct_parse (0), fb_parse(0),
 		project_info (&p), sym_list (&s), type_list (&t) {}
 
-	// Get symbol list
+	/// Get symbol list
 	symbol_list& get_symbols() { return *sym_list; }
-	// Get type list
+	/// Get type list
 	type_map& get_types() { return *type_list; }
-	// Get project information
+	/// Get project information
 	project_record& get_projectinfo() { return *project_info; }
 
-	// Initialze temporary parser info
+	/// Initialze temporary parser info
 	void init ();
-	// Get type of parsed object
+	/// Get type of parsed object
 	type_enum get_type_description() const;
 
-	// the very top of the xml tag hierarchy (not within any tag)
+	/// the very top of the xml tag hierarchy (not within any tag)
 	bool verytop() {
-		return !projects && !ignore && !routing && !types && !symbols; }
-	// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
+		return !projects && !ignore && !routing && !compiler && !types && !symbols; }
+	/// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
 	bool top() {
-		return projects && !ignore && !routing && !types && !symbols; }
+		return projects && !ignore && !routing && !compiler && !types && !symbols; }
 
-	// ignore elements during parsing (with level)
+	/// ignore elements during parsing (with level)
 	int				ignore;
-	// parsing withing PlcProjectInfo tag
+	/// parsing withing PlcProjectInfo tag
 	bool			projects;
-	// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4)
+	/// parsing within Routing tag (1) or AdsInfo (2), Net ID (3), Port (4), Target name (5)
 	int				routing;
-	// parsing within DataTypes tag (1) or DataType tag (2)
+	/// parsing within compiler tag (1) or compiler version (2), Twincat version (3), CPU family (4)
+	int				compiler;
+	/// parsing within DataTypes tag (1) or DataType tag (2)
 	int				types;
-	// parsing within Symbols tag (1) or Symbol tag (2)
+	/// parsing within Symbols tag (1) or Symbol tag (2)
 	int				symbols;
 
-	// temporary symbol information during parsing
+	/// temporary symbol information during parsing
 	symbol_record	sym;
-	// temporary type information during parsing
+	/// temporary type information during parsing
 	type_record		rec;
 
 	/// level indicator for type name parsing
@@ -127,6 +130,8 @@ public:
 	std::stringcase	enum_data;
 	/// temporary enum element
 	enum_pair		enum_element;
+	/// temporary enum comment
+	std::stringcase	enum_comment;
 	/// level indicator for struct parsing
 	int				struct_parse;
 	/// temporary structure element
@@ -135,20 +140,20 @@ public:
 	int				fb_parse;
 
 protected:
-	// pointer to symbol list
+	/// pointer to symbol list
 	symbol_list*	sym_list;
-	// pointer to type list
+	/// pointer to type list
 	type_map*		type_list;
-	// pointer to project info
+	/// pointer to project info
 	project_record*	project_info;
 
 private:
-	// Default constructor
+	/// Default constructor
 	parserinfo_type();
 };
 
 
-/* type:record::init
+/* parserinfo_type::init
  ************************************************************************/
  void parserinfo_type::init() 
  {
@@ -176,7 +181,7 @@ private:
 	 fb_parse = 0;
  }
 
-/* type:record::get_type_description
+/* parserinfo_type::get_type_description
  ************************************************************************/
  type_enum parserinfo_type::get_type_description() const
  {
@@ -253,6 +258,7 @@ bool ads_routing_info::set (const std::stringcase& s)
 		ads_port = 0;
 		return false;
 	}
+	buf[255] = 0;
 	std::stringcase	ads_netid_old = ads_netid;
 	int ads_port_old = ads_port;
 	ads_netid = buf;
@@ -265,7 +271,77 @@ bool ads_routing_info::set (const std::stringcase& s)
 	return true;
 }
 
+/* compiler_info::set_cmpl_versionstr
+ ************************************************************************/
+void compiler_info::set_cmpl_versionstr (const std::stringcase& versionstr) 
+{ 
+	cmpl_versionstr = versionstr; 
+	if (is_cmpl_Valid ()) {
+		int v1, v2;
+		sscanf_s (cmpl_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
+		if (v2 > 99) {
+			cmpl_version = v1 + (double)v2/1000;
+		} 
+		else if (v2 > 9) {
+			cmpl_version = v1 + (double)v2/100;
+		}
+		else if (v2 > 0) {
+			cmpl_version = v1 + (double)v2/10;
+		}
+		else {
+			cmpl_version = 0;
+		}
+	}
+	else {
+		cmpl_version = 0;
+	}
+}
 
+/* compiler_info::is_cmpl_Valid
+ ************************************************************************/
+bool compiler_info::is_cmpl_Valid() const
+{
+	if (cmpl_versionstr.empty()) {
+		return false;
+	}
+	int end = 0;
+	int num = sscanf_s (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
+	if ((num != 0) || (end != cmpl_versionstr.length())) {
+		return false;
+	}
+	return true;
+}
+
+/* compiler_info::set_tcat_versionstr
+ ************************************************************************/
+void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr) 
+{ 
+	tcat_versionstr = versionstr; 
+	if (is_tcat_Valid ()) {
+		sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u", &tcat_version_major, 
+			&tcat_version_minor, &tcat_version_build);
+	}
+	else {
+		tcat_version_major = 0;
+		tcat_version_minor = 0;
+		tcat_version_build = 0;
+	}
+}
+
+/* compiler_info::is_tcat_Valid
+ ************************************************************************/
+bool compiler_info::is_tcat_Valid() const
+{
+	if (tcat_versionstr.empty()) {
+		return false;
+	}
+	int end = 0;
+	int num = sscanf_s (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
+	if ((num != 0) || (end != tcat_versionstr.length())) {
+		return false;
+	}
+	return true;
+}
 /* type_map::insert
  ************************************************************************/
 void type_map::insert (value_type val)
@@ -273,18 +349,37 @@ void type_map::insert (value_type val)
 	type_multipmap::insert (val);
 }
 
+/** compareNamesWoNamespace
+ ************************************************************************/
+bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
+{
+	int pos = static_cast<int>(p1.length() - p2.length());
+	if (pos > 0) {
+		return (p1[(std::stringcase::size_type)pos-1] == '.') &&
+			(p1.compare (pos, std::stringcase::npos, p2) == 0);
+	}
+	else if (pos < 0) {
+		pos = -pos;
+		return (p2[(std::stringcase::size_type)pos-1] == '.') &&
+			(p2.compare (pos, std::stringcase::npos, p1) == 0);
+	}
+	else {
+		return p1 == p2;
+	}
+}
+
 /* type_map::find
  ************************************************************************/
 const type_map::value_type::second_type* 
 type_map::find (value_type::first_type id, const std::stringcase& typn) const
 {
-	const_iterator t = type_multipmap::find (id);
-	const_iterator i = t;
+	const_iterator t = end();
+	const_iterator i = type_multipmap::find (id);
 	while (i != end()) {
 		if (i->first != id) {
 			break;
 		}
-		if (i->second.get_name() == typn) {
+		if (compareNamesWoNamespace (i->second.get_name(), typn)) {
 			t = i;
 			break;
 		}
@@ -389,7 +484,7 @@ void tpy_file::parse_finish ()
 /* XML Parsing
  ************************************************************************/
 
-/* XML get decoration number from attribute
+/** XML get decoration number from attribute
  ************************************************************************/
 bool get_decoration (const char **atts, unsigned int& decoration)
 {
@@ -403,6 +498,20 @@ bool get_decoration (const char **atts, unsigned int& decoration)
 	return false;
 }
 
+/** XML get pointer from attribute
+ ************************************************************************/
+bool get_pointer (const char **atts)
+{
+	unsigned int num = 0;
+	for (const char** pp = atts; pp && pp[0] && pp[1]; pp += 2) {
+		std::stringcase a (pp[0]);
+		if (a.compare (xmlAttrPointer) == 0) {
+			std::stringcase val (pp[1]);
+			return (val == "true") || (val == "t") || (val == "1");
+		}
+	}
+	return false;
+}
    
 /* XML start element function callback
  ************************************************************************/
@@ -445,6 +554,36 @@ static void XMLCALL startElement (void *userData, const char *name,
 			pinfo->data = std::stringcase ("");
 			pinfo->routing = 4;
 		}
+		// Target name
+		else if (n.compare (xmlTargetName) == 0 && (pinfo->routing == 2)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->routing = 5;
+		}
+	}
+
+	// Parse compiler information
+	else if (n.compare (xmlCompilerInfo) == 0) {
+		if (pinfo->top()) {
+			++pinfo->compiler;
+		}
+		else ++pinfo->ignore;
+	}
+	else if (pinfo->compiler >= 1) {
+		// Net Id
+		if (n.compare (xmlCompilerVersion) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 2;
+		}
+		// Port
+		else if (n.compare (xmlTwinCATVersion) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 3;
+		}
+		// CPU Family
+		else if (n.compare (xmlCpuFamily) == 0 && (pinfo->compiler == 1)) {
+			pinfo->data = std::stringcase ("");
+			pinfo->compiler = 4;
+		}
 	}
 
 	// Parse symbol information
@@ -473,6 +612,7 @@ static void XMLCALL startElement (void *userData, const char *name,
 			unsigned int decor = 0;
 			get_decoration (atts, decor);
 			pinfo->sym.set_type_decoration (decor);
+			pinfo->sym.set_type_pointer (get_pointer (atts));
 		}
 		// opc properties
 		else if (n.compare (xmlProperties) == 0 && !pinfo->opc_parse &&
@@ -574,6 +714,7 @@ static void XMLCALL startElement (void *userData, const char *name,
 		else if (n.compare (xmlEnumInfo) == 0) {
 			pinfo->enum_parse = 2;
 			pinfo->enum_element = enum_pair (0, "");
+			pinfo->enum_comment.clear();
 		}
 		// enum tag
 		else if (n.compare (xmlEnumEnum) == 0 && 
@@ -583,6 +724,12 @@ static void XMLCALL startElement (void *userData, const char *name,
 		}
 		// enum text
 		else if (n.compare (xmlEnumText) == 0 && 
+			pinfo->enum_parse == 2) {
+				pinfo->enum_parse = 3;
+				pinfo->enum_data = std::stringcase ("");
+		}
+		// enum comment
+		else if (n.compare (xmlEnumComment) == 0 && 
 			pinfo->enum_parse == 2) {
 				pinfo->enum_parse = 3;
 				pinfo->enum_data = std::stringcase ("");
@@ -699,6 +846,37 @@ static void XMLCALL endElement (void *userData, const char *name)
 			int num = strtol (pinfo->data.c_str(), NULL, 10);
 			pinfo->get_projectinfo().set_port (num);
 		}
+		// Target name
+		else if (n.compare (xmlTargetName) == 0 && (pinfo->routing == 5)) {
+			pinfo->routing = 2;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_targetname(pinfo->data);
+		}
+	}
+
+	// Parse compiler information
+	else if (n.compare (xmlCompilerInfo) == 0) {
+		if (pinfo->compiler == 1) --pinfo->compiler;
+	}
+	else if (pinfo->compiler >= 1) {
+		// compiler version
+		if (n.compare (xmlCompilerVersion) == 0 && (pinfo->compiler == 2)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_cmpl_versionstr(pinfo->data);
+		}
+		// twincat version
+		else if (n.compare (xmlTwinCATVersion) == 0 && (pinfo->compiler == 3)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_tcat_versionstr (pinfo->data);
+		}
+		// CPU family
+		else if (n.compare (xmlCpuFamily) == 0 && (pinfo->compiler == 4)) {
+			pinfo->compiler = 1;
+			trim_space (pinfo->data);
+			pinfo->get_projectinfo().set_cpu_family (pinfo->data);
+		}
 	}
 
 	// parsing symbols
@@ -709,6 +887,10 @@ static void XMLCALL endElement (void *userData, const char *name)
 		if (pinfo->symbols == 2) {
 			--pinfo->symbols;
 			if (!pinfo->sym.get_name().empty()) {
+				// pointers are readonly!
+				if (pinfo->sym.get_type_pointer()) {
+					pinfo->sym.get_opc().get_properties()[OPC_PROP_RIGHTS] = "1";
+				}
 				pinfo->get_symbols().push_back (pinfo->sym);
 			}
 		}
@@ -782,14 +964,12 @@ static void XMLCALL endElement (void *userData, const char *name)
 	else if (n.compare (xmlDataType) == 0) {
 		if (pinfo->types == 2) {
 			--pinfo->types;
-			if (pinfo->rec.get_name_decoration()) {
-				pinfo->rec.set_type_description (pinfo->get_type_description());
-				// remove simple type which reference themselves, ie., discard type aliases
-				if ((pinfo->rec.get_type_description() != simple) ||
-					(pinfo->rec.get_name_decoration() != pinfo->rec.get_type_decoration())) {
-					pinfo->get_types().insert (
-						type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
-				}
+			pinfo->rec.set_type_description (pinfo->get_type_description());
+			// remove simple type which reference themselves, ie., discard type aliases
+			if ((pinfo->rec.get_type_description() != simple) ||
+				(pinfo->rec.get_name() != pinfo->rec.get_type_name())) {
+				pinfo->get_types().insert (
+				type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
 			}
 		}
 	}
@@ -834,6 +1014,10 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlEnumInfo) == 0 && pinfo->enum_parse == 2) {
 			pinfo->enum_parse = 1;
 			pinfo->rec.get_enum_list().insert (pinfo->enum_element);
+			if (!pinfo->enum_comment.empty() && (pinfo->enum_element.first >= 0) &&
+			   (pinfo->enum_element.first < 16)) {
+				pinfo->rec.get_opc().get_properties()[OPC_PROP_ZRST+pinfo->enum_element.first] = pinfo->enum_comment;
+			}
 		}
 		// enum tag
 		else if (n.compare (xmlEnumEnum) == 0 && 
@@ -847,6 +1031,13 @@ static void XMLCALL endElement (void *userData, const char *name)
 			pinfo->enum_parse == 3) {
 				trim_space (pinfo->enum_data);
 				pinfo->enum_element.second = pinfo->enum_data;
+				pinfo->enum_parse = 2;
+		}
+		// enum comment
+		else if (n.compare (xmlEnumComment) == 0 && 
+			pinfo->enum_parse == 3) {
+				trim_space (pinfo->enum_data);
+				pinfo->enum_comment = pinfo->enum_data;
 				pinfo->enum_parse = 2;
 		}
 		// parsed a subitem
@@ -975,6 +1166,10 @@ static void XMLCALL dataElement (void *userData, const char *data, int len)
 
 	// get data from routing
 	if (pinfo->routing >= 2) {
+		pinfo->data.append (data, len);
+	}
+	// get data from compiler
+	else if (pinfo->compiler >= 1) {
 		pinfo->data.append (data, len);
 	}
 

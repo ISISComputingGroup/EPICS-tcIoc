@@ -12,14 +12,19 @@ using namespace ParseUtil;
  ************************************************************************/
 
 /** Symbol processing
+    @brief Symbol processing
  ************************************************************************/
 class syminfo_processing {
 public:
+	/// Constructor
 	explicit syminfo_processing (FILE* outfile = 0, bool atomic = true)
 		: outf (outfile ? outfile : stdout), firstline (true) {}
+	/// Process
 	bool operator() (const process_arg& arg);
 protected:
+	/// Ouptut file
 	FILE*		outf;
+	/// Firstline?
 	bool		firstline;
 };
 
@@ -71,7 +76,10 @@ bool syminfo_processing::operator() (const process_arg& arg)
 	}
 
 	// Print memory start address and size (24 chars)
-	fprintf (outf, " %7d %7d %7d", arg.get_igroup(), arg.get_ioffset(), (int)(arg.get_bytesize()));
+	const process_arg_tc* parg = dynamic_cast<const process_arg_tc*>(&arg);
+	if (parg) {
+		fprintf(outf, " %7d %7d %7d", parg->get_igroup(), parg->get_ioffset(), (int)(parg->get_bytesize()));
+	}
 
 	// Print type and varname
 	fprintf (outf, " %-23s %-s\n", arg.get_type_name().c_str(), arg.get_name().c_str()); 
@@ -80,7 +88,8 @@ bool syminfo_processing::operator() (const process_arg& arg)
 }
 
 
-/** Main program
+/** Main program for tpyinfo
+    @brief tpyinfo
  ************************************************************************/
 int main (int argc, char *argv[])
 {
@@ -163,7 +172,8 @@ int main (int argc, char *argv[])
 	}
 	clock_t t3 = clock();
 	fprintf (stderr, "Time to parse file %g sec, time to build list %g sec.\n", 
-		(double)(t2 - t1)/CLOCKS_PER_SEC, (double)(t3 - t2)/CLOCKS_PER_SEC);
+		static_cast<double>((int64_t)t2 - (int64_t)t1)/CLOCKS_PER_SEC, 
+		static_cast<double>((int64_t)t3 - (int64_t)t2)/CLOCKS_PER_SEC);
 
 	// close files
 	if (!inpfilename.empty()) {

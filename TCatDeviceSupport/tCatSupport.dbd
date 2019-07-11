@@ -1,3 +1,12 @@
+# tCat record driver and device support 
+###############################################
+#         !!!!!!!!!! ATTENTION !!!!!!!!
+#        If you add or remove any item here
+# You have to change:
+# - "devTc.cpp"
+###############################################
+
+#driver(drvtCat)
 device(ai,INST_IO,aival_record_tc_dset,"tcat")
 device(aai,INST_IO,aaival_record_tc_dset,"tcat")
 device(bi,INST_IO,bival_record_tc_dset,"tcat")
@@ -21,3 +30,4 @@ device(ao,INST_IO,aorval_record_tc_dset,"tcat raw")
 device(bo,INST_IO,borval_record_tc_dset,"tcat raw")
 device(mbbo,INST_IO,mbborval_record_tc_dset,"tcat raw")
 device(mbboDirect,INST_IO,mbboDirectrval_record_tc_dset,"tcat raw")
+#registrar(caPutLogRegister)

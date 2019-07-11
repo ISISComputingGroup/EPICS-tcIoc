@@ -1,11 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
-#include "devTc.h"
+#include "infoPlc.h"
 #include "ParseTpy.h"
 #include "windows.h"
 #include "TpyToEpics.h"
-#include "TcAdsAPI.h"
+#include "TcAdsDef.h"
+#include "TcAdsApi.h"
 #include <memory>
+#include <filesystem>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -13,10 +15,11 @@
  ************************************************************************/
 
 using namespace std;
+using namespace std::experimental::filesystem::v1;
 using namespace plc;
 
-bool debug = false;
-bool tcdebug = false;
+static bool debug = false;
+static bool tcdebug = false;
 
 
 
@@ -41,8 +44,8 @@ void errorPrintf(int nErr)
 		lasterror = nErr;
 	}
 	/////////////////////////////////////////////////
-	/// This function prints the proper error message for common ADS return codes.
-	/// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
+	// This function prints the proper error message for common ADS return codes.
+	// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
 	/////////////////////////////////////////////////
 	if (nErr == 4	) 
 		printf("no ADS mailbox was available to process this message\n");
@@ -86,14 +89,14 @@ TCatInterface::TCatInterface (BaseRecord& dval, const stringcase& name,
 							  unsigned long group, unsigned long offset, 
 							  unsigned long nBytes, const stringcase& type, 
 							  bool isStruct, bool isEnum)
-	: Interface (dval), tCatName(name), tCatType(type), requestNum(0), 
-	requestOffs(0)
+	: Interface (dval), tCatName(name), tCatType(type), 
+	tCatSymbol({ 0,0,0 }), requestNum(0), requestOffs(0)
 {
 	tCatSymbol.indexGroup = group;
 	tCatSymbol.indexOffset = offset;
 	tCatSymbol.length = nBytes;
 	if (isEnum)	tCatType = "ENUM";
-	if (isStruct) record->set_process(false);
+	if (isStruct) record.set_process(false);
 }
 
 /* TCatInterface::push
@@ -110,75 +113,71 @@ bool TCatInterface::pull()
 	return true;
 }
 
+/* TCatInterface::get_parent
+ ************************************************************************/
 TcPLC* TCatInterface::get_parent()
 { 
-	return dynamic_cast<TcPLC*>(record->get_parent()); 
+	return dynamic_cast<TcPLC*>(record.get_parent()); 
+}
+
+/* TCatInterface::get_parent
+ ************************************************************************/
+const TcPLC* TCatInterface::get_parent() const
+{
+	return dynamic_cast<const TcPLC*>(record.get_parent());
 }
 
 /* TCatInterface::printTCatVal
  ************************************************************************/
-void TCatInterface::printTCatVal(FILE* fp)
+void TCatInterface::printVal (FILE* fp)
 {
 	/////////////////////////////////////////////////
 	/// This is a function for printing the variable name and value of a record.
 	/// Depending on the variable type, the readout from the ADS server is cast
 	/// into the proper data type and printed to the output file fp.
 	/////////////////////////////////////////////////
-	fprintf(fp,"%15s: %15s         ",tCatName.c_str(), tCatType.c_str());
+	fprintf(fp,"%65s: %15s         ",tCatName.c_str(), tCatType.c_str());
 
 	double				doublePLCVar;
 	float				floatPLCVar;
 	signed long int		sliPLCVar;
 	signed short int	ssiPLCVar;
 	signed char			charPLCVar;
-	char				chararrPLCVar[100];
+	char				chararrPLCVar[256];
 	
 	TcPLC*				parent = get_parent();
 	if (!parent) return;	
 	TcPLC::buffer_ptr buf = parent->get_responseBuffer (requestNum);
 	if (!buf) return;
 	char* pTCatVal = buf.get() + requestOffs;
-	if (tCatType == "LREAL")
-	{
+	if (tCatType == "LREAL") {
 		doublePLCVar	= *(double*)pTCatVal;
 		fprintf(fp,"%f",doublePLCVar);
 	}
-	else if (tCatType == "REAL")
-	{
+	else if (tCatType == "REAL") {
 		floatPLCVar		= *(float*)pTCatVal;
 		fprintf(fp,"%f",floatPLCVar);
 	}
-	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")
-	{
+	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")  {
 		sliPLCVar		= *(signed long int*)pTCatVal;
 		fprintf(fp,"%d",sliPLCVar);
 	}
-	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT")
-	{
+	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		ssiPLCVar		= *(signed short int*)pTCatVal;
 		fprintf(fp,"%d",ssiPLCVar);
 	}
-	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT")
-	{
+	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT") {
 		charPLCVar		= *(signed char*)pTCatVal;
 		fprintf(fp,"%d",charPLCVar);
 	}
-	else if (tCatType.substr(0,6) == "STRING")
-	{
-		strncpy(chararrPLCVar, (char*)pTCatVal, tCatSymbol.length);
+	else if (tCatType.substr(0,6) == "STRING") {
+		strncpy(chararrPLCVar, (char*)pTCatVal, min (tCatSymbol.length, sizeof(chararrPLCVar)));
 		fprintf(fp,"%s",chararrPLCVar);
 	}
-	else
-	{
+	else {
 		fprintf(fp,"INVALID!!!");
 	}
-
 	fprintf(fp,"\n");
-	//fprintf(fp,"      request %i       offset %i          \n", requestNum, tCatSymbol.indexOffset); // Use this to print additional information
-
-	if (debug)
-	{
-	}
 }
 
 
@@ -199,7 +198,7 @@ tcProcWrite::~tcProcWrite()
 
 /* tcProcWrite::operator=
  ************************************************************************/
-tcProcWrite&  tcProcWrite::operator= (tcProcWrite&& tp) 
+tcProcWrite&  tcProcWrite::operator= (tcProcWrite&& tp) noexcept
 {
 	addr = tp.addr;
 	port = tp.port;
@@ -298,8 +297,10 @@ void tcProcWrite::tcwrite()
 	char* ret = new char [4 * count];
 	if (!ret) return;
 	unsigned long read;
-	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, count,
-		sizeof(long)*count, ret, 3*sizeof(long)*count + size, ptr, &read);
+	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
+		static_cast<unsigned long>(count),
+		static_cast<unsigned long>(sizeof(long)*count), ret, 
+		static_cast<unsigned long>(3*sizeof(long)*count + size), ptr, &read);
 	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf (nErr);
 	// ready for next transfer
 	count = 0;
@@ -310,6 +311,26 @@ void tcProcWrite::tcwrite()
 /************************************************************************
   TcPLC
  ************************************************************************/
+
+ /* TcPLC::TcPLC constructor
+  ************************************************************************/
+TcPLC::TcPLC (std::string tpyPath)
+	: addr(), pathTpy(tpyPath), timeTpy(0), checkTpy(false), validTpy(true), nRequest(0),
+	scanRateMultiple(default_multiple), cyclesLeft(default_multiple), update_workload (0),
+	ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false), nReadPort(0), nWritePort(0),
+	nNotificationPort(0), read_active(false), plcId(0)
+{
+	// modification time
+	path fpath(pathTpy);
+	timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
+	if (debug) printf("Tpy time: %s\n", std::asctime(std::localtime(&timeTpy)));
+	// Set PLC ID and initialize list of PLC instances
+	{
+		std::lock_guard<std::mutex> lock(plcVecMutex);
+		plcVec.push_back(this);
+		plcId = (unsigned int)plcVec.size() - 1;
+	};
+};
 
 /* TcPLC::set_addr
  ************************************************************************/
@@ -330,6 +351,17 @@ bool TcPLC::set_addr(stringcase netIdStr, int port)
  ************************************************************************/
 bool TcPLC::start()
 {
+	// initialize update scanner
+	double ticks = 10.0 / fabs((double)update_scanner_period) * 1000.0;
+	if (ticks < 1) ticks = 1;
+	{
+		guard lock(mux);
+		update_workload = (int)((double)records.size() / ticks + 1);
+		if (!records.empty()) {
+			update_last = records.begin()->second;
+		}
+	}
+
 	// initialize read and write scanner
 	nReadPort = openPort();
 	nWritePort = openPort();
@@ -337,6 +369,7 @@ bool TcPLC::start()
 		printf("Failed to open ADS ports\n");
 		return false;
 	}
+	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
 		unsigned short port = addr.port;
@@ -350,16 +383,6 @@ bool TcPLC::start()
 			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], port);
 	}
-	// initialize update scanner
-	double ticks = 10.0 / fabs((double)update_scanner_period) * 1000.0;
-	if (ticks < 1) ticks = 1;
-	{
-		guard lock (mux);
-		update_workload = (int) ((double)records.size() / ticks + 1);
-		if (!records.empty()) {
-			update_last = records.begin()->second;
-		}
-	}
 
 	// Setup ADS notifications
 	setup_ads_notification();
@@ -368,14 +391,35 @@ bool TcPLC::start()
 }
 
 
-/* Compare two TCat records by their group and offset: compbyOffset
+/** Compare two TCat records by their group and offset: compbyOffset
  ************************************************************************/
-bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
+static bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 {
 	TCatInterface* a = dynamic_cast<TCatInterface*>(recA.get()->get_plcInterface());
 	TCatInterface* b = dynamic_cast<TCatInterface*>(recB.get()->get_plcInterface());
 	if (!a || !b) return true;
 	return ((a->get_indexGroup() <= b->get_indexGroup()) && (a->get_indexOffset() < b->get_indexOffset()));
+}
+
+/* Checks is tpy file is valid, ie. hasn't changed
+ ************************************************************************/
+bool TcPLC::is_valid_tpy()
+{
+	if (validTpy && checkTpy.load()) {
+		checkTpy = false;
+		path fpath (pathTpy);
+		if (exists (fpath)) {
+			time_t modtime = file_time_type::clock::to_time_t (last_write_time (fpath));
+			validTpy = (modtime == timeTpy);
+		}
+		else {
+			validTpy = false;
+		}
+		if (!validTpy) {
+			printf ("ABORT! Updated tpy file for PLC %s\nRESTART tcioc!\n", name.c_str());
+		}
+	}
+	return validTpy;
 }
 
 /* Build TCat read request groups: TcPLC::optimizeRequests
@@ -384,20 +428,32 @@ bool TcPLC::optimizeRequests()
 {
 	// TODO: THIS FUNCTION NEEDS A NEW NAME
 	if (debug) printf("Forming requests...\n");
+	if (records.empty()) {
+		return true;
+	}
 
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
-	for (auto it = records.begin(); it!= records.end(); ++it) {
-		recordList.push_back( it->second);
+	for (auto& it : records) {
+		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
+		// add tc records to optimize list
+		if (a) {
+			recordList.push_back(it.second);
+		}
+		// add all others to non tc list
+		else {
+			nonTcRecords.insert(it);
+		}
 	}
+	if (debug) printf("Number of info records %i\n", (int)nonTcRecords.size());
 
 	// Sort record list by group and offset
-	recordList.sort( compByOffset );
-
+	recordList.sort(compByOffset);
 	bool gap;
 	int nextOffs;
-	if (recordList.size() == 0)
+	if (recordList.size() == 0) {
 		return false;
+	}
 	auto it = recordList.begin();
 	TCatInterface* rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
 	if (!rec) return false;
@@ -458,17 +514,19 @@ bool TcPLC::optimizeRequests()
 	if (debug) printf("Making buffer...\n");
 	for (auto i : adsGroupReadRequestVector)
 	{
-		buffer_type* buffer = new (nothrow) buffer_type [i.length + 4];
+		size_t bufsize = (size_t)i.length + 4;
+		buffer_type* buffer = new (nothrow) buffer_type [bufsize];
+		if (buffer) memset(buffer, 0, bufsize);
 		adsResponseBufferVector.push_back(buffer_ptr(buffer));
 	}
 
 	// Set offset into request buffer for each record
 	int reqNum;
-	int recOffs;
-	int reqOffs;
-	for (it = recordList.begin(); it != recordList.end(); ++it)
+	size_t recOffs;
+	size_t reqOffs;
+	for (auto const& it : recordList)
 	{
-		rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
+		rec = dynamic_cast<TCatInterface*>(it.get()->get_plcInterface());
 		if (!rec) continue;
 		reqNum = rec->get_requestNum();
 		recOffs = rec->get_indexOffset();
@@ -481,30 +539,129 @@ bool TcPLC::optimizeRequests()
 	return true;
 }
 
+/* TcPLC::get_responseBuffer
+************************************************************************/
+TcPLC::buffer_ptr TcPLC::get_responseBuffer(size_t idx)
+{
+	return (idx >= 0 && idx < adsResponseBufferVector.size()) ?
+		adsResponseBufferVector[idx] : buffer_ptr();
+}
+
  /* TcPLC::printAllRecords
  ************************************************************************/
 void TcPLC::printAllRecords()
 {
-	for (auto it = records.begin(); it != records.end(); ++it)
-	{
-		TCatInterface* tcat = dynamic_cast<TCatInterface*>(it->second.get()->get_plcInterface());
-		if (!tcat) continue;
-		tcat->printTCatVal(stdout);
+	std::vector<BaseRecordPtr> rlist;
+	for (auto const& i : records) {
+		if (i.second.get() && i.second->get_plcInterface() && 
+			i.second->get_plcInterface()->get_symbol_name()) {
+			rlist.push_back(i.second);
+		}
 	}
+	std::sort (rlist.begin(), rlist.end(),
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		return _stricmp (p1->get_plcInterface()->get_symbol_name(), 
+						 p2->get_plcInterface()->get_symbol_name()) < 0; });
+	int num = 0;
+	for (auto const& it : rlist) {
+		Interface* iface = it.get()->get_plcInterface();
+		if (iface) {
+			iface->printVal (stdout);
+			++num;
+		}
+	}
+	fprintf (stdout, "Printed %i record values\n", num);
+}
+
+/* replace_all
+************************************************************************/
+static void replace_all (std::string& str, const std::string& from, const std::string& to)
+{
+	std::string::size_type start_pos = 0;
+	while ((start_pos = str.find (from, start_pos)) != std::string::npos) {
+		str.replace(start_pos, from.length(), to);
+		start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+	}
+}
+
+/* escape_regex
+************************************************************************/
+static std::string escape_regex (const std::string& regex)
+{
+	std::string str(regex);
+	replace_all (str, "\\", "\\\\");
+	replace_all (str, "^", "\\^");
+	replace_all (str, ".", "\\.");
+	replace_all (str, "$", "\\$");
+	replace_all (str, "|", "\\|");
+	replace_all (str, "(", "\\(");
+	replace_all (str, ")", "\\)");
+	replace_all (str, "[", "\\[");
+	replace_all (str, "]", "\\]");
+	replace_all (str, "*", "\\*");
+	replace_all (str, "+", "\\+");
+	replace_all (str, "?", "\\?");
+	replace_all (str, "/", "\\/");
+	return str;
+}
+
+/* WildcardToRegex
+************************************************************************/
+static std::string WildcardToRegex (const std::string& pattern)
+{
+	std::string str ("^" + escape_regex (pattern) + "$");
+	replace_all (str, "\\*", ".*");
+	replace_all (str, "\\?", ".");
+	return str;
+}
+
+/* TcPLC::printRecord
+ ************************************************************************/
+void TcPLC::printRecord (const std::string& var)
+{
+	std::vector<BaseRecordPtr> rlist;
+	for (auto const& i : records) {
+		if (i.second.get() && i.second->get_plcInterface() && 
+			i.second->get_plcInterface()->get_symbol_name()) {
+			rlist.push_back(i.second);
+		}
+	}
+	std::sort(rlist.begin(), rlist.end(),
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		return _stricmp(p1->get_plcInterface()->get_symbol_name(), 
+					    p2->get_plcInterface()->get_symbol_name()) < 0;	});
+	int num = 0;
+	std::string pattern = WildcardToRegex(var);
+	std::regex	exp (pattern);
+	for (auto const& it : rlist) {
+		Interface* iface = it.get()->get_plcInterface();
+		if (iface && std::regex_match (iface->get_symbol_name(), exp)) {
+			iface->printVal(stdout);
+			++num;
+		}
+	}
+	if (num > 5) fprintf(stdout, "Printed %i record values\n", num);
 }
 
 /** Callback for ADS state change
  ************************************************************************/
 void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
-							ULONG hUser)
+							unsigned long plcId)
 {
-	TcPLC* tCatPlcUser = NULL;
+	TcPLC* tCatPlcUser = nullptr;
 	{
-	    std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
-	    tCatPlcUser = TcPLC::plcVec[hUser];
+		std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
+		if ((plcId >= 0) && (plcId < TcPLC::plcVec.size())) {
+			tCatPlcUser = TcPLC::plcVec[plcId];
+		}
 	}
-	ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
-	tCatPlcUser->set_ads_state(state);
+	if (tCatPlcUser) {
+		ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
+		tCatPlcUser->set_ads_state(state);
+	}
+	else {
+		printf("Unknown PLC ID %i\n", plcId);
+	}
 }
 
 /** TcPLC::set_ads_state
@@ -513,6 +670,7 @@ void TcPLC::set_ads_state(ADSSTATE state)
 {
 	if (ads_state.exchange (state) != state) {
 		printf ("%s PLC %s\n", state == ADSSTATE_RUN ? "Online" : "Offline", name.c_str());
+		checkTpy = (state == ADSSTATE_RUN);
 	} 
 }
 
@@ -535,22 +693,13 @@ void TcPLC::setup_ads_notification()
 		&adsNotificationAttrib, ADScallback, plcId, &ads_handle);
 	if (nErr) {
 		printf ("Unable to establish ADS notifications for %s\n", name.c_str());
-		set_ads_state (ADSSTATE_RUN);
+		set_ads_state (ADSSTATE_INVALID);
 		if (nErr != 18) errorPrintf(nErr);
 		ads_restart = true;
 	}
-
-	// Now ask for initial state (is this actually needed?)
-	//USHORT state;
-	//USHORT devstate;
-	//nErr = AdsSyncReadStateReqEx (nNotificationPort, &addr, &state, &devstate);
-	//if (nErr) {
-	//	set_ads_state (ADSSTATE_STOP);
-	//	if (nErr != 18) errorPrintf(nErr);
-	//}
-	//else {
-	//	set_ads_state ((ADSSTATE)state);
-	//}
+	else {
+		// set_ads_state (ADSSTATE_RUN);
+	}
 }
 
 /* TcPLC::remove_ads_notification
@@ -572,7 +721,7 @@ void TcPLC::read_scanner()
 {	
 	std::lock_guard<std::mutex>	lockit (sync);
 	bool read_success = false;
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
@@ -610,11 +759,11 @@ void TcPLC::read_scanner()
 
 	// Check if it's time to do an EPICS read for the slow (read only) records
 	bool readAll = false;
-	if (cyclesLeft == 0) readAll = true;
+	if (cyclesLeft <= 0) readAll = true;
 	// Reset countdown until EPICS read
 	if (readAll) cyclesLeft = scanRateMultiple;
 
-	// Update all records
+	// Update all tc records
 	for (auto recordsEntry = records.begin(); recordsEntry != records.end(); ++recordsEntry) {
 		BaseRecord* pRecord = recordsEntry->second.get();
 		if (!pRecord) continue;
@@ -632,6 +781,16 @@ void TcPLC::read_scanner()
 		}
 	}
 
+	// update non tc records (try using a different cycle to distribute load)
+	if (cyclesLeft == 1) {
+		for (auto const& it : nonTcRecords) {
+			InfoPlc::InfoInterface* iface = dynamic_cast<InfoPlc::InfoInterface*> (it.second->get_plcInterface());
+			if (iface) {
+				iface->update();
+			}
+		}
+	}
+
 	--cyclesLeft;
 }
 
@@ -640,8 +799,16 @@ void TcPLC::read_scanner()
 void TcPLC::write_scanner()
 {
 	std::lock_guard<std::mutex>	lockit (sync);
-	if (get_ads_state() == ADSSTATE_RUN) {
+	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for_each (tcProcWrite (addr, nWritePort));
+	}
+
+	// update non tc records (try using a different cycle to distribute load)
+	for (auto const& it : nonTcRecords) {
+		plc::Interface* iface = it.second->get_plcInterface();
+		if (iface) {
+			iface->push();
+		}
 	}
 }
 
@@ -649,6 +816,9 @@ void TcPLC::write_scanner()
  ************************************************************************/
 void TcPLC::update_scanner()
 {
+	static time_t last_restart = 0;
+	// Set the dirty flag on a few records to make sure they won't go 
+	// stale, i.e., EPICS and TwinCAT data values are diverging.
 	if (!update_last.get()) return;
 	BaseRecordPtr next;
 	for (int i = 0; i < update_workload; ++i) {
@@ -663,11 +833,16 @@ void TcPLC::update_scanner()
 		}
 	}
 	// restart ads callback when needed
-	if (is_read_active() && ads_restart.load()) {
-		printf ("Reconnect to PLC %s\n", name.c_str());
-		remove_ads_notification();
-		setup_ads_notification();
-		ads_restart = false;
+	if ((get_ads_state() == ADSSTATE_INVALID) ||
+		(is_read_active() && ads_restart.load())) {
+		time_t t = file_time_type::clock::to_time_t (std::chrono::system_clock::now());
+		if (t > last_restart + 10) {
+			last_restart = t;
+			printf("Reconnect to PLC %s\n", name.c_str());
+			remove_ads_notification();
+			setup_ads_notification();
+			ads_restart = false;
+		}
 	}
 }
 
@@ -685,14 +860,19 @@ void TcPLC::closePort(long nPort)
 	AdsPortCloseEx(nPort);
 }
 
+/* TcPLC::plcVec
+ ************************************************************************/
 std::vector<TcPLC*> TcPLC::plcVec;
+
+/* TcPLC::closePort
+ ************************************************************************/
 std::mutex TcPLC::plcVecMutex;
 
 /************************************************************************ 
   AmsRouterNotification
  ************************************************************************/
 
-/* Callback for AMS router state change
+/** Callback for AMS router state change
  ************************************************************************/
 void __stdcall RouterCall (long nReason)
 {
@@ -726,9 +906,20 @@ void AmsRouterNotification::set_router_notification(AmsRouterEvent routerevent) 
 /* AmsRouterNotification constructor
  ************************************************************************/
 AmsRouterNotification::AmsRouterNotification()
-	: ams_router_event (AMSEVENT_ROUTERSTART)
+	: ads_version (0), ads_revision (0), ads_build (0),
+	ams_router_event (AMSEVENT_ROUTERSTART)
 {
 	LONG nErr;
+	AdsVersion* pDLLVersion;
+	nErr = AdsGetDllVersion();
+	pDLLVersion = (AdsVersion *)&nErr;
+	ads_version = pDLLVersion->version;
+	ads_revision = pDLLVersion->revision;
+	ads_build = pDLLVersion->build;
+	printf("ADS version: %i, revision: %i, build: %i\n", 
+		   ads_version, ads_revision, ads_build);
+	return;
+	nErr = AdsPortOpen();
 	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
 	if (nErr) errorPrintf(nErr);
 }
