@@ -34,29 +34,37 @@ FILENAME... devMotorAxis.cpp
   *
   * Initializes register numbers, etc.
   */
-devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
-  : asynMotorAxis(pC, axisNo),
-    pC_(pC)
+devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo) 
+	: asynMotorAxis(pC, axisNo),
+		pC_(pC)
 {
-  printf("Axis created\n");
-  pC_->wakeupPoller();
+	printf("Axis created\n");
+	pC_->wakeupPoller();
 }
 
 
 extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo)
 {
-  devMotorController *pC;
+	devMotorController *pC;
 
-  pC = (devMotorController*) findAsynPortDriver(devMotorName);
-  if (!pC)
-  {
-    printf("Error port %s not found\n", devMotorName);
-    return asynError;
-  }
-  pC->lock();
-  new devMotorAxis(pC, axisNo);
-  pC->unlock();
-  return asynSuccess;
+	pC = (devMotorController*) findAsynPortDriver(devMotorName);
+	if (!pC)
+	{
+		printf("Error port %s not found\n", devMotorName);
+		return asynError;
+	}
+	pC->lock();
+	new devMotorAxis(pC, axisNo);
+	pC->unlock();
+	return asynSuccess;
+}
+
+int devMotorAxis::sendCommand(int command)
+{
+    int exec = 1;
+    int status = putDb("AXES_1:ECOMMAND", &command);
+    status |= putDb("AXES_1:BEXECUTE", &exec);
+	return status;
 }
 
 /** Move the axis to a position, either absolute or relative
@@ -69,16 +77,14 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo)
   */
 asynStatus devMotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
 {
-	scaleValueFromMotorRecord(&position);
-	scaleValueFromMotorRecord(&maxVelocity);
+    scaleValueFromMotorRecord(&position);
+    scaleValueFromMotorRecord(&maxVelocity);
     printf("Move Called to position %f\n", position);
-	
-	int status = putDb("AXES_1:FPOSITION", &position);
+    
+    int status = putDb("AXES_1:FPOSITION", &position);
     status |= putDb("AXES_1:FVELOCITY", &maxVelocity);
     
-	int exec = 1;
-    status |= putDb("AXES_1:ECOMMAND", &MOVE_COMMAND);
-    status |= putDb("AXES_1:BEXECUTE", &exec);
+	status |= sendCommand(MOVE_COMMAND);
 
     return (asynStatus) status;
 }
@@ -119,8 +125,7 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
 asynStatus devMotorAxis::stop(double acceleration )
 {
   printf("Stop Axis Called\n");
-  asynStatus status = asynSuccess;
-  return status;
+  return (asynStatus) sendCommand(STOP_COMMAND);
 }
 
 double devMotorAxis::scaleValueFromMotorRecord(double* value)
@@ -136,10 +141,9 @@ double devMotorAxis::scaleValueFromMotorRecord(double* value)
 double devMotorAxis::scaleMotorValueToMotorRecord(double value)
 {
   double mres = 0.0;
-  asynStatus status = pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres);
   if (pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres) == asynSuccess && mres != 0.0)
   {
-	  value /= mres;
+      value /= mres;
   }
   return value;
 }
@@ -194,11 +198,11 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status)
 asynStatus devMotorAxis::putDb(char *pname, const void *value) {
     DBADDR addr;
     if (dbNameToAddr(pname, &addr)) {
-		printf("Couldn't find PV: %s\n", pname);
+        printf("Couldn't find PV: %s\n", pname);
         return asynError;
     }
     long blah = dbPutField(&addr, addr.dbr_field_type, value, 1);
-	printf("Error code for putting to %s: %i\n", pname, blah);
+    printf("Error code for putting to %s: %i\n", pname, blah);
   
     return asynSuccess;
 }

@@ -62,8 +62,10 @@ private:
 	double scaleValueFromMotorRecord(double *value);
 	double scaleMotorValueToMotorRecord(double value);
 	asynStatus putDb(char *pname, const void *value);
+	int sendCommand(int command);
 	friend class devMotorController;
 	
+	const epicsInt32 STOP_COMMAND = 15;
 	const epicsInt32 MOVE_COMMAND = 17;
 };
 
