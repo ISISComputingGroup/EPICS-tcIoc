@@ -1,7 +1,3 @@
-/*
-FILENAME... devMotorAxis.cpp
-*/
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -20,12 +16,8 @@ FILENAME... devMotorAxis.cpp
 #endif
 
 #ifndef MIN
-#   define MIN(x,y)  (((x) < (y)) ? (x) : (y))
+#define MIN(x,y)  (((x) < (y)) ? (x) : (y))
 #endif
-
-//
-// These are the devMotorAxis methods
-//
 
 /** Creates a new devMotorAxis object.
   * \param[in] pC Pointer to the EssMCAGmotorController to which this axis belongs.
@@ -35,36 +27,33 @@ FILENAME... devMotorAxis.cpp
   * Initializes register numbers, etc.
   */
 devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo) 
-	: asynMotorAxis(pC, axisNo),
-		pC_(pC)
+    : asynMotorAxis(pC, axisNo), pC_(pC)
 {
-	printf("Axis created\n");
-	pC_->wakeupPoller();
+    printf("Axis created\n");
+    pC_->wakeupPoller();
 }
 
 
-extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo)
-{
-	devMotorController *pC;
+extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
+    devMotorController *pC;
 
-	pC = (devMotorController*) findAsynPortDriver(devMotorName);
-	if (!pC)
-	{
-		printf("Error port %s not found\n", devMotorName);
-		return asynError;
-	}
-	pC->lock();
-	new devMotorAxis(pC, axisNo);
-	pC->unlock();
-	return asynSuccess;
+    pC = (devMotorController*) findAsynPortDriver(devMotorName);
+    if (!pC)
+    {
+        printf("Error port %s not found\n", devMotorName);
+        return asynError;
+    }
+    pC->lock();
+    new devMotorAxis(pC, axisNo);
+    pC->unlock();
+    return asynSuccess;
 }
 
-int devMotorAxis::sendCommand(int command)
-{
+int devMotorAxis::sendCommand(int command) {
     int exec = 1;
     int status = putDb("AXES_1:ECOMMAND", &command);
     status |= putDb("AXES_1:BEXECUTE", &exec);
-	return status;
+    return status;
 }
 
 /** Move the axis to a position, either absolute or relative
@@ -75,8 +64,7 @@ int devMotorAxis::sendCommand(int command)
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus devMotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration)
-{
+asynStatus devMotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration) {
     scaleValueFromMotorRecord(&position);
     scaleValueFromMotorRecord(&maxVelocity);
     printf("Move Called to position %f\n", position);
@@ -84,7 +72,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
     int status = putDb("AXES_1:FPOSITION", &position);
     status |= putDb("AXES_1:FVELOCITY", &maxVelocity);
     
-	status |= sendCommand(MOVE_ABS_COMMAND);
+    status |= sendCommand(MOVE_ABS_COMMAND);
 
     return (asynStatus) status;
 }
@@ -97,11 +85,9 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
   * \param[in] forwards (0=backwards, otherwise forwards)
   *
   */
-asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards)
-{
-  asynStatus status = asynSuccess;
-  printf("Home Called\n");
-  return status;
+asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards) {
+    printf("Home Called\n");
+    return asynSuccess;
 }
 
 
@@ -111,45 +97,62 @@ asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acc
   * \param[in] acceleration, seconds to maximum velocity
   *
   */
-asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
-{
-	scaleValueFromMotorRecord(&maxVelocity);
-	printf("Move Velo Called with velo %f\n", maxVelocity);
-	
-	int status = putDb("AXES_1:FVELOCITY", &maxVelocity);
-	status |= sendCommand(MOVE_VELO_COMMAND);
-	
-	return (asynStatus) status;
+asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration) {
+    scaleValueFromMotorRecord(&maxVelocity);
+    printf("Move Velo Called with velo %f\n", maxVelocity);
+    
+    int status = putDb("AXES_1:FVELOCITY", &maxVelocity);
+    status |= sendCommand(MOVE_VELO_COMMAND);
+    
+    return (asynStatus) status;
 }
 
-
-/** Stop the axis, called by motor Record
-  *
+/** 
+  * Stops the axis, called by motor record.
+  * 
+  * @param acceleration The acceleration to stop the axis with (currently unused).
   */
-asynStatus devMotorAxis::stop(double acceleration )
-{
-  printf("Stop Axis Called\n");
-  return (asynStatus) sendCommand(STOP_COMMAND);
+asynStatus devMotorAxis::stop(double acceleration) {
+    printf("Stop Axis Called\n");
+    return (asynStatus) sendCommand(STOP_COMMAND);
 }
 
-double devMotorAxis::scaleValueFromMotorRecord(double* value)
-{
-    double mres = 0.0;
-    if (pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres) == asynSuccess && (mres != 0.0) )
-    {
-        *value *= mres;
+/**
+  * Gets the motor resolution inside the motor record.
+  * 
+  * @return The motor resolution or 1.0 if no resolution can be found.
+  */
+double devMotorAxis::getMotorResolution() {
+    double mres = 1.0;
+    if (pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres) == asynSuccess) {
+        return mres;
+    } else {
+        return 1.0;
     }
-    return *value;
 }
 
-double devMotorAxis::scaleMotorValueToMotorRecord(double value)
-{
-  double mres = 0.0;
-  if (pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres) == asynSuccess && mres != 0.0)
-  {
-      value /= mres;
-  }
-  return value;
+/**
+  * Scales the value coming from the motor record towards the PLC.
+  *
+  * The PLC works in real world units the scaling will need to be but
+  * the motor record works in steps, the resolution is the scaling.
+  *
+  * @param value A pointer to the value that is being scaled.
+  */
+void devMotorAxis::scaleValueFromMotorRecord(double* value) {
+    *value *= getMotorResolution();
+}
+
+/**
+  * Scales the value coming from the PLC towards the motor record.
+  *
+  * The PLC works in real world units the scaling will need to be but
+  * the motor record works in steps, the resolution is the scaling.
+  *
+  * @param value A pointer to the value that is being scaled.
+  */
+void devMotorAxis::scaleValueToMotorRecord(double* value) {
+    *value /= getMotorResolution();
 }
 
 void devMotorAxis::getDirection(int *direction) {
@@ -166,37 +169,25 @@ void devMotorAxis::getDirection(int *direction) {
     }
 }
 
-asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status)
-{ 
-  try {
-    getInteger("AXES_1:BENABLE", &pst_axis_status->bEnable);
-    getInteger("AXES_1:BRESET", &pst_axis_status->bReset);
-    getInteger("AXES_1:BEXECUTE", &pst_axis_status->bExecute);
-    getDouble("AXES_1:FVELOCITY", &pst_axis_status->fVelocity);
-    getDouble("AXES_1:FPOSITION", &pst_axis_status->fPosition);
-    getDouble("AXES_1:FACCELERATION", &pst_axis_status->fAcceleration);
-    getDouble("AXES_1:FDECELERATION", &pst_axis_status->fDecceleration);
-    getInteger("AXES_1:BJOGFORWARD", &pst_axis_status->bJogFwd);
-    getInteger("AXES_1:BJOGBACKWARD", &pst_axis_status->bJogBwd);
-    getInteger("FWLIMIT_1", &pst_axis_status->bLimitFwd);
-    getInteger("BWLIMIT_1", &pst_axis_status->bLimitBwd);
-    getDouble("AXES_1:FOVERRIDE", &pst_axis_status->fOverride);
-    getInteger("AXES_1:BERROR", &pst_axis_status->bError);
-    getInteger("AXES_1:IERRORID", &pst_axis_status->nErrorId);
-    getDouble("AXES_1:AXIS-NCTOPLC_ACTPOS", &pst_axis_status->fActPosition);
-    getDouble("AXES_1:AXIS-NCTOPLC_ACTVELO", &pst_axis_status->fActVelocity);
-    getInteger("AXES_1:AXIS-STATUS_HOMED", &pst_axis_status->bHomed);
-    getDirection(&pst_axis_status->bDirection);
-    //&pst_axis_status->bHomeSensor,    /* 15 */
-     //&pst_axis_status->bEnabled,       /* 16 */
-         //&pst_axis_status->fActDiff,       /* 21 */
-    getInteger("AXES_1:BMOVING", &pst_axis_status->bMoving);
-  } catch (const std::runtime_error& e) {
-    printf(e.what());
-    return asynError;
-  }
-
-  return asynSuccess;
+asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status) { 
+    try {
+        getInteger("AXES_1:BENABLE", &pst_axis_status->bEnable);
+        getInteger("AXES_1:BEXECUTE", &pst_axis_status->bExecute);
+        getDouble("AXES_1:FVELOCITY", &pst_axis_status->fVelocity);
+        getDouble("AXES_1:FPOSITION", &pst_axis_status->fPosition);
+        getInteger("FWLIMIT_1", &pst_axis_status->bLimitFwd);
+        getInteger("BWLIMIT_1", &pst_axis_status->bLimitBwd);
+        getInteger("AXES_1:BERROR", &pst_axis_status->bError);
+        getDouble("AXES_1:AXIS-NCTOPLC_ACTPOS", &pst_axis_status->fActPosition);
+        getDouble("AXES_1:AXIS-NCTOPLC_ACTVELO", &pst_axis_status->fActVelocity);
+        getInteger("AXES_1:AXIS-STATUS_HOMED", &pst_axis_status->bHomed);
+        getInteger("AXES_1:BMOVING", &pst_axis_status->bMoving);
+        getDirection(&pst_axis_status->bDirection);
+    } catch (const std::runtime_error& e) {
+        printf(e.what());
+        return asynError;
+    }
+    return asynSuccess;
 }
 
 asynStatus devMotorAxis::putDb(char *pname, const void *value) {
@@ -205,10 +196,8 @@ asynStatus devMotorAxis::putDb(char *pname, const void *value) {
         printf("Couldn't find PV: %s\n", pname);
         return asynError;
     }
-    long blah = dbPutField(&addr, addr.dbr_field_type, value, 1);
-    printf("Error code for putting to %s: %i\n", pname, blah);
-  
-    return asynSuccess;
+
+    return (asynStatus) dbPutField(&addr, addr.dbr_field_type, value, 1);
 }
 
 void devMotorAxis::getPVValue(char *pname, DBADDR* addr, long* pbuffer) {
@@ -220,7 +209,9 @@ void devMotorAxis::getPVValue(char *pname, DBADDR* addr, long* pbuffer) {
     }
       
     no_elements = MIN(addr->no_elements, 100/addr->field_size);
-    long status = dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL); 
+    if (dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
+        throw std::runtime_error(std::string("Could not get value from PV: ") + pname + std::string("\n"));
+    }
 }
 
 void devMotorAxis::getDouble(char *pname, epicsFloat64* pvalue) {
@@ -241,6 +232,7 @@ void devMotorAxis::getInteger(char *pname, epicsInt32* pvalue) {
     DBADDR addr;
     
     getPVValue(pname, &addr, pbuffer);
+    
     if (addr.dbr_field_type == DBR_LONG) {
         *pvalue = (*(epicsInt32 *) pbuffer);
     } else if (addr.dbr_field_type == DBR_ENUM) {
@@ -255,8 +247,7 @@ void devMotorAxis::getInteger(char *pname, epicsInt32* pvalue) {
   * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
   * and then calls callParamCallbacks() at the end.
   * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
-asynStatus devMotorAxis::poll(bool *moving)
-{
+asynStatus devMotorAxis::poll(bool *moving) {
     asynStatus comStatus;
     int nowMoving = 0;
     st_axis_status_type st_axis_status;
@@ -278,12 +269,13 @@ asynStatus devMotorAxis::poll(bool *moving)
     setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
     setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
     setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
-    setIntegerParam(pC_->motorStatusPowerOn_, 1);
+    setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
     setIntegerParam(pC_->motorStatusAtHome_, 0);
     setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
     
     // Get the actual position
-    setDoubleParam(pC_->motorPosition_, scaleMotorValueToMotorRecord(st_axis_status.fActPosition));
+    scaleValueToMotorRecord(&st_axis_status.fActPosition);
+    setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
     
     // Calculate if moving and set appropriate bits
     nowMoving = st_axis_status.bMoving;

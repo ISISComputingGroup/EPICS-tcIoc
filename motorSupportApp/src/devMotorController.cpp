@@ -1,7 +1,3 @@
-/*
-FILENAME... devMotorController.cpp
-*/
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -33,8 +29,8 @@ devMotorController::devMotorController(const char *portName, const char *MotorPo
                          1, // autoconnect
                          0, 0)  // Default priority and stack size
 {
-  printf("Created Controller\n");
-  startPoller(1/1000.0, 1/1000.0, 2);
+	printf("Created Controller\n");
+	startPoller(1/1000.0, 1/1000.0, 2);
 }
 
 
@@ -46,21 +42,8 @@ devMotorController::devMotorController(const char *portName, const char *MotorPo
   */
 extern "C" int devMotorCreateController(const char *portName, const char *MotorPortName, int numAxes)
 {
-  new devMotorController(portName, MotorPortName, 1+numAxes);
-  return(asynSuccess);
-}
-
-/** Writes a string to the controller and reads a response.
-  * Disconnects in case of error
-  */
-asynStatus devMotorController::writeReadOnErrorDisconnect(void)
-{
-  asynStatus status = asynSuccess;
-  return status;
-}
-
-void devMotorController::handleStatusChange(asynStatus status)
-{
+	new devMotorController(portName, MotorPortName, 1+numAxes);
+	return(asynSuccess);
 }
 
 /** Reports on status of the driver
