@@ -94,18 +94,6 @@ devMotorAxis* devMotorController::getAxis(int axisNo)
   return static_cast<devMotorAxis*>(asynMotorController::getAxis(axisNo));
 }
 
-
-asynStatus devMotorController::writeInt32(asynUser *pasynUser, epicsInt32 value)
-{
-  int function = pasynUser->reason;
-  devMotorAxis *pAxis;
-  pAxis = getAxis(pasynUser);
-  if (!pAxis) return asynError;
-
-  (void)pAxis->setIntegerParam(function, value);
-  return asynSuccess;
-}
-
 /** Code for iocsh registration */
 static const iocshArg devMotorCreateControllerArg0 = {"Port name", iocshArgString};
 static const iocshArg devMotorCreateControllerArg1 = {"EPICS ASYN TCP motor port name", iocshArgString};

@@ -36,7 +36,7 @@ typedef struct {
   double fActPosition;   /* 20 */
   double fActDiff;       /* 21 */
   int bHomed;            /* 22 */
-  int bBusy;             /* 23 */
+  int bMoving;           /* 23 */
   int bDirection;
 } st_axis_status_type;
 
@@ -66,7 +66,9 @@ private:
 	friend class devMotorController;
 	
 	const epicsInt32 STOP_COMMAND = 15;
-	const epicsInt32 MOVE_COMMAND = 17;
+	const epicsInt32 MOVE_ABS_COMMAND = 17;
+	const epicsInt32 MOVE_RELATIVE_COMMAND = 18;
+	const epicsInt32 MOVE_VELO_COMMAND = 21;
 };
 
 class epicsShareClass devMotorController : public asynMotorController {
@@ -79,7 +81,6 @@ public:
 	devMotorAxis* getAxis(int axisNo);
 	protected:
 	void handleStatusChange(asynStatus status);
-	asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
 
 	friend class devMotorAxis;
 };

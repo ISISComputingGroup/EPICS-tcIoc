@@ -84,7 +84,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
     int status = putDb("AXES_1:FPOSITION", &position);
     status |= putDb("AXES_1:FVELOCITY", &maxVelocity);
     
-	status |= sendCommand(MOVE_COMMAND);
+	status |= sendCommand(MOVE_ABS_COMMAND);
 
     return (asynStatus) status;
 }
@@ -105,7 +105,7 @@ asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acc
 }
 
 
-/** jog the the motor, search the home position
+/** jog the the motor
   * \param[in] minimum velocity, mm/sec (not used)
   * \param[in] maximum velocity, mm/sec (positive or negative)
   * \param[in] acceleration, seconds to maximum velocity
@@ -113,9 +113,13 @@ asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acc
   */
 asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration)
 {
-  asynStatus status = asynSuccess;
-  printf("Move Velo Called\n");
-  return status;
+	scaleValueFromMotorRecord(&maxVelocity);
+	printf("Move Velo Called with velo %f\n", maxVelocity);
+	
+	int status = putDb("AXES_1:FVELOCITY", &maxVelocity);
+	status |= sendCommand(MOVE_VELO_COMMAND);
+	
+	return (asynStatus) status;
 }
 
 
@@ -186,7 +190,7 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status)
     //&pst_axis_status->bHomeSensor,    /* 15 */
      //&pst_axis_status->bEnabled,       /* 16 */
          //&pst_axis_status->fActDiff,       /* 21 */
-    getInteger("AXES_1:BBUSY", &pst_axis_status->bBusy);
+    getInteger("AXES_1:BMOVING", &pst_axis_status->bMoving);
   } catch (const std::runtime_error& e) {
     printf(e.what());
     return asynError;
@@ -282,7 +286,7 @@ asynStatus devMotorAxis::poll(bool *moving)
     setDoubleParam(pC_->motorPosition_, scaleMotorValueToMotorRecord(st_axis_status.fActPosition));
     
     // Calculate if moving and set appropriate bits
-    nowMoving = st_axis_status.bBusy;
+    nowMoving = st_axis_status.bMoving;
     setIntegerParam(pC_->motorStatusMoving_, nowMoving);
     setIntegerParam(pC_->motorStatusDone_, !nowMoving);
     *moving = nowMoving ? true : false;
