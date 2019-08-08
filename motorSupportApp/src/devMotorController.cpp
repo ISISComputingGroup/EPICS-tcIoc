@@ -61,22 +61,6 @@ void devMotorController::report(FILE *fp, int level)
   asynMotorController::report(fp, level);
 }
 
-/** Returns a pointer to an devMotorAxis object.
-  * Returns NULL if the axis number encoded in pasynUser is invalid.
-  * \param[in] pasynUser asynUser structure that encodes the axis index number. */
-devMotorAxis* devMotorController::getAxis(asynUser *pasynUser)
-{
-  return static_cast<devMotorAxis*>(asynMotorController::getAxis(pasynUser));
-}
-
-/** Returns a pointer to an devMotorAxis object.
-  * Returns NULL if the axis number encoded in pasynUser is invalid.
-  * \param[in] axisNo Axis index number. */
-devMotorAxis* devMotorController::getAxis(int axisNo)
-{
-  return static_cast<devMotorAxis*>(asynMotorController::getAxis(axisNo));
-}
-
 /** Code for iocsh registration */
 static const iocshArg devMotorCreateControllerArg0 = {"Port name", iocshArgString};
 static const iocshArg devMotorCreateControllerArg1 = {"EPICS ASYN TCP motor port name", iocshArgString};

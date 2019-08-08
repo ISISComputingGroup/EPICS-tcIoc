@@ -5,6 +5,8 @@
 // No controller-specific parameters yet
 #define NUM_VIRTUAL_MOTOR_PARAMS 0  
 
+#define PV_BUFFER_LEN 100
+
 extern "C" {
 	int devMotorCreateAxis(const char *devMotorName, int axisNo);
 }
@@ -47,12 +49,13 @@ private:
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
 	asynStatus putDb(std::string pvSuffix, const void *value);
-	int sendCommand(int command);
+	asynStatus sendCommand(const int command);
 	
 	friend class devMotorController;
 	
 	int axisNo;
-	
+
+	const epicsInt32 HOME_COMMAND = 13;
 	const epicsInt32 STOP_COMMAND = 15;
 	const epicsInt32 MOVE_ABS_COMMAND = 17;
 	const epicsInt32 MOVE_RELATIVE_COMMAND = 18;
@@ -66,8 +69,6 @@ public:
 	devMotorController(const char *portName, const char *devMotorPortName, int numAxes);
 
 	void report(FILE *fp, int level);
-	devMotorAxis* getAxis(asynUser *pasynUser);
-	devMotorAxis* getAxis(int axisNo);
 
 protected:
 	friend class devMotorAxis;

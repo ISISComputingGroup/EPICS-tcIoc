@@ -19,22 +19,31 @@
 #define MIN(x,y)  (((x) < (y)) ? (x) : (y))
 #endif
 
-/** Creates a new devMotorAxis object.
-  * \param[in] pC Pointer to the EssMCAGmotorController to which this axis belongs.
-  * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_. (0 is not used)
+/** 
+  * Creates a new devMotorAxis object.
   *
+  * Initializes the PV prefix for all the underlying pvs to communicate with.
   *
-  * Initializes register numbers, etc.
+  * \param[in] pC Pointer to the devMotorController to which this axis belongs.
+  * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_
   */
 devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo) 
     : asynMotorAxis(pC, axisNo), pC_(pC), axisNo(axisNo)
 {
-    printf("Axis created\n");
+    printf("Axis %i created\n", axisNo);
 	pvPrefix = "AXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
+	setIntegerParam(pC_->motorStatusHasEncoder_, 1);
 }
 
-
+/** 
+  * The external C function to create the axis that will be called by iocsh.
+  *
+  * Creates the motor axis object.
+  *
+  * \param[in] devMotorName The name of the motor port.
+  * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_
+  */
 extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
     devMotorController *pC;
 
@@ -50,53 +59,82 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
     return asynSuccess;
 }
 
-int devMotorAxis::sendCommand(int command) {
+/**
+  * Send a command to the PLC.
+  * 
+  * A command is sent in two steps, first the command code is entered and then execute is called.
+  *
+  * \param[in] command The command code to send.
+  *
+  * \return The status code for sending the command.
+  */
+asynStatus devMotorAxis::sendCommand(const int command) {
     int exec = 1;
     int status = putDb("ECOMMAND", &command);
     status |= putDb("BEXECUTE", &exec);
-    return status;
+    return (asynStatus)status;
 }
 
-/** Move the axis to a position, either absolute or relative
+/** 
+  * Move the axis to a position, either absolute or relative, called by the motor record.
+  * 
   * \param[in] position in mm
   * \param[in] relative (0=absolute, otherwise relative)
-  * \param[in] minimum velocity, mm/sec
+  * \param[in] minimum velocity, mm/sec (currently unused)
   * \param[in] maximum velocity, mm/sec
-  * \param[in] acceleration, seconds to maximum velocity
+  * \param[in] acceleration, seconds to maximum velocity (currently unused)
   *
+  * \return The status code for the move.
   */
 asynStatus devMotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration) {
-    scaleValueFromMotorRecord(&position);
-    scaleValueFromMotorRecord(&maxVelocity);
-    printf("Move Called to position %f\n", position);
-    
-    int status = putDb("FPOSITION", &position);
-    status |= putDb("FVELOCITY", &maxVelocity);
-    
-    status |= sendCommand(MOVE_ABS_COMMAND);
-
-    return (asynStatus) status;
+    try {
+		scaleValueFromMotorRecord(&position);
+		scaleValueFromMotorRecord(&maxVelocity);
+		printf("Move called with relative: %i\n",  relative);
+		int status = putDb("FVELOCITY", &maxVelocity);
+		
+		if (relative == 0) {
+			status |= putDb("FPOSITION", &position);
+			return (asynStatus)sendCommand(MOVE_ABS_COMMAND);
+		} else {
+			status |= putDb("FDISTANCE", &position);
+			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND);
+		}
+	}  catch (const std::runtime_error& e) {
+		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Failed to move to %f axis %i: %s\n", position, axisNo, e.what());
+		return asynError;
+	}
 }
 
-
-/** Home the motor, search the home position
-  * \param[in] minimum velocity, mm/sec
-  * \param[in] maximum velocity, mm/sec
-  * \param[in] acceleration, seconds to maximum velocity
-  * \param[in] forwards (0=backwards, otherwise forwards)
+/** 
+  * Home the motor to a known position, called by the motor record.
+  * 
+  * \param[in] minimum velocity, mm/sec (currently unused)
+  * \param[in] maximum velocity, mm/sec (currently unused)
+  * \param[in] acceleration, seconds to maximum velocity (currently unused)
+  * \param[in] forwards (0=backwards, otherwise forwards) (currently unused)
   *
+  * \return The status code for the home.
   */
 asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards) {
-    printf("Home Called\n");
-    return asynSuccess;
+    try {
+		return (asynStatus)sendCommand(HOME_COMMAND);
+	}  catch (const std::runtime_error& e) {
+		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Failed to home axis %i: %s\n", axisNo, e.what());
+		return asynError;
+	}
 }
 
-
-/** jog the the motor
-  * \param[in] minimum velocity, mm/sec (not used)
-  * \param[in] maximum velocity, mm/sec (positive or negative)
-  * \param[in] acceleration, seconds to maximum velocity
+/** 
+  * Jog the the motor.
   *
+  * \param[in] minimum velocity, mm/sec (currently unused)
+  * \param[in] maximum velocity, mm/sec (positive or negative)
+  * \param[in] acceleration, seconds to maximum velocity (currently unused)
+  *
+  * \return The status code for the move.
   */
 asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration) {
     try {
@@ -115,7 +153,9 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
 /** 
   * Stops the axis, called by motor record.
   * 
-  * @param acceleration The acceleration to stop the axis with (currently unused).
+  * \param[in] acceleration The acceleration to stop the axis with (currently unused).
+  *
+  * \return The status code for the stop.
   */
 asynStatus devMotorAxis::stop(double acceleration) {
     try {
@@ -130,7 +170,7 @@ asynStatus devMotorAxis::stop(double acceleration) {
 /**
   * Gets the motor resolution inside the motor record.
   * 
-  * @return The motor resolution or 1.0 if no resolution can be found.
+  * \return The motor resolution or 1.0 if no resolution can be found.
   */
 double devMotorAxis::getMotorResolution() {
     double mres = 1.0;
@@ -147,7 +187,7 @@ double devMotorAxis::getMotorResolution() {
   * The PLC works in real world units the scaling will need to be but
   * the motor record works in steps, the resolution is the scaling.
   *
-  * @param value A pointer to the value that is being scaled.
+  * \param[out] value A pointer to the value that you wish to scale.
   */
 void devMotorAxis::scaleValueFromMotorRecord(double* value) {
     *value *= getMotorResolution();
@@ -159,19 +199,27 @@ void devMotorAxis::scaleValueFromMotorRecord(double* value) {
   * The PLC works in real world units the scaling will need to be but
   * the motor record works in steps, the resolution is the scaling.
   *
-  * @param value A pointer to the value that is being scaled.
+  * \param[out] value A pointer to the value that you wish to scale.
   */
 void devMotorAxis::scaleValueToMotorRecord(double* value) {
     *value /= getMotorResolution();
 }
 
+/**
+  * Get the direction which the motor is running in.
+  *
+  * The PLC has two flags, one for moving in a positive direction and one for negative,
+  * this merges these two flags into a single direction integer.
+  *
+  * \param[out] direction The variable to put the direction into.
+  */
 void devMotorAxis::getDirection(int *direction) {
     int positiveDirection = 0;
     int negativeDirection = 0;
     getInteger("AXIS-STATUS_POSITIVEDIRECTION", &positiveDirection);
     getInteger("AXIS-STATUS_NEGATIVEDIRECTION", &negativeDirection);
     if (positiveDirection && negativeDirection) {
-        throw std::runtime_error(std::string("Axis is running in both directions\n"));
+        throw std::runtime_error(std::string("Axis is running in both directions"));
     } else if (positiveDirection) {
         *direction = 1;
     } else if (negativeDirection) {
@@ -179,20 +227,27 @@ void devMotorAxis::getDirection(int *direction) {
     }
 }
 
-asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status) { 
+/**
+  * Pulls all relevant values out of the PLC.
+  *
+  * \param[out] axis_status The st_axis_status_type variable to put the information into.
+  *
+  * \return The status code for the polling.
+  */
+asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) { 
     try {
-        getInteger("BENABLE", &pst_axis_status->bEnable);
-        getInteger("BEXECUTE", &pst_axis_status->bExecute);
-        getDouble("FVELOCITY", &pst_axis_status->fVelocity);
-        getDouble("FPOSITION", &pst_axis_status->fPosition);
-        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &pst_axis_status->bLimitFwd, &std::string("")); 
-        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &pst_axis_status->bLimitBwd, &std::string(""));
-        getInteger("BERROR", &pst_axis_status->bError);
-        getDouble("AXIS-NCTOPLC_ACTPOS", &pst_axis_status->fActPosition);
-        getDouble("AXIS-NCTOPLC_ACTVELO", &pst_axis_status->fActVelocity);
-        getInteger("AXIS-STATUS_HOMED", &pst_axis_status->bHomed);
-        getInteger("BMOVING", &pst_axis_status->bMoving);
-        getDirection(&pst_axis_status->bDirection);
+        getInteger("BENABLE", &axis_status->bEnable);
+        getInteger("BEXECUTE", &axis_status->bExecute);
+        getDouble("FVELOCITY", &axis_status->fVelocity);
+        getDouble("FPOSITION", &axis_status->fPosition);
+        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &std::string("")); 
+        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &std::string(""));
+        getInteger("BERROR", &axis_status->bError);
+        getDouble("AXIS-NCTOPLC_ACTPOS", &axis_status->fActPosition);
+        getDouble("AXIS-NCTOPLC_ACTVELO", &axis_status->fActVelocity);
+        getInteger("AXIS-STATUS_HOMED", &axis_status->bHomed);
+        getInteger("BMOVING", &axis_status->bMoving);
+        getDirection(&axis_status->bDirection);
     } catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to poll controller for axis %i: %s\n", axisNo, e.what());
@@ -201,17 +256,33 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status) {
     return asynSuccess;
 }
 
+/**
+  * Puts a value into a PV.
+  *
+  * \param[in] pvSuffix The name of the PV to put into (without the PV prefix)
+  * \param[in] value The value to put into the PV. This is a void pointer as this method will work for both ints and doubles.
+  * 
+  * \return The status code from doing the put.
+  */
 asynStatus devMotorAxis::putDb(std::string pvSuffix, const void *value) {
     DBADDR addr;
 	std::string fullPV = pvPrefix + pvSuffix;
     if (dbNameToAddr(fullPV.c_str(), &addr)) {
-		throw std::runtime_error("PV not found: " + fullPV + "\n");
+		throw std::runtime_error("PV not found: " + fullPV);
         return asynError;
     }
 
     return (asynStatus) dbPutField(&addr, addr.dbr_field_type, value, 1);
 }
 
+/**
+  * Get a value from a PV.
+  *
+  * \param[in] pvSuffix The name of the PV to get from (without the PV prefix)
+  * \param[out] addr The DBADDR structure to store metadata about the PV
+  * \param[out] pbuffer The buffer to store the value retrieved from the PV
+  * \param[in] prefix The prefix to use for the PV, if not specified then will default to the one setup in the constructor
+  */
 void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix) {
     long options = 0;
     long no_elements;
@@ -222,18 +293,24 @@ void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer
 	
 	std::string fullPV = *prefix + pvSuffix;
     if (dbNameToAddr(fullPV.c_str(), addr)) {
-        throw std::runtime_error("PV not found: " + fullPV + "\n");
+        throw std::runtime_error("PV not found: " + fullPV);
     }
       
-    no_elements = MIN(addr->no_elements, 100/addr->field_size);
+    no_elements = MIN(addr->no_elements, PV_BUFFER_LEN/addr->field_size);
     if (dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
-        throw std::runtime_error("Could not get value from PV: " + fullPV + "\n");
+        throw std::runtime_error("Could not get value from PV: " + fullPV);
     }
 }
 
+/**
+  * Get a double value from a PV.
+  *
+  * \param[in] pvSuffix The name of the PV to get from (without the PV prefix)
+  * \param[out] pvalue The object to store the value retrieved from the PV
+  */
 void devMotorAxis::getDouble(std::string pvSuffix, epicsFloat64* pvalue) {
-    long buffer[100];
-    long *pbuffer=&buffer[0];
+    long buffer[PV_BUFFER_LEN];
+	long *pbuffer=&buffer[0];
     DBADDR addr;
 
     getPVValue(pvSuffix, &addr, pbuffer);
@@ -243,8 +320,15 @@ void devMotorAxis::getDouble(std::string pvSuffix, epicsFloat64* pvalue) {
     }
 }
 
+/**
+  * Get a integer value from a PV.
+  *
+  * \param[in] pvSuffix The name of the PV to get from (without the PV prefix)
+  * \param[out] pvalue The object to store the value retrieved from the PV
+  * \param[in] prefix The prefix to use for the PV, if not specified then will default to the one setup in the constructor
+  */
 void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix) {
-    long buffer[100];
+    long buffer[PV_BUFFER_LEN];
     long *pbuffer=&buffer[0];
     DBADDR addr;
     
@@ -258,12 +342,17 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
 }
 
 
-/** Polls the axis.
-  * This function reads the motor position, the limit status, the home status, the moving status,
-  * and the drive power-on status.
-  * It calls setIntegerParam() and setDoubleParam() for each item that it polls,
-  * and then calls callParamCallbacks() at the end.
-  * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false). */
+/** 
+  * Poll called by the motor record to get information about the axis.
+  *
+  * This function reads the motor position, the limit status, the moving status,
+  * and the drive power-on status. It calls setIntegerParam() and setDoubleParam() for each item that it polls,
+  * and then calls callParamCallbacks() at the end to update the PV.
+  *
+  * \param[out] moving A flag that is set indicating that the axis is moving (true) or done (false).
+  *
+  * \return The status code from doing the poll.
+  */
 asynStatus devMotorAxis::poll(bool *moving) {
     asynStatus comStatus;
     int nowMoving = 0;
