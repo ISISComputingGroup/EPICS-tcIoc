@@ -39,21 +39,26 @@ public:
 private:
 	devMotorController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
                                    *   Abbreviated because it is used very frequently */
-	void getPVValue(char *pname, DBADDR* addr, long* pbuffer);
-	void getDouble(char *pname, epicsFloat64* value);
-	void getInteger(char *pname, epicsInt32* value);
+	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
+	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
+	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);
 	void getDirection(int *direction);
 	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
-	asynStatus putDb(char *pname, const void *value);
+	asynStatus putDb(std::string pvSuffix, const void *value);
 	int sendCommand(int command);
+	
 	friend class devMotorController;
+	
+	int axisNo;
 	
 	const epicsInt32 STOP_COMMAND = 15;
 	const epicsInt32 MOVE_ABS_COMMAND = 17;
 	const epicsInt32 MOVE_RELATIVE_COMMAND = 18;
 	const epicsInt32 MOVE_VELO_COMMAND = 21;
+	
+	std::string pvPrefix;
 };
 
 class epicsShareClass devMotorController : public asynMotorController {

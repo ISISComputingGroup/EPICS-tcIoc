@@ -27,9 +27,10 @@
   * Initializes register numbers, etc.
   */
 devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo) 
-    : asynMotorAxis(pC, axisNo), pC_(pC)
+    : asynMotorAxis(pC, axisNo), pC_(pC), axisNo(axisNo)
 {
     printf("Axis created\n");
+	pvPrefix = "AXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
 }
 
@@ -51,8 +52,8 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
 
 int devMotorAxis::sendCommand(int command) {
     int exec = 1;
-    int status = putDb("AXES_1:ECOMMAND", &command);
-    status |= putDb("AXES_1:BEXECUTE", &exec);
+    int status = putDb("ECOMMAND", &command);
+    status |= putDb("BEXECUTE", &exec);
     return status;
 }
 
@@ -69,8 +70,8 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
     scaleValueFromMotorRecord(&maxVelocity);
     printf("Move Called to position %f\n", position);
     
-    int status = putDb("AXES_1:FPOSITION", &position);
-    status |= putDb("AXES_1:FVELOCITY", &maxVelocity);
+    int status = putDb("FPOSITION", &position);
+    status |= putDb("FVELOCITY", &maxVelocity);
     
     status |= sendCommand(MOVE_ABS_COMMAND);
 
@@ -98,13 +99,17 @@ asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acc
   *
   */
 asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, double acceleration) {
-    scaleValueFromMotorRecord(&maxVelocity);
-    printf("Move Velo Called with velo %f\n", maxVelocity);
-    
-    int status = putDb("AXES_1:FVELOCITY", &maxVelocity);
-    status |= sendCommand(MOVE_VELO_COMMAND);
-    
-    return (asynStatus) status;
+    try {
+		scaleValueFromMotorRecord(&maxVelocity);
+		
+		int status = putDb("FVELOCITY", &maxVelocity);
+		status |= sendCommand(MOVE_VELO_COMMAND);
+		return (asynStatus)status;
+    }  catch (const std::runtime_error& e) {
+		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Failed to move velocity axis %i: %s\n", axisNo, e.what());
+		return asynError;
+	}
 }
 
 /** 
@@ -113,8 +118,13 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
   * @param acceleration The acceleration to stop the axis with (currently unused).
   */
 asynStatus devMotorAxis::stop(double acceleration) {
-    printf("Stop Axis Called\n");
-    return (asynStatus) sendCommand(STOP_COMMAND);
+    try {
+		return (asynStatus)sendCommand(STOP_COMMAND);
+	}  catch (const std::runtime_error& e) {
+		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Failed to stop axis %i: %s\n", axisNo, e.what());
+		return asynError;
+	}
 }
 
 /**
@@ -158,8 +168,8 @@ void devMotorAxis::scaleValueToMotorRecord(double* value) {
 void devMotorAxis::getDirection(int *direction) {
     int positiveDirection = 0;
     int negativeDirection = 0;
-    getInteger("AXES_1:AXIS-STATUS_POSITIVEDIRECTION", &positiveDirection);
-    getInteger("AXES_1:AXIS-STATUS_NEGATIVEDIRECTION", &negativeDirection);
+    getInteger("AXIS-STATUS_POSITIVEDIRECTION", &positiveDirection);
+    getInteger("AXIS-STATUS_NEGATIVEDIRECTION", &negativeDirection);
     if (positiveDirection && negativeDirection) {
         throw std::runtime_error(std::string("Axis is running in both directions\n"));
     } else if (positiveDirection) {
@@ -171,67 +181,74 @@ void devMotorAxis::getDirection(int *direction) {
 
 asynStatus devMotorAxis::pollAll(st_axis_status_type *pst_axis_status) { 
     try {
-        getInteger("AXES_1:BENABLE", &pst_axis_status->bEnable);
-        getInteger("AXES_1:BEXECUTE", &pst_axis_status->bExecute);
-        getDouble("AXES_1:FVELOCITY", &pst_axis_status->fVelocity);
-        getDouble("AXES_1:FPOSITION", &pst_axis_status->fPosition);
-        getInteger("FWLIMIT_1", &pst_axis_status->bLimitFwd);
-        getInteger("BWLIMIT_1", &pst_axis_status->bLimitBwd);
-        getInteger("AXES_1:BERROR", &pst_axis_status->bError);
-        getDouble("AXES_1:AXIS-NCTOPLC_ACTPOS", &pst_axis_status->fActPosition);
-        getDouble("AXES_1:AXIS-NCTOPLC_ACTVELO", &pst_axis_status->fActVelocity);
-        getInteger("AXES_1:AXIS-STATUS_HOMED", &pst_axis_status->bHomed);
-        getInteger("AXES_1:BMOVING", &pst_axis_status->bMoving);
+        getInteger("BENABLE", &pst_axis_status->bEnable);
+        getInteger("BEXECUTE", &pst_axis_status->bExecute);
+        getDouble("FVELOCITY", &pst_axis_status->fVelocity);
+        getDouble("FPOSITION", &pst_axis_status->fPosition);
+        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &pst_axis_status->bLimitFwd, &std::string("")); 
+        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &pst_axis_status->bLimitBwd, &std::string(""));
+        getInteger("BERROR", &pst_axis_status->bError);
+        getDouble("AXIS-NCTOPLC_ACTPOS", &pst_axis_status->fActPosition);
+        getDouble("AXIS-NCTOPLC_ACTVELO", &pst_axis_status->fActVelocity);
+        getInteger("AXIS-STATUS_HOMED", &pst_axis_status->bHomed);
+        getInteger("BMOVING", &pst_axis_status->bMoving);
         getDirection(&pst_axis_status->bDirection);
     } catch (const std::runtime_error& e) {
-        printf(e.what());
+		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Failed to poll controller for axis %i: %s\n", axisNo, e.what());
         return asynError;
     }
     return asynSuccess;
 }
 
-asynStatus devMotorAxis::putDb(char *pname, const void *value) {
+asynStatus devMotorAxis::putDb(std::string pvSuffix, const void *value) {
     DBADDR addr;
-    if (dbNameToAddr(pname, &addr)) {
-        printf("Couldn't find PV: %s\n", pname);
+	std::string fullPV = pvPrefix + pvSuffix;
+    if (dbNameToAddr(fullPV.c_str(), &addr)) {
+		throw std::runtime_error("PV not found: " + fullPV + "\n");
         return asynError;
     }
 
     return (asynStatus) dbPutField(&addr, addr.dbr_field_type, value, 1);
 }
 
-void devMotorAxis::getPVValue(char *pname, DBADDR* addr, long* pbuffer) {
+void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix) {
     long options = 0;
     long no_elements;
     
-    if (dbNameToAddr(pname, addr)) {
-        throw std::runtime_error(std::string("PV not found: ") + pname + std::string("\n"));
+	if (!prefix) {
+		prefix = &pvPrefix;
+	}
+	
+	std::string fullPV = *prefix + pvSuffix;
+    if (dbNameToAddr(fullPV.c_str(), addr)) {
+        throw std::runtime_error("PV not found: " + fullPV + "\n");
     }
       
     no_elements = MIN(addr->no_elements, 100/addr->field_size);
     if (dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
-        throw std::runtime_error(std::string("Could not get value from PV: ") + pname + std::string("\n"));
+        throw std::runtime_error("Could not get value from PV: " + fullPV + "\n");
     }
 }
 
-void devMotorAxis::getDouble(char *pname, epicsFloat64* pvalue) {
+void devMotorAxis::getDouble(std::string pvSuffix, epicsFloat64* pvalue) {
     long buffer[100];
     long *pbuffer=&buffer[0];
     DBADDR addr;
-    
-    getPVValue(pname, &addr, pbuffer);
+
+    getPVValue(pvSuffix, &addr, pbuffer);
     
     if (addr.dbr_field_type == DBR_DOUBLE) {
         *pvalue = (*(epicsFloat64 *) pbuffer);
     }
 }
 
-void devMotorAxis::getInteger(char *pname, epicsInt32* pvalue) {
+void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix) {
     long buffer[100];
     long *pbuffer=&buffer[0];
     DBADDR addr;
     
-    getPVValue(pname, &addr, pbuffer);
+    getPVValue(pvSuffix, &addr, pbuffer, prefix);
     
     if (addr.dbr_field_type == DBR_LONG) {
         *pvalue = (*(epicsInt32 *) pbuffer);
@@ -257,10 +274,6 @@ asynStatus devMotorAxis::poll(bool *moving) {
     // Go and get all the values from the device
     comStatus = pollAll(&st_axis_status);
     if (comStatus) {
-        asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-              "out=%s in=%s return=%s (%d)\n",
-              pC_->outString_, pC_->inString_,
-              pasynManager->strStatus(comStatus), (int)comStatus);
         return comStatus;
     }
     
