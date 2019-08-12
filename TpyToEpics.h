@@ -73,10 +73,10 @@ public:
 	/// @param caseconv Case conversion specification
 	/// @param noldot Eliminate leading dot in a name
 	/// @param noindex Eliminate array indices '[n]' with '_n'
-	epics_conversion (tc_epics_conv epics_conv, case_type caseconv, 
-		bool noldot, bool noindex)
-		: conv_rule (epics_conv), case_epics_names (caseconv), 
-		no_leading_dot (noldot), no_array_index (noindex) {}
+//	epics_conversion (tc_epics_conv epics_conv, case_type caseconv, 
+//		bool noldot, bool noindex)
+//		: conv_rule (epics_conv), case_epics_names (caseconv), 
+//		no_leading_dot (noldot), no_array_index (noindex) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -137,6 +137,11 @@ public:
 	/// Set the array conversion rule
 	void set_array_rule (bool noindex) {
 		no_array_index = noindex; }
+	/// Get the PV prefix
+	std::stringcase get_prefix () const { return prefix; }
+	/// Set the PV prefix
+	void set_prefix (std::stringcase pvPrefix) {
+		prefix = pvPrefix; }
 
 	/// Converts a TwinCAT or OPC name to an EPICS channel name
 	/// @param name TwinCAT/opc name
@@ -152,6 +157,8 @@ protected:
 	bool			no_leading_dot;
 	/// Array index conversion rule
 	bool			no_array_index;
+	/// Prefix to apply to all EPICS names
+	std::stringcase		prefix;
 };
 
 /** Split file IO support
