@@ -73,10 +73,10 @@ public:
 	/// @param caseconv Case conversion specification
 	/// @param noldot Eliminate leading dot in a name
 	/// @param noindex Eliminate array indices '[n]' with '_n'
-//	epics_conversion (tc_epics_conv epics_conv, case_type caseconv, 
-//		bool noldot, bool noindex)
-//		: conv_rule (epics_conv), case_epics_names (caseconv), 
-//		no_leading_dot (noldot), no_array_index (noindex) {}
+	epics_conversion (tc_epics_conv epics_conv, case_type caseconv, 
+		bool noldot, bool noindex)
+		: conv_rule (epics_conv), case_epics_names (caseconv), 
+		no_leading_dot (noldot), no_array_index (noindex) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
