@@ -87,7 +87,14 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 		else if (arg == "-yi" || arg == "/yi") {
 			set_array_rule (false);
 			++num;
+		} 
+		// Check if a prefix has been specified
+		else if ((arg == "-p" || arg == "/p") && i + 1 < argc) {
+			set_prefix (i + 1 < argc && argv[i+1] ? argv[i+1] : "");
+			i += 1;
+			++num;
 		}
+
 		// no set flag to indicated a processed option
 		if (argp && (num > oldnum)) {
 			argp[i] = true;
@@ -182,6 +189,10 @@ string epics_conversion::to_epics (const stringcase& name) const
 			n.erase (pos, 1);
 		}
 	}
+	
+	// add prefix
+	n = get_prefix() + n;
+	
 	return string (n.c_str());
 }
 

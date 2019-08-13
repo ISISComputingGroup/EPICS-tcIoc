@@ -407,6 +407,7 @@ Channel Name Conversion:
 | /yd | Leave leading dot in channel name |
 | /yi | Leave array indices in channel names |
 | /ni | Replace array brackets with a single leading underscore (default) |
+| /p 'name' | Include a prefix of 'name' to every PV (defaults to no prefix) |
 
 Split File Support:
 
