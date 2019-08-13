@@ -21,13 +21,14 @@
   * \param[in] movingPollPeriod  The time between polls when any axis is moving
   * \param[in] idlePollPeriod    The time between polls when no axis is moving
   */
-devMotorController::devMotorController(const char *portName, const char *MotorPortName, int numAxes)
+devMotorController::devMotorController(const char *portName, const char *MotorPortName, int numAxes, const char *pvPrefix)
   :  asynMotorController(portName, numAxes, NUM_VIRTUAL_MOTOR_PARAMS,
                          0, // No additional interfaces beyond those in base class
                          0, // No additional callback interfaces beyond those in base class
                          ASYN_CANBLOCK | ASYN_MULTIDEVICE,
                          1, // autoconnect
-                         0, 0)  // Default priority and stack size
+                         0, 0),  // Default priority and stack size
+	pvPrefix(pvPrefix)
 {
 	printf("Created Controller\n");
 	startPoller(1/1000.0, 1/1000.0, 2);
@@ -40,9 +41,9 @@ devMotorController::devMotorController(const char *portName, const char *MotorPo
   * \param[in] MotorPortName  The name of the drvAsynIPPPort that was created previously to connect to the devMotor controller
   * \param[in] numAxes           The number of axes that this controller supports (0 is not used)
   */
-extern "C" int devMotorCreateController(const char *portName, const char *MotorPortName, int numAxes)
+extern "C" int devMotorCreateController(const char *portName, const char *MotorPortName, int numAxes, const char *pvPrefix)
 {
-	new devMotorController(portName, MotorPortName, 1+numAxes);
+	new devMotorController(portName, MotorPortName, 1+numAxes, pvPrefix);
 	return(asynSuccess);
 }
 
@@ -65,13 +66,15 @@ void devMotorController::report(FILE *fp, int level)
 static const iocshArg devMotorCreateControllerArg0 = {"Port name", iocshArgString};
 static const iocshArg devMotorCreateControllerArg1 = {"EPICS ASYN TCP motor port name", iocshArgString};
 static const iocshArg devMotorCreateControllerArg2 = {"Number of axes", iocshArgInt};
+static const iocshArg devMotorCreateControllerArg3 = {"PV prefix", iocshArgString};
 static const iocshArg * const devMotorCreateControllerArgs[] = {&devMotorCreateControllerArg0,
                                                              &devMotorCreateControllerArg1,
-                                                             &devMotorCreateControllerArg2};
-static const iocshFuncDef devMotorCreateControllerDef = {"devMotorCreateController", 3, devMotorCreateControllerArgs};
+                                                             &devMotorCreateControllerArg2,
+															 &devMotorCreateControllerArg3};
+static const iocshFuncDef devMotorCreateControllerDef = {"devMotorCreateController", 4, devMotorCreateControllerArgs};
 static void devMotorCreateContollerCallFunc(const iocshArgBuf *args)
 {
-  devMotorCreateController(args[0].sval, args[1].sval, args[2].ival);
+  devMotorCreateController(args[0].sval, args[1].sval, args[2].ival, args[3].sval);
 }
 
 

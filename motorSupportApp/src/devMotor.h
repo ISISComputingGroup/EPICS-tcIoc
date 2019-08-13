@@ -66,10 +66,11 @@ private:
 
 class epicsShareClass devMotorController : public asynMotorController {
 public:
-	devMotorController(const char *portName, const char *devMotorPortName, int numAxes);
+	devMotorController(const char *portName, const char *devMotorPortName, int numAxes, const char *pvPrefix);
 
 	void report(FILE *fp, int level);
 
 protected:
 	friend class devMotorAxis;
+	std::string pvPrefix;
 };

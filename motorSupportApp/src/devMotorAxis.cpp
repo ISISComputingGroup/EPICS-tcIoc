@@ -31,7 +31,7 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
     : asynMotorAxis(pC, axisNo), pC_(pC), axisNo(axisNo)
 {
     printf("Axis %i created\n", axisNo);
-	pvPrefix = "AXES_" + std::to_string(axisNo + 1) + ":";
+	pvPrefix = pC_->pvPrefix + "AXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
 	setIntegerParam(pC_->motorStatusHasEncoder_, 1);
 }
@@ -240,8 +240,8 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
         getInteger("BEXECUTE", &axis_status->bExecute);
         getDouble("FVELOCITY", &axis_status->fVelocity);
         getDouble("FPOSITION", &axis_status->fPosition);
-        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &std::string("")); 
-        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &std::string(""));
+        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
+        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
         getInteger("BERROR", &axis_status->bError);
         getDouble("AXIS-NCTOPLC_ACTPOS", &axis_status->fActPosition);
         getDouble("AXIS-NCTOPLC_ACTVELO", &axis_status->fActVelocity);
@@ -251,6 +251,7 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
     } catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to poll controller for axis %i: %s\n", axisNo, e.what());
+		printf("GOT AN ERROR%s\n", e.what());
         return asynError;
     }
     return asynSuccess;
@@ -290,7 +291,7 @@ void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer
 	if (!prefix) {
 		prefix = &pvPrefix;
 	}
-	
+
 	std::string fullPV = *prefix + pvSuffix;
     if (dbNameToAddr(fullPV.c_str(), addr)) {
         throw std::runtime_error("PV not found: " + fullPV);
