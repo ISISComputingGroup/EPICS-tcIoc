@@ -4,6 +4,7 @@
 #include <dbAccess.h>
 #include <stdexcept>
 #include <epicsThread.h>
+#include <sstream>
 
 #include "asynMotorController.h"
 #include "asynMotorAxis.h"
@@ -90,7 +91,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
     try {
 		scaleValueFromMotorRecord(&position);
 		scaleValueFromMotorRecord(&maxVelocity);
-		printf("Move called with relative: %i\n",  relative);
+
 		int status = putDb("FVELOCITY", &maxVelocity);
 		
 		if (relative == 0) {
@@ -101,7 +102,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
 			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND);
 		}
 	}  catch (const std::runtime_error& e) {
-		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to move to %f axis %i: %s\n", position, axisNo, e.what());
 		return asynError;
 	}
@@ -121,7 +122,7 @@ asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acc
     try {
 		return (asynStatus)sendCommand(HOME_COMMAND);
 	}  catch (const std::runtime_error& e) {
-		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to home axis %i: %s\n", axisNo, e.what());
 		return asynError;
 	}
@@ -144,7 +145,7 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
 		status |= sendCommand(MOVE_VELO_COMMAND);
 		return (asynStatus)status;
     }  catch (const std::runtime_error& e) {
-		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to move velocity axis %i: %s\n", axisNo, e.what());
 		return asynError;
 	}
@@ -161,7 +162,7 @@ asynStatus devMotorAxis::stop(double acceleration) {
     try {
 		return (asynStatus)sendCommand(STOP_COMMAND);
 	}  catch (const std::runtime_error& e) {
-		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to stop axis %i: %s\n", axisNo, e.what());
 		return asynError;
 	}
@@ -235,25 +236,18 @@ void devMotorAxis::getDirection(int *direction) {
   * \return The status code for the polling.
   */
 asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) { 
-    try {
-        getInteger("BENABLE", &axis_status->bEnable);
-        getInteger("BEXECUTE", &axis_status->bExecute);
-        getDouble("FVELOCITY", &axis_status->fVelocity);
-        getDouble("FPOSITION", &axis_status->fPosition);
-        getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
-        getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
-        getInteger("BERROR", &axis_status->bError);
-        getDouble("AXIS-NCTOPLC_ACTPOS", &axis_status->fActPosition);
-        getDouble("AXIS-NCTOPLC_ACTVELO", &axis_status->fActVelocity);
-        getInteger("AXIS-STATUS_HOMED", &axis_status->bHomed);
-        getInteger("BMOVING", &axis_status->bMoving);
-        getDirection(&axis_status->bDirection);
-    } catch (const std::runtime_error& e) {
-		asynPrint(pC_->pasynUserController_, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
-					"Failed to poll controller for axis %i: %s\n", axisNo, e.what());
-		printf("GOT AN ERROR%s\n", e.what());
-        return asynError;
-    }
+	getInteger("BENABLE", &axis_status->bEnable);
+	getInteger("BEXECUTE", &axis_status->bExecute);
+	getDouble("FVELOCITY", &axis_status->fVelocity);
+	getDouble("FPOSITION", &axis_status->fPosition);
+	getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
+	getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
+	getInteger("BERROR", &axis_status->bError);
+	getDouble("AXIS-NCTOPLC_ACTPOS", &axis_status->fActPosition);
+	getDouble("AXIS-NCTOPLC_ACTVELO", &axis_status->fActVelocity);
+	getInteger("AXIS-STATUS_HOMED", &axis_status->bHomed);
+	getInteger("BMOVING", &axis_status->bMoving);
+	getDirection(&axis_status->bDirection);
     return asynSuccess;
 }
 
@@ -301,6 +295,15 @@ void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer
     if (dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
         throw std::runtime_error("Could not get value from PV: " + fullPV);
     }
+
+    epicsEnum16 status = addr->precord->stat;
+    epicsEnum16 severity = addr->precord->sevr;
+	
+	if (status) {
+		std::ostringstream os;
+		os << "PV " + fullPV + " in alarm with status " << status << " and severity " << severity;
+		throw std::runtime_error(os.str());
+	}
 }
 
 /**
@@ -355,38 +358,49 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
   * \return The status code from doing the poll.
   */
 asynStatus devMotorAxis::poll(bool *moving) {
-    asynStatus comStatus;
+    asynStatus comStatus = asynSuccess;
     int nowMoving = 0;
-    st_axis_status_type st_axis_status;
+	st_axis_status_type st_axis_status;
+	memset(&st_axis_status, 0, sizeof(st_axis_status));
 
-    memset(&st_axis_status, 0, sizeof(st_axis_status));
-    
-    // Go and get all the values from the device
-    comStatus = pollAll(&st_axis_status);
-    if (comStatus) {
-        return comStatus;
+	try {		
+		// Go and get all the values from the device
+		pollAll(&st_axis_status);
+
+	} catch (const std::runtime_error& e) {
+		int mask = previousComStatus ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
+		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
+		comStatus = asynError;
+		// There is an issue where the motor record will not get out of it's initial state unless
+		// a value changes. If we start in comms error no values will change so we'll create a toggling 
+		// bit, see #4654 for more details.
+		errorToggle = !errorToggle;
+		st_axis_status.bError = errorToggle;
     }
-    
-    // Set the MSTA bits
-    setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
-    setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
-    setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
-    setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
-    setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
-    setIntegerParam(pC_->motorStatusAtHome_, 0);
-    setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
-    
-    // Get the actual position
-    scaleValueToMotorRecord(&st_axis_status.fActPosition);
-    setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
-    
-    // Calculate if moving and set appropriate bits
-    nowMoving = st_axis_status.bMoving;
-    setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-    setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-    *moving = nowMoving ? true : false;
-    
+
+	// Set the MSTA bits
+	setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
+	setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
+	setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
+	setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
+	setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
+	setIntegerParam(pC_->motorStatusAtHome_, 0);
+	setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
+	
+	// Get the actual position
+	scaleValueToMotorRecord(&st_axis_status.fActPosition);
+	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
+	
+	// Calculate if moving and set appropriate bits
+	nowMoving = st_axis_status.bMoving;
+	setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+	setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+	*moving = nowMoving ? true : false;
+	
+	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
+	
+	previousComStatus = comStatus;
     callParamCallbacks();
     
-    return comStatus;
+    return asynSuccess;
 }

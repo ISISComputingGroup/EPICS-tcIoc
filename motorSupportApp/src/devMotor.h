@@ -54,6 +54,8 @@ private:
 	friend class devMotorController;
 	
 	int axisNo;
+	asynStatus previousComStatus = asynSuccess;
+	bool errorToggle = false;
 
 	const epicsInt32 HOME_COMMAND = 13;
 	const epicsInt32 STOP_COMMAND = 15;
