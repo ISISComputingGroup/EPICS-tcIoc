@@ -88,7 +88,7 @@ asynStatus devMotorAxis::sendCommand(const int command) {
   * \return The status code for the move.
   */
 asynStatus devMotorAxis::move(double position, int relative, double minVelocity, double maxVelocity, double acceleration) {
-    try {
+	try {
 		scaleValueFromMotorRecord(&position);
 		scaleValueFromMotorRecord(&maxVelocity);
 
@@ -362,6 +362,9 @@ asynStatus devMotorAxis::poll(bool *moving) {
     int nowMoving = 0;
 	st_axis_status_type st_axis_status;
 	memset(&st_axis_status, 0, sizeof(st_axis_status));
+	
+	// The comms error neeeds to be set to 0 to start to force the new error on init
+	setIntegerParam(pC_->motorStatusCommsError_, 0);
 
 	try {		
 		// Go and get all the values from the device
@@ -371,11 +374,6 @@ asynStatus devMotorAxis::poll(bool *moving) {
 		int mask = previousComStatus ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
 		comStatus = asynError;
-		// There is an issue where the motor record will not get out of it's initial state unless
-		// a value changes. If we start in comms error no values will change so we'll create a toggling 
-		// bit, see #4654 for more details.
-		errorToggle = !errorToggle;
-		st_axis_status.bError = errorToggle;
     }
 
 	// Set the MSTA bits
