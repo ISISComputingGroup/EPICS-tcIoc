@@ -54,7 +54,7 @@ private:
 	friend class devMotorController;
 	
 	int axisNo;
-	asynStatus previousComStatus = asynSuccess;
+	std::string previousError = "";
 	bool errorToggle = false;
 
 	const epicsInt32 HOME_COMMAND = 13;

@@ -217,8 +217,8 @@ void devMotorAxis::scaleValueToMotorRecord(double* value) {
 void devMotorAxis::getDirection(int *direction) {
     int positiveDirection = 0;
     int negativeDirection = 0;
-    getInteger("AXIS-STATUS_POSITIVEDIRECTION", &positiveDirection);
-    getInteger("AXIS-STATUS_NEGATIVEDIRECTION", &negativeDirection);
+    getInteger("BPOSITIVEDIRECTION", &positiveDirection);
+    getInteger("BNEGATIVEDIRECTION", &negativeDirection);
     if (positiveDirection && negativeDirection) {
         throw std::runtime_error(std::string("Axis is running in both directions"));
     } else if (positiveDirection) {
@@ -243,9 +243,9 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
 	getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
 	getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
 	getInteger("BERROR", &axis_status->bError);
-	getDouble("AXIS-NCTOPLC_ACTPOS", &axis_status->fActPosition);
-	getDouble("AXIS-NCTOPLC_ACTVELO", &axis_status->fActVelocity);
-	getInteger("AXIS-STATUS_HOMED", &axis_status->bHomed);
+	getDouble("FACTPOSITION", &axis_status->fActPosition);
+	getDouble("FACTVELOCITY", &axis_status->fActVelocity);
+	getInteger("BCALIBRATED", &axis_status->bHomed);
 	getInteger("BMOVING", &axis_status->bMoving);
 	getDirection(&axis_status->bDirection);
     return asynSuccess;
@@ -371,8 +371,9 @@ asynStatus devMotorAxis::poll(bool *moving) {
 		pollAll(&st_axis_status);
 
 	} catch (const std::runtime_error& e) {
-		int mask = previousComStatus ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
+		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
+		previousError = e.what();
 		comStatus = asynError;
     }
 
@@ -388,6 +389,7 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	// Get the actual position
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
+	setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
 	
 	// Calculate if moving and set appropriate bits
 	nowMoving = st_axis_status.bMoving;
@@ -397,7 +399,6 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	
 	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
 	
-	previousComStatus = comStatus;
     callParamCallbacks();
     
     return asynSuccess;
