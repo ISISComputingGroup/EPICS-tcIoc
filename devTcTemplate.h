@@ -842,8 +842,8 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 		// Write data value
 		epics_record_traits<RecType>::write (pBaseRecord, precord);
 		// set time stamp
-		struct timespec timestamp;
-                timespec_get(&timestamp, TIME_UTC);
+		epicsTimeStamp timestamp;
+                epicsTimeGetCurrent(&timestamp);
 		precord->time = epicsTime (timestamp);
 	}
 

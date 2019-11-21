@@ -948,7 +948,7 @@ AmsRouterNotification::~AmsRouterNotification()
 {
 	long nErr;
 	//nErr = AdsAmsUnRegisterRouterNotification();
-	if (nErr) errorPrintf(nErr);
+	//if (nErr) errorPrintf(nErr);
 }
 
 }

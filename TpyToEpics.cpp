@@ -5,13 +5,12 @@
 #include "ParseTpy.h"
 #include "TpyToEpicsConst.h"
 #include "TpyToEpics.h"
-#if 1
-#include <filesystem>
-//using namespace std::experimental::filesystem::v1; 
-using namespace std::filesystem; 
+
+#ifdef _WIN32
+using namespace std::experimental::filesystem::v1; 
 #else
-#include <boost/filesystem.hpp>
-using namespace boost::filesystem; 
+#include <filesystem>
+using namespace std::filesystem; 
 #endif
 
 

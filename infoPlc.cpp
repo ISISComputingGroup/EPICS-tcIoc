@@ -724,11 +724,10 @@ bool InfoInterface::info_update_timestamp_str()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	char buf[100];
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof (buf));
 	}
@@ -741,10 +740,9 @@ bool InfoInterface::info_update_timestamp_year()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
@@ -756,10 +754,9 @@ bool InfoInterface::info_update_timestamp_month()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
@@ -771,10 +768,9 @@ bool InfoInterface::info_update_timestamp_day()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mday);
 	}
 	return false;
@@ -786,10 +782,9 @@ bool InfoInterface::info_update_timestamp_hour()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_hour);
 	}
 	return false;
@@ -801,10 +796,9 @@ bool InfoInterface::info_update_timestamp_min()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_min);
 	}
 	return false;
@@ -816,10 +810,9 @@ bool InfoInterface::info_update_timestamp_sec()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	epicsTimeStamp tstamp = tc->get_timestamp();
-	unsigned long pnsec;
+	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (epicsTimeToGMTM(&utc, &pnsec, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_sec);
 	}
 	return false;

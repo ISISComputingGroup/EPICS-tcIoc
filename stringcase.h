@@ -76,11 +76,6 @@ struct case_char_traits : public std::char_traits<char>
 	}
 };
 
-//struct case_regex_traits : public std::regex_traits<char> 
-//{
-//
-//};
-
 /** This unicode traits class is not case sensitive.
     @brief case insensitive unicode traits.
  ************************************************************************/
