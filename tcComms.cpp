@@ -1,13 +1,23 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include <epicsTime.h>
+#include <math.h>
+#include <epicsStdio.h>
 #include "tcComms.h"
 #include "infoPlc.h"
 #include "ParseTpy.h"
+#ifdef _WIN32
 #include "windows.h"
+#endif
 #include "TpyToEpics.h"
+#ifdef TCADS
 #include "TcAdsDef.h"
 #include "TcAdsApi.h"
+#else
+#include "AdsLib.h"
+#endif
 #include <memory>
 #include <filesystem>
+//#include <boost/filesystem.hpp>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -15,7 +25,12 @@
  ************************************************************************/
 
 using namespace std;
+#ifdef _WIN32
 using namespace std::experimental::filesystem::v1;
+#else
+using namespace std::filesystem;
+//using namespace boost::filesystem;
+#endif
 using namespace plc;
 
 static bool debug = false;
@@ -296,7 +311,7 @@ void tcProcWrite::tcwrite()
 	// ads write
 	char* ret = new char [4 * count];
 	if (!ret) return;
-	unsigned long read;
+	uint32_t read;
 	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
 		static_cast<unsigned long>(count),
 		static_cast<unsigned long>(sizeof(long)*count), ret, 
@@ -322,7 +337,8 @@ TcPLC::TcPLC (std::string tpyPath)
 {
 	// modification time
 	path fpath(pathTpy);
-	timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
+	auto ftime = last_write_time (fpath);
+	timeTpy = decltype(ftime)::clock::to_time_t (ftime);
 	if (debug) printf("Tpy time: %s\n", std::asctime(std::localtime(&timeTpy)));
 	// Set PLC ID and initialize list of PLC instances
 	{
@@ -409,7 +425,8 @@ bool TcPLC::is_valid_tpy()
 		checkTpy = false;
 		path fpath (pathTpy);
 		if (exists (fpath)) {
-			time_t modtime = file_time_type::clock::to_time_t (last_write_time (fpath));
+			auto ftime = last_write_time (fpath);
+			time_t modtime = decltype(ftime)::clock::to_time_t (ftime);
 			validTpy = (modtime == timeTpy);
 		}
 		else {
@@ -560,7 +577,7 @@ void TcPLC::printAllRecords()
 	}
 	std::sort (rlist.begin(), rlist.end(),
 		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
-		return _stricmp (p1->get_plcInterface()->get_symbol_name(), 
+		return strcasecmp(p1->get_plcInterface()->get_symbol_name(), 
 						 p2->get_plcInterface()->get_symbol_name()) < 0; });
 	int num = 0;
 	for (auto const& it : rlist) {
@@ -628,7 +645,7 @@ void TcPLC::printRecord (const std::string& var)
 	}
 	std::sort(rlist.begin(), rlist.end(),
 		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
-		return _stricmp(p1->get_plcInterface()->get_symbol_name(), 
+		return strcasecmp(p1->get_plcInterface()->get_symbol_name(), 
 					    p2->get_plcInterface()->get_symbol_name()) < 0;	});
 	int num = 0;
 	std::string pattern = WildcardToRegex(var);
@@ -645,8 +662,8 @@ void TcPLC::printRecord (const std::string& var)
 
 /** Callback for ADS state change
  ************************************************************************/
-void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
-							unsigned long plcId)
+void __stdcall ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* pNotification, 
+							uint32_t plcId)
 {
 	TcPLC* tCatPlcUser = nullptr;
 	{
@@ -656,8 +673,8 @@ void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification
 		}
 	}
 	if (tCatPlcUser) {
-		ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
-		tCatPlcUser->set_ads_state(state);
+		//ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
+		//tCatPlcUser->set_ads_state(state);
 	}
 	else {
 		printf("Unknown PLC ID %i\n", plcId);
@@ -678,7 +695,7 @@ void TcPLC::set_ads_state(ADSSTATE state)
  ************************************************************************/
 void TcPLC::setup_ads_notification()
 {
-	LONG                    nErr;
+	long                    nErr;
 	AdsNotificationAttrib   adsNotificationAttrib;
 
 	// Invoke notification
@@ -706,7 +723,7 @@ void TcPLC::setup_ads_notification()
  ************************************************************************/
 void TcPLC::remove_ads_notification()
 {
-	LONG nErr;
+	long nErr;
 	if (ads_handle) {
 		nErr = AdsSyncDelDeviceNotificationReqEx (nNotificationPort, 
 			&addr, ads_handle);
@@ -725,7 +742,7 @@ void TcPLC::read_scanner()
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
-			unsigned long retsize;
+			uint32_t retsize;
 			int nErr = 0;
 			nErr = AdsSyncReadReqEx2 (nReadPort, &addr,
 				adsGroupReadRequestVector[request].indexGroup,
@@ -800,7 +817,8 @@ void TcPLC::write_scanner()
 {
 	std::lock_guard<std::mutex>	lockit (sync);
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
-		for_each (tcProcWrite (addr, nWritePort));
+                auto f = tcProcWrite (addr, nWritePort);
+		for_each (f);
 	}
 
 	// update non tc records (try using a different cycle to distribute load)
@@ -909,9 +927,9 @@ AmsRouterNotification::AmsRouterNotification()
 	: ads_version (0), ads_revision (0), ads_build (0),
 	ams_router_event (AMSEVENT_ROUTERSTART)
 {
-	LONG nErr;
+	long nErr;
 	AdsVersion* pDLLVersion;
-	nErr = AdsGetDllVersion();
+	//nErr = AdsGetDllVersion();
 	pDLLVersion = (AdsVersion *)&nErr;
 	ads_version = pDLLVersion->version;
 	ads_revision = pDLLVersion->revision;
@@ -919,8 +937,8 @@ AmsRouterNotification::AmsRouterNotification()
 	printf("ADS version: %i, revision: %i, build: %i\n", 
 		   ads_version, ads_revision, ads_build);
 	return;
-	nErr = AdsPortOpen();
-	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
+	nErr = AdsPortOpenEx();
+	//nErr = AdsAmsRegisterRouterNotification(&RouterCall);
 	if (nErr) errorPrintf(nErr);
 }
 
@@ -928,8 +946,8 @@ AmsRouterNotification::AmsRouterNotification()
  ************************************************************************/
 AmsRouterNotification::~AmsRouterNotification()
 {
-	LONG nErr;
-	nErr = AdsAmsUnRegisterRouterNotification();
+	long nErr;
+	//nErr = AdsAmsUnRegisterRouterNotification();
 	if (nErr) errorPrintf(nErr);
 }
 

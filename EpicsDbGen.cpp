@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <epicsStdio.h>
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
 

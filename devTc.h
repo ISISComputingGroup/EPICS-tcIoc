@@ -85,8 +85,8 @@ protected:
  ************************************************************************/
 class EpicsInterface	:	public plc::Interface
 {
-	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 public:
+	static void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 	/// Constructor
 	EpicsInterface (plc::BaseRecord& dval);
 	/// Deconstructor
@@ -294,7 +294,7 @@ struct epics_record_traits
 	/// Indicates if this is a raw record
 	static const bool raw_record = false;
 	/// Returns the (raw) value of a record
-	static typename value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
 	/// Performs the read access on prec 
 	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
 		return baserec->UserRead (*val (epicsrec)); }
@@ -312,9 +312,11 @@ template <epics_record_enum RecType>
 struct devTcDefIo 
 {
 	/// Record type: aiRecord, etc.
-	typedef typename epics_record_traits<RecType>::traits_type rec_type;
+	//typedef typename epics_record_traits<RecType>::traits_type rec_type;
+	using rec_type = typename epics_record_traits<RecType>::traits_type;
 	/// Pointer to record type
-	typedef typename rec_type* rec_type_ptr;
+	//typedef typename rec_type* rec_type_ptr;
+	using rec_type_ptr = rec_type*;
 
 	/// Number of support functions
     long		number;
@@ -346,6 +348,7 @@ protected:
 template <epics_record_enum RecType>
 struct devTcDefIn : public devTcDefIo <RecType>
 {
+	using rec_type_ptr = typename devTcDefIo <RecType>::rec_type_ptr;
 	/// Constructor
 	devTcDefIn();
 	/// init callback for read records
@@ -362,6 +365,7 @@ struct devTcDefIn : public devTcDefIo <RecType>
 template <epics_record_enum RecType>
 struct devTcDefOut : public devTcDefIo <RecType>
 {
+	using rec_type_ptr = typename devTcDefIo <RecType>::rec_type_ptr;
 	/// Constructor
 	devTcDefOut();
 	/// init callback for write records
@@ -378,6 +382,7 @@ struct devTcDefOut : public devTcDefIo <RecType>
 template <epics_record_enum RecType>
 struct devTcDefWaveformIn : public devTcDefIo <RecType>
 {
+	using rec_type_ptr = typename devTcDefIo <RecType>::rec_type_ptr;
 	/// Constructor
 	devTcDefWaveformIn();
 	/// init callback for read records

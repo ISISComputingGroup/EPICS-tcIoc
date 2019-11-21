@@ -30,10 +30,19 @@ BIN_INSTALLS_WIN32 += $(EXPATLIB).dll
 LIB_INSTALLS_WIN32 += $(EXPATLIB).lib
 endif
 
+ifeq ($(OS),WIN32)
 ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
+USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include -DTCADS
+else
+ADSLIB = AdsLib
+AdsLib_DIR = $(SUPPORT)/ADS/master/lib/$(T_A)
+USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/AdsLib
+USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/include -D__STDC_WANT_LIB_EXT1__=1
+USR_CXXFLAGS += -std=c++17
+endif
+
 USR_DBDFLAGS += -I$(TOP)/TCatDeviceSupport
 #USR_DBDFLAGS += -I$(TOP)/InfoDeviceSupport
-USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include
 
 TYPLIBSRC = ParseTpy.cpp ParseUtil.cpp stringcase.cpp
 EPICSDBLIBSRC = TpyToEpics.cpp
@@ -53,6 +62,9 @@ tcIocSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
 tcIocSupport_SYS_LIBS_WIN32 += $(EXPATLIB)
 tcIocSupport_SYS_LIBS_WIN32 += $(ADSLIB)
 
+tcIocSupport_LIBS_Linux += $(ADSLIB)
+tcIocSupport_SYS_LIBS_Linux += expat stdc++fs pthread
+
 PROD_IOC = tpyinfo epicsdbgen tcIoc
 
 DBD += tcIocSupport.dbd tcIoc.dbd
@@ -61,12 +73,16 @@ tcIoc_DBD += tcIocSupport.dbd
 
 tpyinfo_SRCS += ParseTpyInfo.cpp
 tpyinfo_SRCS += $(TYPLIBSRC)
+tpyinfo_LIBS += $(EPICS_BASE_IOC_LIBS)
 tpyinfo_SYS_LIBS_WIN32 += $(EXPATLIB)
+tpyinfo_SYS_LIBS_Linux += expat
 
 epicsdbgen_SRCS += EpicsDbGen.cpp
 epicsdbgen_SRCS += $(EPICSDBLIBSRC)
 epicsdbgen_SRCS += $(TYPLIBSRC)
+epicsdbgen_LIBS += $(EPICS_BASE_IOC_LIBS)
 epicsdbgen_SYS_LIBS_WIN32 += $(EXPATLIB)
+epicsdbgen_SYS_LIBS_Linux += expat stdc++fs
 
 # tcIoc_registerRecordDeviceDriver.cpp derives from tcIoc.dbd
 tcIoc_SRCS += iocMain.cpp
@@ -77,6 +93,8 @@ tcIoc_LIBS += tcIocSupport
 tcIoc_LIBS += $(EPICS_BASE_IOC_LIBS)
 tcIoc_SYS_LIBS_WIN32 += $(EXPATLIB)
 tcIoc_SYS_LIBS_WIN32 += $(ADSLIB)
+tcIoc_LIBS_Linux += $(ADSLIB)
+tcIoc_SYS_LIBS_Linux += expat stdc++fs pthread
 
 #===========================
 

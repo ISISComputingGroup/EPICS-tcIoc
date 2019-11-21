@@ -1,4 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include "epicsStdio.h"
+#include "epicsTime.h"
 #include "drvTc.h"
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
@@ -182,7 +184,7 @@ void epics_tc_db_processing::init_lists()
 {
 	if (!lists) return;
 	for (filename_rule_list_tuple& list : *lists) {
-		optarg options (get<1>(list));
+		ParseUtil::optarg options (get<1>(list));
 		epics_list_processing* lproc = new (std::nothrow) epics_list_processing;
 		bool no_string = false;
 		if (lproc) {
@@ -265,7 +267,7 @@ void epics_tc_db_processing::init_macros()
 {
 	if (!macros) return;
 	for (dirname_arg_macro_tuple& macro : *macros) {
-		optarg options (get<1>(macro));
+		ParseUtil::optarg options (get<1>(macro));
 		epics_macrofiles_processing* mproc = 
 			new (std::nothrow) epics_macrofiles_processing (
 			plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
@@ -447,7 +449,7 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 	infodb = std::regex_replace(infodb, e, fmt);
 	// now: search and replace  
 	std::regex e2(R"++((%#([^#]+)#%))++");
-	std::smatch m;
+	std::match_results<std::stringcase::const_iterator> m;
 	while (std::regex_search(infodb, m, e2)) {
 		if (m.size() == 3) {
 			std::string rep = "\"";
@@ -460,7 +462,9 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 			}
 			rep += epicsname;
 			rep += "\"";
-			infodb.replace(m[1].first, m[1].second, rep.c_str());
+// cannot mix const and non-const iterators, linux prototype issue?
+//			infodb.replace(m[1].first, m[1].second, rep.c_str());
+			infodb.replace(std::distance(infodb.cbegin(), m[1].first), std::distance(m[1].first, m[1].second), rep.c_str());
 		}
 	}
 	return !err;
@@ -508,7 +512,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	}
 	
 	// check option arguments
-	optarg options;
+	ParseUtil::optarg options;
 	if (args[1].sval) {
 		options.parse (args[1].sval);
 	}

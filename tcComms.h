@@ -1,7 +1,21 @@
 #pragma once
 #include "stdafx.h"
+#ifdef TCADSLIB
 #include "TcAdsDef.h"
+#else
+#include "AdsLib.h"
+typedef enum nAmsRouterEvent
+{
+	AMSEVENT_ROUTERSTOP	= 0,
+	AMSEVENT_ROUTERSTART	= 1,
+	AMSEVENT_ROUTERREMOVED	= 2
+}AmsRouterEvent;
+#endif
 #include "plcBase.h"
+#ifndef _WIN32
+#define __stdcall
+#define __cdecl
+#endif
 
 /** @file tcComms.h
 	Header which includes classes to interface with the TCat system and 
@@ -186,7 +200,12 @@ public:
 	~tcProcWrite();
 	/// Move constructor
 	tcProcWrite (tcProcWrite&& tp) noexcept 
-		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), port(0), ptr(nullptr),
+#ifdef TCADS
+		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), 
+#else
+		: addr({ AmsNetId(0,0,0,0,0,0),0 }), 
+#endif
+                port(0), ptr(nullptr),
 		data (nullptr), maxrec (0), size (0), alloc (0), count (0) {
 		*this = std::move (tp); }
 
@@ -325,6 +344,10 @@ public:
 	/// Print a record values to stdout. (override for action)
 	/// @param var variable name (accepts wildcards)
 	virtual void printRecord(const std::string& var);
+	/// Map PLC instance to an integer for use in ADScallback
+	static std::vector<TcPLC*> plcVec;
+	/// Mutex for PLC instance vector
+	static std::mutex plcVecMutex;
 
 protected:
 	/// Makes read requests to ADS, makes PlcWrite on all data values
@@ -381,7 +404,7 @@ protected:
 	/// ADS state
 	std::atomic<ADSSTATE> ads_state;
 	/// ADS handle
-	unsigned long ads_handle;
+	uint32_t  ads_handle;
 	/// ADS restart
 	std::atomic<bool> ads_restart;
 
@@ -394,10 +417,6 @@ protected:
 	/// read active and successful
 	bool read_active;
 private:
-	/// Map PLC instance to an integer for use in ADScallback
-	static std::vector<TcPLC*> plcVec;
-	/// Mutex for PLC instance vector
-	static std::mutex plcVecMutex;
 	/// PLC ID
 	unsigned plcId;
 };

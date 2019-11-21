@@ -1,19 +1,20 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include "epicsStdio.h"
 #include "devTc.h"
 #include "ParseTpy.h"
-#include "InfoPlc.h"
+#include "infoPlc.h"
 #include "errlog.h"
-#undef va_start
-#undef va_end
+//#undef va_start
+//#undef va_end
 #include "dbAccess.h"
 #include "dbCommon.h"
 #include "dbEvent.h"
 #include "recGbl.h"
 #include "recSup.h"
-#include "epicsExport.h"
 #include "aitConvert.h"
 #include "epicsRingPointer.h"
-#include <iostream>
+#include "epicsExport.h"
 #undef _CRT_SECURE_NO_WARNINGS
 
 //int nProcessed = 0;
@@ -111,9 +112,9 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 		return false;
 	}
 
-	std::smatch match;
+	std::match_results<const char*> match;
 	for (auto i : the_register_devsup.tp_list) {
-		if (std::regex_search (inpout, match, i.first)) {
+		if (std::regex_search (inpout.c_str(), match, i.first)) {
 			// Get PLC name from EPICS name string
 			BasePLCPtr plcMatch = plc::System::get().find (match[1].str().c_str());
 			if (!plcMatch.get()) {
@@ -158,7 +159,7 @@ bool EpicsInterface::get_callbackRequestPending() const
 
 /* Callback complete_io_scan
  ************************************************************************/
-static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+void EpicsInterface::complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 {
 	epics->ioscan_reset(prio);
 }
@@ -168,7 +169,7 @@ static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 void EpicsInterface::ioscan_reset (int bitnum)
 {
 	std::lock_guard<std::mutex> guard(ioscanmux);
-	std::atomic_fetch_and(&ioscan_inuse, ~(1 << bitnum));
+	std::atomic_fetch_and(&ioscan_inuse, static_cast<unsigned>(~(1 << bitnum)));
 }
 
 /* EpicsInterface::push
@@ -224,7 +225,7 @@ bool EpicsInterface::push()
 const char* const callback_queue_library = "dbCore.dll";
 const char* const callback_queue_symbol = "tcat_callbackQueue";
 typedef epicsRingPointerId(__cdecl *callback_queue_func)(int);
-static std::atomic<bool> callback_queue_init = false;
+static std::atomic<bool> callback_queue_init{ false };
 static std::mutex callback_queue_mux;
 static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
 
@@ -233,6 +234,7 @@ static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
  ************************************************************************/
 static bool load_callback_queue_func()
 {
+#if 0
 	// Use dynamic DLL linking in case of unpatched EPICS base
 	HINSTANCE hinstLib;
 	callback_queue_func func;
@@ -257,6 +259,8 @@ static bool load_callback_queue_func()
 		printf("Unable to load callback queue information\n");
 	}
 	return RunTimeLinkSuccess;
+#endif
+return false;
 }
 
 /* load_callback_queue_func

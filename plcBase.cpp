@@ -1,7 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include <epicsTime.h>
 #include "plcBase.h"
 #undef _CRT_SECURE_NO_WARNINGS
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 /** @file plcBase.cpp
 	Defines methods for the internal record entry.
@@ -519,7 +522,9 @@ bool DataValue::GetValid (atomic_bool& dirty) const
  ************************************************************************/
 BasePLC::time_type BaseRecord::get_timestamp() const
 {
-	if (!parent) return 0;
+	if (!parent) {
+	    return BasePLC::time_type({0, 0});
+	}
 	return parent->get_timestamp();
 }
 
@@ -530,7 +535,7 @@ BasePLC::time_type BaseRecord::get_timestamp() const
 /* BasePLC::BasePLC
  ************************************************************************/
 BasePLC::BasePLC()
-	: timestamp (0), read_scanner_period (1000), write_scanner_period (1000),
+	: timestamp ( {0, 0} ), read_scanner_period (1000), write_scanner_period (1000),
 	update_scanner_period (1000), scanners_active (false)
 {
 	records.max_load_factor (0.5);
@@ -601,29 +606,19 @@ bool BasePLC::get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const
 
 /* BasePLC::get_timestamp_unix
  ************************************************************************/
-static const BasePLC::time_type TICKS_PER_SECOND = 10000000ULL;
-static const BasePLC::time_type EPOCH_DIFFERENCE = 11644473600ULL;
 
 time_t BasePLC::get_timestamp_unix() const 
 {
-    time_type temp;
-	//convert from 100ns intervals to seconds
-    temp = timestamp / TICKS_PER_SECOND; 
-	// too early? return 0
-	if (temp < EPOCH_DIFFERENCE) {
-		return 0;
-	}
-	//subtract number of seconds between epochs
-	else {
-		return (time_t) (temp - EPOCH_DIFFERENCE);
-	}
+    time_t temp;
+    epicsTimeToTime_t(&temp, &timestamp);
+    return temp;
 }
 
 /* BasePLC::update_timestamp
  ************************************************************************/
 void BasePLC::update_timestamp()
 {
-	GetSystemTimeAsFileTime ((LPFILETIME )&timestamp);
+    epicsTimeGetCurrent(&timestamp);
 }
 
 /* BasePLC::count
@@ -638,20 +633,22 @@ int BasePLC::count() const
  ************************************************************************/
 void BasePLC::user_data_set_valid (bool valid)
 {
-	for_each (
-		[&valid](BaseRecord* rec) {
-			rec->UserSetValid (valid);
-	});
+	auto f = [&valid](BaseRecord* rec) {
+                        rec->UserSetValid (valid);
+        };
+
+	for_each ( f );
 }
 
 /* BasePLC::test
  ************************************************************************/
 void BasePLC::plc_data_set_valid (bool valid)
 {
-	for_each (
-		[&valid](BaseRecord* rec) {
+	auto f = [&valid](BaseRecord* rec) {
 			rec->PlcSetValid (valid);
-	});
+	};
+
+	for_each ( f );
 }
 
 /** Structure for arguments sent to a scanner thread
@@ -667,6 +664,7 @@ typedef struct
 	plc::BasePLC::scanner_func scanner; 
 } scanner_thread_args;
 
+#if 0
 /** Scanner thread callback with periodic timer
 	@brief Scanner thread callback
  ************************************************************************/
@@ -681,6 +679,7 @@ VOID CALLBACK ScannerProc (
 		(scan->plc->*(scan->scanner))();
 	}
 }
+#endif
 
 /** Scanner thread with periodic timer
 	This function uses the windows waitable timer which will call a
@@ -689,8 +688,9 @@ VOID CALLBACK ScannerProc (
 	update_scanner.
     @brief Scanner thread
 ************************************************************************/
-DWORD WINAPI scannerThread (scanner_thread_args args)
+int scannerThread (scanner_thread_args args)
 {
+#if 0
 	HANDLE				hTimer;
 	LARGE_INTEGER		due_time;
 
@@ -715,6 +715,7 @@ DWORD WINAPI scannerThread (scanner_thread_args args)
 		SleepEx (INFINITE, true);
 	}
 	CloseHandle (hTimer);
+#endif
 	return 1;
 }
 
@@ -834,22 +835,28 @@ BasePLCPtr System::find (std::stringcase id)
 
 void System::start()
 {
-	for_each ([] (BasePLC* plc) {
+	auto f = ([] (BasePLC* plc) {
 		plc->set_scanners_active (true);
 	});
+
+	for_each (f);
 }
 
 void System::stop()
 {
-	for_each ([] (BasePLC* plc) {
+	auto f = ([] (BasePLC* plc) {
 		plc->set_scanners_active (false);
 	});
+	for_each (f);
 }
 }
 
 extern "C" {
 	/// Stop TwinCAT
-	__declspec(dllexport) void stopTc(void) {
+#ifdef _WIN32
+	__declspec(dllexport) 
+#endif
+	void stopTc(void) {
 		plc::System::get().stop();
 	}
 }

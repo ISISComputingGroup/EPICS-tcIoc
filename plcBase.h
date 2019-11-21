@@ -116,7 +116,7 @@ struct DataValueTraits
 	/// enumerated type for data type
 	typedef plc::data_type_enum data_type_enum;
 	/// traits type
-	typedef typename T traits_type;
+	using traits_type = T;
 	/// atomic variable type
 	typedef typename std::atomic<T> traits_atomic;
 	/// data type enumertaion value
@@ -198,7 +198,7 @@ struct DataValueTypeDef
 	typedef DataValueTraits<type_binary>::traits_atomic atomic_binary;
 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	typedef epicsTimeStamp time_type;
 };
 
 /** Class for data value
@@ -725,7 +725,7 @@ public:
 	/// Defined the mutex guard type
 	typedef std::lock_guard<mutex_type> guard; 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	typedef epicsTimeStamp time_type;
 	/// Function pointer to scanner
 	typedef void (BasePLC::*scanner_func) ();
 
@@ -824,7 +824,7 @@ public:
 	/// Does not include leap seconds
 	virtual time_t get_timestamp_unix() const;
 	/// Set time stamp
-	virtual void set_timestamp (time_type tstamp) { timestamp = tstamp; }
+	virtual void set_timestamp (const time_type& tstamp) { timestamp = tstamp; }
 	/// Set time stamp to current time
 	virtual void update_timestamp();
 
