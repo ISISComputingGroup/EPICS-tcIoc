@@ -228,8 +228,8 @@ bool EpicsInterface::push()
 #ifdef _WIN32
 const char* const callback_queue_library = "dbCore.dll";
 #else
-//const char* const callback_queue_library = "dbCore.so";
-const char* const callback_queue_library = NULL;
+const char* const callback_queue_library = "dbCore.so";
+//const char* const callback_queue_library = NULL;
 #endif
 
 const char* const callback_queue_symbol = "tcat_callbackQueue";

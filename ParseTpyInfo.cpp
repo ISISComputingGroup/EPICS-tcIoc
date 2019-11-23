@@ -6,7 +6,9 @@ using namespace std;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
+#ifdef _WIN32
 #pragma warning (disable: 4996)
+#endif
 
 /** @file ParseTpyInfo.cpp
 	Source file for tpy parsing methods.

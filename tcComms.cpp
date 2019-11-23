@@ -17,7 +17,6 @@
 #endif
 #include <memory>
 #include <filesystem>
-//#include <boost/filesystem.hpp>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -29,7 +28,6 @@ using namespace std;
 using namespace std::experimental::filesystem::v1;
 #else
 using namespace std::filesystem;
-//using namespace boost::filesystem;
 #endif
 using namespace plc;
 
@@ -175,7 +173,7 @@ void TCatInterface::printVal (FILE* fp)
 	}
 	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")  {
 		sliPLCVar		= *(signed long int*)pTCatVal;
-		fprintf(fp,"%d",sliPLCVar);
+		fprintf(fp,"%ld",sliPLCVar);
 	}
 	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		ssiPLCVar		= *(signed short int*)pTCatVal;
@@ -508,7 +506,7 @@ bool TcPLC::optimizeRequests()
 		// Make new request if gap condition met or if request size too big
 		if (request.length + recSize > MAX_REQ_SIZE || gap)
 		{
-			if (debug) printf("Moving to next request... Gap size is %d\n",recOffset - nextOffs);
+			if (debug) printf("Moving to next request... Gap size is %ld\n",recOffset - nextOffs);
 			nRequest++;
 			adsGroupReadRequestVector.push_back(request);
 			request.indexGroup = recGroup;
@@ -525,7 +523,7 @@ bool TcPLC::optimizeRequests()
 	}
 	// Flush out last request
 	adsGroupReadRequestVector.push_back(request);
-	if (tcdebug) printf("length: %d, nextOffs: %d, totalGap: %d\n", request.length, nextOffs, totalGap);
+	if (tcdebug) printf("length: %ld, nextOffs: %d, totalGap: %d\n", request.length, nextOffs, totalGap);
 
 	// Make response buffer
 	if (debug) printf("Making buffer...\n");
@@ -673,8 +671,12 @@ void __stdcall ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* p
 		}
 	}
 	if (tCatPlcUser) {
-		//ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
-		//tCatPlcUser->set_ads_state(state);
+#ifdef TCADS
+		ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
+#else
+		ADSSTATE state = (ADSSTATE) pNotification->hNotification;
+#endif
+		tCatPlcUser->set_ads_state(state);
 	}
 	else {
 		printf("Unknown PLC ID %i\n", plcId);
@@ -927,19 +929,24 @@ AmsRouterNotification::AmsRouterNotification()
 	: ads_version (0), ads_revision (0), ads_build (0),
 	ams_router_event (AMSEVENT_ROUTERSTART)
 {
+#ifdef TCADS
 	long nErr;
 	AdsVersion* pDLLVersion;
-	//nErr = AdsGetDllVersion();
+	nErr = AdsGetDllVersion();
 	pDLLVersion = (AdsVersion *)&nErr;
 	ads_version = pDLLVersion->version;
 	ads_revision = pDLLVersion->revision;
 	ads_build = pDLLVersion->build;
 	printf("ADS version: %i, revision: %i, build: %i\n", 
 		   ads_version, ads_revision, ads_build);
+#else
+	printf("ADS version: need to use AdsSyncReadDeviceInfoReqEx\n");
+	ads_version = ads_revision = ads_build = 0;
+#endif
 	return;
-	nErr = AdsPortOpenEx();
+	//nErr = AdsPortOpen();
 	//nErr = AdsAmsRegisterRouterNotification(&RouterCall);
-	if (nErr) errorPrintf(nErr);
+	//if (nErr) errorPrintf(nErr);
 }
 
 /* AmsRouterNotification destructor
@@ -947,8 +954,10 @@ AmsRouterNotification::AmsRouterNotification()
 AmsRouterNotification::~AmsRouterNotification()
 {
 	long nErr;
-	//nErr = AdsAmsUnRegisterRouterNotification();
-	//if (nErr) errorPrintf(nErr);
+#ifdef TCADS
+	nErr = AdsAmsUnRegisterRouterNotification();
+	if (nErr) errorPrintf(nErr);
+#endif
 }
 
 }

@@ -85,7 +85,7 @@ std::size_t std::hash<stringcase>::operator()(const stringcase& str) const
 		hval *= FNV_32_PRIME;
 		hval ^= (size_t)tolower(*s++);
 	}
-#endif;
+#endif
 	return hval;
 }
 
@@ -113,7 +113,7 @@ std::size_t std::hash<wstringcase>::operator()(const wstringcase& str) const
 		hval *= FNV_32_PRIME;
 		hval ^= (size_t)(c >> 8);
 	}
-#endif;
+#endif
 	return hval;
 }
 

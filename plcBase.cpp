@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <epicsTime.h>
+#include <epicsThread.h>
 #include "plcBase.h"
 #undef _CRT_SECURE_NO_WARNINGS
 #ifdef _WIN32
@@ -664,22 +665,17 @@ typedef struct
 	plc::BasePLC::scanner_func scanner; 
 } scanner_thread_args;
 
-#if 0
 /** Scanner thread callback with periodic timer
 	@brief Scanner thread callback
  ************************************************************************/
-VOID CALLBACK ScannerProc (
-   LPVOID lpArg,               // Data value
-   DWORD dwTimerLowValue,      // Timer low value
-   DWORD dwTimerHighValue )    // Timer high value
-
+static void ScannerProc (
+   void* lpArg)               // Data value
 {
 	scanner_thread_args* scan = ((scanner_thread_args*) lpArg);
 	if (scan->plc->is_scanner_active()) {
 		(scan->plc->*(scan->scanner))();
 	}
 }
-#endif
 
 /** Scanner thread with periodic timer
 	This function uses the windows waitable timer which will call a
@@ -688,34 +684,14 @@ VOID CALLBACK ScannerProc (
 	update_scanner.
     @brief Scanner thread
 ************************************************************************/
-int scannerThread (scanner_thread_args args)
+static int scannerThread (scanner_thread_args args)
 {
-#if 0
-	HANDLE				hTimer;
-	LARGE_INTEGER		due_time;
-
-	// Default security attributes, auto-reset timer, unnamed
-	hTimer = CreateWaitableTimer (NULL, FALSE, NULL); 
-	if (hTimer == NULL) {
-
-		printf("CreateWaitableTimer failed with error %d\n", GetLastError());
-		return 1;
-	}
-	// Create an integer that will be used to signal the timer 
-	// 3 seconds from now.
-	due_time.QuadPart = -1 * (LONGLONG) TICKS_PER_SECOND;
-	if (!SetWaitableTimer (hTimer, &due_time, args.scanperiod, 
-						   ScannerProc, &args, FALSE)) {
-		printf("SetWaitableTimer failed with error %d\n", GetLastError());
-		CloseHandle (hTimer);
-		return 1;
-	}
-	// Wait forever and put thread in an alertable state
-	while (true) {
-		SleepEx (INFINITE, true);
-	}
-	CloseHandle (hTimer);
-#endif
+	epicsThreadSleep(1.0);
+	while(true)
+	{
+	    epicsThreadSleep(args.scanperiod / 1000.0);
+	    ScannerProc(&args);
+        }
 	return 1;
 }
 

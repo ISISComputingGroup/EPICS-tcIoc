@@ -570,19 +570,19 @@ public:
 	/// @param data Reference to data
 	/// @return true if successfull
 	template <typename T> bool UserWrite (const T& data) {
-		bool ret = value.UserWrite (data); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data); if (ret) { PlcPush(); }; return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_string_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data, max); if (ret) { PlcPush(); }; return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data, max); if (ret) { PlcPush(); }; return ret; }
 
 	/// Execute a user read, but pull plc first
 	/// @param p Pointer to data (destination buffer)
@@ -596,7 +596,7 @@ public:
 	/// @return Number of bytes written (0 on error)
 	size_type UserWriteBinary (const type_binary p, size_type len) {
 		size_type ret = value.UserWriteBinary (p, len); 
-		if (ret > 0) PlcPush(); return ret; }
+		if (ret > 0) { PlcPush(); }; return ret; }
 	/// Ckecks if the user needs to read an updated value
 	bool UserIsDirty() const {return value.UserIsDirty(); }
 	/// Set dirty flag for user
@@ -637,19 +637,19 @@ public:
 	/// @param data Reference to data
 	/// @return true if successfull
 	template <typename T> bool PlcWrite (const T& data) {
-		bool ret = value.PlcWrite (data); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data); if (ret) { UserPush(); }; return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_string_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data, max); if (ret) { UserPush(); }; return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data, max); if (ret) { UserPush(); }; return ret; }
 
 	/// Execute a plc read, but pull user first
 	/// @param p Pointer to data (destination buffer)
@@ -663,7 +663,7 @@ public:
 	/// @return Number of bytes written (0 on error)
 	size_type PlcWriteBinary (const type_binary p, size_type len) {
 		size_type ret = value.PlcWriteBinary (p, len); 
-		if (ret > 0) UserPush(); return ret; }
+		if (ret > 0) { UserPush(); }; return ret; }
 	/// Checks if the plc needs to read an updated value
 	bool PlcIsDirty() const {return value.PlcIsDirty(); }
 	/// Set dirty flag for plc

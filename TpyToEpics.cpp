@@ -6,19 +6,20 @@
 #include "TpyToEpicsConst.h"
 #include "TpyToEpics.h"
 
+#include <filesystem>
 #ifdef _WIN32
 using namespace std::experimental::filesystem::v1; 
 #else
-#include <filesystem>
 using namespace std::filesystem; 
 #endif
-
 
 using namespace std;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
+#ifdef _WIN32
 #pragma warning (disable: 4996)
+#endif
 
 /** @file TpyToEpics.cpp
 	Source for methods that generate EPICs .db file from a .tpy file

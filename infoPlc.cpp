@@ -593,7 +593,7 @@ void InfoInterface::printVal (FILE* fp)
 		if (record.PlcRead(floatPLCVar)) fprintf(fp, "%f", floatPLCVar);
 	}
 	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT") {
-		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%d", sliPLCVar);
+		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%ld", sliPLCVar);
 	}
 	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		if (record.PlcRead(ssiPLCVar)) fprintf(fp, "%d", ssiPLCVar);

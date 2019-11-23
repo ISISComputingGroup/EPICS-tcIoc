@@ -464,7 +464,9 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 			rep += "\"";
 // cannot mix const and non-const iterators, linux prototype issue?
 //			infodb.replace(m[1].first, m[1].second, rep.c_str());
-			infodb.replace(std::distance(infodb.cbegin(), m[1].first), std::distance(m[1].first, m[1].second), rep.c_str());
+			infodb.replace(std::distance(infodb.cbegin(), m[1].first),
+                                       std::distance(m[1].first, m[1].second),
+                                       rep.c_str());
 		}
 	}
 	return !err;
