@@ -15,5 +15,5 @@ dbLoadDatabase "dbd/tcIoc.dbd"
 tcIoc_registerRecordDeviceDriver pdbbase
 
 ## calling common command file in ioc 01 boot dir
-cd ${TOP}/iocBoot/iocTcIoc
+cd ${TOP}/iocBoot/ioctcIoc
 < st-common.cmd
