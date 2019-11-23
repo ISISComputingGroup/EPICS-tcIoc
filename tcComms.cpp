@@ -674,7 +674,7 @@ void __stdcall ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* p
 #ifdef TCADS
 		ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
 #else
-		ADSSTATE state = (ADSSTATE) pNotification->hNotification;
+		ADSSTATE state = ADSSTATE_INVALID;
 #endif
 		tCatPlcUser->set_ads_state(state);
 	}
