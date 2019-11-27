@@ -7,6 +7,7 @@
 #include "ParseTpy.h"
 #ifdef _WIN32
 #include "windows.h"
+#define strcasecmp stricmp
 #endif
 #include "TpyToEpics.h"
 #ifdef TCADS
@@ -309,7 +310,7 @@ void tcProcWrite::tcwrite()
 	// ads write
 	char* ret = new char [4 * count];
 	if (!ret) return;
-	uint32_t read;
+	tcuint32_t read;
 	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
 		static_cast<unsigned long>(count),
 		static_cast<unsigned long>(sizeof(long)*count), ret, 
@@ -660,8 +661,13 @@ void TcPLC::printRecord (const std::string& var)
 
 /** Callback for ADS state change
  ************************************************************************/
-void __stdcall ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* pNotification, 
+#ifdef TCADS
+void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification, 
+							unsigned long plcId)
+#else
+void ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* pNotification, 
 							uint32_t plcId)
+#endif
 {
 	TcPLC* tCatPlcUser = nullptr;
 	{
@@ -744,7 +750,7 @@ void TcPLC::read_scanner()
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
-			uint32_t retsize;
+			tcuint32_t retsize;
 			int nErr = 0;
 			nErr = AdsSyncReadReqEx2 (nReadPort, &addr,
 				adsGroupReadRequestVector[request].indexGroup,

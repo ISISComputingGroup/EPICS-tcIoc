@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#ifdef TCADSLIB
+#ifdef TCADS
 #include "TcAdsDef.h"
 #else
 #include "AdsLib.h"
@@ -16,6 +16,15 @@ typedef enum nAmsRouterEvent
 #define __stdcall
 #define __cdecl
 #endif
+
+// twincat and GitHub ADS differ some types
+// long is 64bit on Linux x64, so GutHub ads uses uint32 ratherthan unsigned long 
+#ifdef TCADS
+typedef unsigned long tcuint32_t;
+#else
+typedef uint32_t tcuint32_t;
+#endif
+
 
 /** @file tcComms.h
 	Header which includes classes to interface with the TCat system and 
@@ -276,7 +285,11 @@ private:
 class TcPLC	:	public plc::BasePLC
 {
 	/// Notification callback is a friend
+#ifdef TCADS
 	friend void __stdcall ADScallback (AmsAddr*, AdsNotificationHeader*, unsigned long);
+#else
+	friend void ADScallback (const AmsAddr*, const AdsNotificationHeader*, uint32_t);
+#endif
 public:
 	/// Buffer type
 	typedef char						buffer_type;
@@ -404,7 +417,7 @@ protected:
 	/// ADS state
 	std::atomic<ADSSTATE> ads_state;
 	/// ADS handle
-	uint32_t  ads_handle;
+	tcuint32_t  ads_handle;
 	/// ADS restart
 	std::atomic<bool> ads_restart;
 
