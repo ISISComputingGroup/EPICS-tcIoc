@@ -38,8 +38,7 @@ ifeq ($(OS_CLASS),WIN32)
 ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include -DTCADS
 else
-ADSLIB = AdsLib
-AdsLib_DIR = $(SUPPORT)/ADS/master/lib/$(T_A)
+ADSLIB = $(SUPPORT)/ADS/master/lib/$(T_A)/AdsLib
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/AdsLib
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/include -D__STDC_WANT_LIB_EXT1__=1
 endif
