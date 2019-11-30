@@ -31,7 +31,7 @@ LIB_INSTALLS_WIN32 += $(EXPATLIB).lib
 endif
 
 ifneq ($(OS_CLASS),WIN32)
-USR_CXXFLAGS += -std=c++17
+USR_CXXFLAGS += -std=c++17 -Wno-reorder
 endif
 
 ifeq ($(OS_CLASS),WIN32)

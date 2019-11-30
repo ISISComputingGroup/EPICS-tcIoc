@@ -611,7 +611,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
     if(prec->scan == SCAN_IO_EVENT) {
 		// Set properties for a read record with SCAN = I/O Intr
 		scanIoInit(&(epics->ioscan()));
-		scanIoSetComplete(epics->get_ioscan(), (io_scan_complete)EpicsInterface::complete_io_scan, (void*)epics);
+		scanIoSetComplete(epics->get_ioscan(), (io_scan_complete)complete_io_scan, (void*)epics);
 		epics->set_isCallback(true); // need to generate interrupt
 		epics->set_isPassive(false);
 	}

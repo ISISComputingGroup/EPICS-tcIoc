@@ -8,8 +8,6 @@
 #include "ParseTpy.h"
 #include "infoPlc.h"
 #include "errlog.h"
-//#undef va_start
-//#undef va_end
 #include "dbAccess.h"
 #include "dbCommon.h"
 #include "dbEvent.h"
@@ -162,7 +160,7 @@ bool EpicsInterface::get_callbackRequestPending() const
 
 /* Callback complete_io_scan
  ************************************************************************/
-void EpicsInterface::complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 {
 	epics->ioscan_reset(prio);
 }
@@ -229,7 +227,6 @@ bool EpicsInterface::push()
 const char* const callback_queue_library = "dbCore.dll";
 #else
 const char* const callback_queue_library = "dbCore.so";
-//const char* const callback_queue_library = NULL;
 #endif
 
 const char* const callback_queue_symbol = "tcat_callbackQueue";

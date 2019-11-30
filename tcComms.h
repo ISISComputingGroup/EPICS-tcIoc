@@ -357,12 +357,6 @@ public:
 	/// Print a record values to stdout. (override for action)
 	/// @param var variable name (accepts wildcards)
 	virtual void printRecord(const std::string& var);
-	/// Map PLC instance to an integer for use in ADScallback
-	static std::vector<TcPLC*> plcVec;
-	/// Mutex for PLC instance vector
-	static std::mutex plcVecMutex;
-	/// Set ADS state
-	void set_ads_state(ADSSTATE state);
 
 protected:
 	/// Makes read requests to ADS, makes PlcWrite on all data values
@@ -372,6 +366,8 @@ protected:
 	/// Makes sure we don't have stale values.
 	virtual void update_scanner();
 	
+	/// Set ADS state
+	void set_ads_state(ADSSTATE state);
 	/// Set up ADS status change notification
 	void setup_ads_notification();
 	/// Remove ADS status change notification
@@ -430,6 +426,10 @@ protected:
 	/// read active and successful
 	bool read_active;
 private:
+	/// Map PLC instance to an integer for use in ADScallback
+	static std::vector<TcPLC*> plcVec;
+	/// Mutex for PLC instance vector
+	static std::mutex plcVecMutex;
 	/// PLC ID
 	unsigned plcId;
 };

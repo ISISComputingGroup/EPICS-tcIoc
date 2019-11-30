@@ -76,6 +76,9 @@ protected:
 	static register_devsup the_register_devsup;
 };
 
+class EpicsInterface;
+extern void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
+
 /** @defgroup devsup Device support for TwinCAT/ADS
  ************************************************************************/
 /** @{ */
@@ -85,8 +88,8 @@ protected:
  ************************************************************************/
 class EpicsInterface	:	public plc::Interface
 {
+	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 public:
-	static void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
 	/// Constructor
 	EpicsInterface (plc::BaseRecord& dval);
 	/// Deconstructor
@@ -205,6 +208,7 @@ protected:
 };
 
 
+
 /** This record type enums are used as index the epics traits class
     @brief Epics record type enum.
  ************************************************************************/
@@ -312,10 +316,8 @@ template <epics_record_enum RecType>
 struct devTcDefIo 
 {
 	/// Record type: aiRecord, etc.
-	//typedef typename epics_record_traits<RecType>::traits_type rec_type;
 	using rec_type = typename epics_record_traits<RecType>::traits_type;
 	/// Pointer to record type
-	//typedef typename rec_type* rec_type_ptr;
 	using rec_type_ptr = rec_type*;
 
 	/// Number of support functions
