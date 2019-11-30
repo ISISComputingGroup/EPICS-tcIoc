@@ -35,10 +35,12 @@ USR_CXXFLAGS += -std=c++17 -Wno-reorder
 endif
 
 ifeq ($(OS_CLASS),WIN32)
-ADSLIB = $(ADSLIBROOT)/lib/TcAdsDll
+ADSLIB = TcAdsDll
+TcAdsDll_DIR = $(ADSLIBROOT)/lib
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include -DTCADS
 else
-ADSLIB = $(SUPPORT)/ADS/master/lib/$(T_A)/AdsLib
+ADSLIB = AdsLib
+AdsLib_DIR = $(SUPPORT)/ADS/master/lib/$(T_A)
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/AdsLib
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/include -D__STDC_WANT_LIB_EXT1__=1
 endif
@@ -60,11 +62,10 @@ tcIocSupport_SRCS += plcBase.cpp
 tcIocSupport_SRCS += tcComms.cpp
 tcIocSupport_SRCS += $(EPICSDBLIBSRC)
 tcIocSupport_SRCS += $(TYPLIBSRC)
+tcIocSupport_LIBS += $(ADSLIB)
 tcIocSupport_LIBS += $(EPICS_BASE_IOC_LIBS)
 tcIocSupport_SYS_LIBS_WIN32 += $(EXPATLIB)
-tcIocSupport_SYS_LIBS_WIN32 += $(ADSLIB)
 
-tcIocSupport_LIBS_Linux += $(ADSLIB)
 tcIocSupport_SYS_LIBS_Linux += expat stdc++fs pthread
 
 PROD_IOC = tpyinfo epicsdbgen tcIoc
@@ -92,10 +93,9 @@ tcIoc_SRCS += tcIoc_registerRecordDeviceDriver.cpp
 
 # Finally link to the EPICS Base libraries
 tcIoc_LIBS += tcIocSupport
+tcIoc_LIBS += $(ADSLIB)
 tcIoc_LIBS += $(EPICS_BASE_IOC_LIBS)
 tcIoc_SYS_LIBS_WIN32 += $(EXPATLIB)
-tcIoc_SYS_LIBS_WIN32 += $(ADSLIB)
-tcIoc_LIBS_Linux += $(ADSLIB)
 tcIoc_SYS_LIBS_Linux += expat stdc++fs pthread
 
 #===========================
