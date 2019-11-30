@@ -43,6 +43,9 @@ ADSLIB = AdsLib
 AdsLib_DIR = $(SUPPORT)/ADS/master/lib/$(T_A)
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/AdsLib
 USR_CPPFLAGS += -I$(SUPPORT)/ADS/master/include -D__STDC_WANT_LIB_EXT1__=1
+# we install ADS lib to avoid needing to add this to the RELEASE file
+# which would complicate swapping between TCADS and this 
+BIN_INSTALLS_WIN32 += $(SUPPORT)/ADS/master/bin/$(T_A)/AdsLib.dll
 endif
 
 USR_DBDFLAGS += -I$(TOP)/TCatDeviceSupport
