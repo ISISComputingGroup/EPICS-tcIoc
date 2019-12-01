@@ -34,8 +34,8 @@ ifneq ($(OS_CLASS),WIN32)
 USR_CXXFLAGS += -std=c++17 -Wno-reorder
 endif
 
-# try win32 with github ADS
-ifeq ($(OS_CLASS),xWIN32)
+# To try win32 with github ADS change "WIN32" to e.g. "xWIN32"
+ifeq ($(OS_CLASS),WIN32)
 ADSLIB = TcAdsDll
 TcAdsDll_DIR = $(ADSLIBROOT)/lib
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include -DTCADS
