@@ -38,12 +38,18 @@ public:
 	asynStatus pollAll(st_axis_status_type *pst_axis_status);
 	asynStatus poll(bool *moving);
 
+protected:
+	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);    
+
+    int axisNo;
+	devMotorController *pC_;
+	std::string pvPrefix;
+	
+	friend class devMotorController;
+	
 private:
-	devMotorController *pC_;          /**< Pointer to the asynMotorController to which this axis belongs.
-                                   *   Abbreviated because it is used very frequently */
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
-	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);
 	void getDirection(int *direction);
 	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
@@ -51,19 +57,85 @@ private:
 	asynStatus putDb(std::string pvSuffix, const void *value);
 	asynStatus sendCommand(const int command);
 	
-	friend class devMotorController;
+    virtual void populateLimitStatus(st_axis_status_type *axis_status) = 0;
 	
-	int axisNo;
 	std::string previousError = "";
 	bool errorToggle = false;
 
-	const epicsInt32 HOME_COMMAND = 13;
-	const epicsInt32 STOP_COMMAND = 15;
-	const epicsInt32 MOVE_ABS_COMMAND = 17;
-	const epicsInt32 MOVE_RELATIVE_COMMAND = 18;
-	const epicsInt32 MOVE_VELO_COMMAND = 21;
+    virtual std::string ENABLE_STATUS() = 0;
+	virtual std::string EXECUTE() = 0;
+	virtual std::string VELOCITY_SP() = 0;
+	virtual std::string POSITION_SP() = 0;
+	virtual std::string ERROR_STATUS() = 0;
+	virtual std::string POSITION_RBV() = 0;
+	virtual std::string VELOCITY_RBV() = 0;
+	virtual std::string HOMED() = 0;
+	virtual std::string BUSY() = 0;
+	virtual std::string POSITIVE_DIR() = 0;
+	virtual std::string NEGATIVE_DIR() = 0;
+	virtual std::string COMMAND() = 0;
 	
-	std::string pvPrefix;
+	virtual epicsInt32 HOME_COMMAND() = 0;
+	virtual epicsInt32 STOP_COMMAND() = 0;
+	virtual epicsInt32 MOVE_ABS_COMMAND() = 0;
+	virtual epicsInt32 MOVE_RELATIVE_COMMAND() = 0;
+	virtual epicsInt32 MOVE_VELO_COMMAND() = 0;
+};
+
+class epicsShareClass twincatMotorAxis : public devMotorAxis
+{
+public: 
+    twincatMotorAxis(class devMotorController *pC, int axisNo): devMotorAxis(pC, axisNo) {};
+
+private:
+    std::string ENABLE_STATUS() { return "STATUS-BENABLED"; };
+	std::string EXECUTE() { return "CONTROL-BEXECUTE"; };
+	std::string VELOCITY_SP() { return "CONFIG-FVELOCITY"; };
+	std::string POSITION_SP() { return "CONFIG-FPOSITION"; };
+	std::string ERROR_STATUS() { return "STATUS-BERROR"; };
+	std::string POSITION_RBV() { return "STATUS-FACTPOSITION"; };
+	std::string VELOCITY_RBV() { return "STATUS-FACTVELOCITY"; };
+	std::string HOMED() { return "STATUS-BHOMED"; };
+	std::string BUSY() { return "STATUS-BBUSY"; };
+	std::string POSITIVE_DIR() { return "AXIS-STATUS_POSITIVEDIRECTION"; };
+	std::string NEGATIVE_DIR() { return "AXIS-STATUS_NEGATIVEDIRECTION"; };
+	std::string COMMAND() { return "CONTROL-ECOMMAND"; };
+	
+    epicsInt32 HOME_COMMAND() { return 10; };
+	epicsInt32 STOP_COMMAND() { return 15; };
+	epicsInt32 MOVE_ABS_COMMAND() { return 0; };
+	epicsInt32 MOVE_RELATIVE_COMMAND() { return 1; };
+	epicsInt32 MOVE_VELO_COMMAND() { return 3; };
+
+    void populateLimitStatus(st_axis_status_type *axis_status);
+};
+
+class epicsShareClass ISISMotorAxis : public devMotorAxis
+{
+public: 
+    ISISMotorAxis(class devMotorController *pC, int axisNo): devMotorAxis(pC, axisNo) {};
+
+private:
+    std::string ENABLE_STATUS() { return "BENABLE"; };
+	std::string EXECUTE() { return "BEXECUTE"; };
+	std::string VELOCITY_SP() { return "FVELOCITY"; };
+	std::string POSITION_SP() { return "FPOSITION"; };
+	std::string ERROR_STATUS() { return "BERROR"; };
+	std::string POSITION_RBV() { return "FACTPOSITION"; };
+	std::string VELOCITY_RBV() { return "FACTVELOCITY"; };
+	std::string HOMED() { return "BCALIBRATED"; };
+	std::string BUSY() { return "BMOVING"; };
+	std::string POSITIVE_DIR() { return "BPOSITIVEDIRECTION"; };
+	std::string NEGATIVE_DIR() { return "BNEGATIVEDIRECTION"; };
+	std::string COMMAND() { return "ECOMMAND"; };
+	
+	epicsInt32 HOME_COMMAND() { return 13; };
+	epicsInt32 STOP_COMMAND() { return 15; };
+	epicsInt32 MOVE_ABS_COMMAND() { return 17; };
+	epicsInt32 MOVE_RELATIVE_COMMAND() { return 18; };
+	epicsInt32 MOVE_VELO_COMMAND() { return 21; };
+
+    void populateLimitStatus(st_axis_status_type *axis_status);
 };
 
 class epicsShareClass devMotorController : public asynMotorController {
@@ -72,7 +144,6 @@ public:
 
 	void report(FILE *fp, int level);
 
-protected:
 	friend class devMotorAxis;
 	std::string pvPrefix;
 };
