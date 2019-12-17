@@ -55,7 +55,7 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
         return asynError;
     }
     pC->lock();
-    new twincatMotorAxis(pC, axisNo);
+    new ISISMotorAxis(pC, axisNo);
     pC->unlock();
     return asynSuccess;
 }
@@ -98,7 +98,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
 			status |= putDb(POSITION_SP(), &position);
 			return (asynStatus)sendCommand(MOVE_ABS_COMMAND());
 		} else {
-			status |= putDb("FPOSITION", &position);
+			status |= putDb(DISTANCE_SP(), &position);
 			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND());
 		}
 	}  catch (const std::runtime_error& e) {

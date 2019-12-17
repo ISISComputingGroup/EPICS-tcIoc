@@ -66,6 +66,7 @@ private:
 	virtual std::string EXECUTE() = 0;
 	virtual std::string VELOCITY_SP() = 0;
 	virtual std::string POSITION_SP() = 0;
+	virtual std::string DISTANCE_SP() = 0;
 	virtual std::string ERROR_STATUS() = 0;
 	virtual std::string POSITION_RBV() = 0;
 	virtual std::string VELOCITY_RBV() = 0;
@@ -92,6 +93,7 @@ private:
 	std::string EXECUTE() { return "CONTROL-BEXECUTE"; };
 	std::string VELOCITY_SP() { return "CONFIG-FVELOCITY"; };
 	std::string POSITION_SP() { return "CONFIG-FPOSITION"; };
+	std::string DISTANCE_SP() { return "FDISTANCE"; };
 	std::string ERROR_STATUS() { return "STATUS-BERROR"; };
 	std::string POSITION_RBV() { return "STATUS-FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "STATUS-FACTVELOCITY"; };
@@ -120,6 +122,7 @@ private:
 	std::string EXECUTE() { return "BEXECUTE"; };
 	std::string VELOCITY_SP() { return "FVELOCITY"; };
 	std::string POSITION_SP() { return "FPOSITION"; };
+	std::string DISTANCE_SP() { return "FDISTANCE"; };
 	std::string ERROR_STATUS() { return "BERROR"; };
 	std::string POSITION_RBV() { return "FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "FACTVELOCITY"; };
