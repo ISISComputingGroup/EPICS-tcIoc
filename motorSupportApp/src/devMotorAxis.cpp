@@ -44,8 +44,9 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
   *
   * \param[in] devMotorName The name of the motor port.
   * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_
+  * \param[in] versionNumber The PLC version to use: 0 for the collaboration code, 1 for the old ISIS code
   */
-extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
+extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo, int versionNumber) {
     devMotorController *pC;
 
     pC = (devMotorController*) findAsynPortDriver(devMotorName);
@@ -55,7 +56,11 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
         return asynError;
     }
     pC->lock();
-    new ISISMotorAxis(pC, axisNo);
+	if (versionNumber == 0) {
+		new twincatMotorAxis(pC, axisNo);
+	} else if (versionNumber == 1) {
+		new ISISMotorAxis(pC, axisNo);
+	}
     pC->unlock();
     return asynSuccess;
 }

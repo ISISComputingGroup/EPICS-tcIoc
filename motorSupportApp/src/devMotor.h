@@ -8,7 +8,7 @@
 #define PV_BUFFER_LEN 100
 
 extern "C" {
-	int devMotorCreateAxis(const char *devMotorName, int axisNo);
+	int devMotorCreateAxis(const char *devMotorName, int axisNo, int versionNumber);
 }
 
 typedef struct {

@@ -81,12 +81,13 @@ static void devMotorCreateContollerCallFunc(const iocshArgBuf *args)
 /* devMotorCreateAxis */
 static const iocshArg devMotorCreateAxisArg0 = {"Controller port name", iocshArgString};
 static const iocshArg devMotorCreateAxisArg1 = {"Axis number", iocshArgInt};
+static const iocshArg devMotorCreateAxisArg2 = {"PLC version to use: 0 is collaboration version, 1 is old ISIS version", iocshArgInt};
 static const iocshArg * const devMotorCreateAxisArgs[] = {&devMotorCreateAxisArg0,
-							      &devMotorCreateAxisArg1};
-static const iocshFuncDef devMotorCreateAxisDef = {"devMotorCreateAxis", 2, devMotorCreateAxisArgs};
+							      &devMotorCreateAxisArg1, &devMotorCreateAxisArg2};
+static const iocshFuncDef devMotorCreateAxisDef = {"devMotorCreateAxis", 3, devMotorCreateAxisArgs};
 static void devMotorCreateAxisCallFunc(const iocshArgBuf *args)
 {
-  devMotorCreateAxis(args[0].sval, args[1].ival);
+  devMotorCreateAxis(args[0].sval, args[1].ival, args[2].ival);
 }
 
 static void devMotorControllerRegister(void)
