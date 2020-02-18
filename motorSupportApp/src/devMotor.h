@@ -39,8 +39,10 @@ public:
 	asynStatus poll(bool *moving);
 
 protected:
-	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);    
-
+	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);
+	asynStatus sendCommand(const int command);    
+	asynStatus putDb(std::string pvSuffix, const void *value);
+	
     int axisNo;
 	devMotorController *pC_;
 	std::string pvPrefix;
@@ -54,11 +56,10 @@ private:
 	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
-	asynStatus putDb(std::string pvSuffix, const void *value);
-	asynStatus sendCommand(const int command);
 	
     virtual void populateLimitStatus(st_axis_status_type *axis_status) = 0;
-	
+	virtual asynStatus sendStop() = 0;
+		
 	std::string previousError = "";
 	bool errorToggle = false;
 
@@ -77,7 +78,6 @@ private:
 	virtual std::string COMMAND() = 0;
 	
 	virtual epicsInt32 HOME_COMMAND() = 0;
-	virtual epicsInt32 STOP_COMMAND() = 0;
 	virtual epicsInt32 MOVE_ABS_COMMAND() = 0;
 	virtual epicsInt32 MOVE_RELATIVE_COMMAND() = 0;
 	virtual epicsInt32 MOVE_VELO_COMMAND() = 0;
@@ -91,9 +91,10 @@ public:
 private:
     std::string ENABLE_STATUS() { return "STATUS-BENABLED"; };
 	std::string EXECUTE() { return "CONTROL-BEXECUTE"; };
+	std::string STOP() { return "CONTROL-BSTOP"; };
 	std::string VELOCITY_SP() { return "CONFIG-FVELOCITY"; };
 	std::string POSITION_SP() { return "CONFIG-FPOSITION"; };
-	std::string DISTANCE_SP() { return "FDISTANCE"; };
+	std::string DISTANCE_SP() { return "CONFIG-FPOSITION"; };
 	std::string ERROR_STATUS() { return "STATUS-BERROR"; };
 	std::string POSITION_RBV() { return "STATUS-FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "STATUS-FACTVELOCITY"; };
@@ -110,6 +111,7 @@ private:
 	epicsInt32 MOVE_VELO_COMMAND() { return 3; };
 
     void populateLimitStatus(st_axis_status_type *axis_status);
+	asynStatus sendStop();
 };
 
 class epicsShareClass ISISMotorAxis : public devMotorAxis
@@ -139,6 +141,7 @@ private:
 	epicsInt32 MOVE_VELO_COMMAND() { return 21; };
 
     void populateLimitStatus(st_axis_status_type *axis_status);
+	asynStatus sendStop();
 };
 
 class epicsShareClass devMotorController : public asynMotorController {

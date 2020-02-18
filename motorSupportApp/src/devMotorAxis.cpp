@@ -57,9 +57,9 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo, int vers
     }
     pC->lock();
 	if (versionNumber == 0) {
-		new twincatMotorAxis(pC, axisNo);
-	} else if (versionNumber == 1) {
 		new ISISMotorAxis(pC, axisNo);
+	} else if (versionNumber == 1) {
+		new twincatMotorAxis(pC, axisNo);
 	}
     pC->unlock();
     return asynSuccess;
@@ -157,6 +157,25 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
 }
 
 /** 
+  * Stops the ISISMotorAxis specific stop commnad.
+  *
+  * \return The status code for the stop.
+  */
+asynStatus ISISMotorAxis::sendStop() {
+	return (asynStatus)sendCommand(STOP_COMMAND());
+}
+
+/** 
+  * Stops the twincatMotorAxis specific stop commnad.
+  *
+  * \return The status code for the stop.
+  */
+asynStatus twincatMotorAxis::sendStop() {
+	int stop = 1;
+	return (asynStatus)putDb(STOP(), &stop);
+}
+
+/** 
   * Stops the axis, called by motor record.
   * 
   * \param[in] acceleration The acceleration to stop the axis with (currently unused).
@@ -165,7 +184,7 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
   */
 asynStatus devMotorAxis::stop(double acceleration) {
     try {
-		return (asynStatus)sendCommand(STOP_COMMAND());
+		return sendStop();
 	}  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to stop axis %i: %s\n", axisNo, e.what());
