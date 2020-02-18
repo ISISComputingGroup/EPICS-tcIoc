@@ -44,7 +44,7 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
   *
   * \param[in] devMotorName The name of the motor port.
   * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_
-  * \param[in] versionNumber The PLC version to use: 0 for the collaboration code, 1 for the old ISIS code
+  * \param[in] versionNumber The PLC version to use: 0 for the old ISIS code, 1 for the collaboration code
   */
 extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo, int versionNumber) {
     devMotorController *pC;
