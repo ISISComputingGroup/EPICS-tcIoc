@@ -35,7 +35,7 @@ USR_CXXFLAGS += -std=c++17 -Wno-reorder
 endif
 
 # To try win32 with github ADS change "WIN32" to e.g. "xWIN32"
-ifeq ($(OS_CLASS),WIN32)
+ifeq ($(OS_CLASS),xWIN32)
 ADSLIB = TcAdsDll
 TcAdsDll_DIR = $(ADSLIBROOT)/lib
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include -DTCADS
