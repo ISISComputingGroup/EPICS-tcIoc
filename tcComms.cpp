@@ -18,6 +18,7 @@
 #endif
 #include <memory>
 #include <filesystem>
+#include <sstream>
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file tcComms.cpp
@@ -32,8 +33,8 @@ using namespace std::filesystem;
 #endif
 using namespace plc;
 
-static bool debug = false;
-static bool tcdebug = false;
+static bool debug = (getenv("TCIOC_DEBUG") != NULL ? true : false);
+static bool tcdebug = (getenv("TCIOC_TCDEBUG") != NULL ? true : false);
 
 
 
@@ -42,7 +43,7 @@ namespace TcComms {
 /** Print an error message for an ADS error return code
 	@brief errorPrintf
  ************************************************************************/
-void errorPrintf(int nErr)
+void errorPrintf(const char* function, int nErr)
 {
 	static int maxerror = 10;
 	static int lasterror = 0;
@@ -61,6 +62,7 @@ void errorPrintf(int nErr)
 	// This function prints the proper error message for common ADS return codes.
 	// Documentation at: http://infosys.beckhoff.com/english.php?content=../content/1033/tcadscommon/html/ads_returncodes.htm&id=
 	/////////////////////////////////////////////////
+    printf("%s: (%d) ", function, nErr);
 	if (nErr == 4	) 
 		printf("no ADS mailbox was available to process this message\n");
 	else if (nErr == 6	) 
@@ -315,7 +317,7 @@ void tcProcWrite::tcwrite()
 		static_cast<unsigned long>(count),
 		static_cast<unsigned long>(sizeof(long)*count), ret, 
 		static_cast<unsigned long>(3*sizeof(long)*count + size), ptr, &read);
-	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf (nErr);
+	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf ("AdsSyncReadWriteReqEx2", nErr);
 	// ready for next transfer
 	count = 0;
 	size = 0;
@@ -376,7 +378,7 @@ bool TcPLC::start()
 			update_last = records.begin()->second;
 		}
 	}
-
+    
 	// initialize read and write scanner
 	nReadPort = openPort();
 	nWritePort = openPort();
@@ -384,13 +386,26 @@ bool TcPLC::start()
 		printf("Failed to open ADS ports\n");
 		return false;
 	}
+    
+    AmsAddr localAddr;
+	long nErr = AdsGetLocalAddressEx (nReadPort, &localAddr);
+	if (nErr) {
+		errorPrintf("AdsGetLocalAddressEx", nErr);
+        if (getenv("SETLOCAL") != NULL) {
+            printf("error getting local address - setting manually\n");
+            AdsSetLocalAddress({130, 246, 53, 209, 1, 1});
+        }
+		//return false;
+	}
+
 	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
+        printf("NetID not specified (in TPY) - setting to local\n");
 		unsigned short port = addr.port;
 		long nErr = AdsGetLocalAddressEx (nReadPort, &addr);
 		if (nErr) {
-			errorPrintf(nErr);
+			errorPrintf("AdsGetLocalAddressEx", nErr);
 			return false;
 		}
 		addr.port = port;
@@ -398,7 +413,18 @@ bool TcPLC::start()
 			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], port);
 	}
-
+    
+    // set route
+    std::ostringstream remote_ip;
+    remote_ip << addr.netId.b[0] << "." << addr.netId.b[1] << "." << addr.netId.b[2] << "." << addr.netId.b[3];
+    printf("Remote IP addr: %s\n", remote_ip.str().c_str());
+    if (getenv("ADDROUTE") != NULL) {
+        if ( (nErr = AdsAddRoute(addr.netId, remote_ip.str().c_str())) != 0 ) {
+            errorPrintf("AdsAddRoute", nErr);
+		    return false;
+        }
+    }
+    
 	// Setup ADS notifications
 	setup_ads_notification();
 	// start scanners
@@ -719,7 +745,7 @@ void TcPLC::setup_ads_notification()
 	if (nErr) {
 		printf ("Unable to establish ADS notifications for %s\n", name.c_str());
 		set_ads_state (ADSSTATE_INVALID);
-		if (nErr != 18) errorPrintf(nErr);
+		if (nErr != 18) errorPrintf("AdsSyncAddDeviceNotificationReqEx", nErr);
 		ads_restart = true;
 	}
 	else {
@@ -735,7 +761,7 @@ void TcPLC::remove_ads_notification()
 	if (ads_handle) {
 		nErr = AdsSyncDelDeviceNotificationReqEx (nNotificationPort, 
 			&addr, ads_handle);
-		if (nErr && (nErr != 1813)) errorPrintf(nErr);
+		if (nErr && (nErr != 1813)) errorPrintf("AdsSyncDelDeviceNotificationReqEx", nErr);
 	}
 	if (nNotificationPort) closePort (nNotificationPort);
 }
@@ -769,7 +795,7 @@ void TcPLC::read_scanner()
 					ads_restart = true;
 				}
 				else if (nErr != 6) {
-					errorPrintf(nErr);
+					errorPrintf("AdsSyncReadReqEx2", nErr);
 				}
 			}
 		}
@@ -959,10 +985,10 @@ AmsRouterNotification::AmsRouterNotification()
  ************************************************************************/
 AmsRouterNotification::~AmsRouterNotification()
 {
-	long nErr;
 #ifdef TCADS
+	long nErr;
 	nErr = AdsAmsUnRegisterRouterNotification();
-	if (nErr) errorPrintf(nErr);
+	if (nErr) errorPrintf("AdsAmsUnRegisterRouterNotification", nErr);
 #endif
 }
 
