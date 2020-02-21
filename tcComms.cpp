@@ -416,7 +416,7 @@ bool TcPLC::start()
     
     // set route
     std::ostringstream remote_ip;
-    remote_ip << addr.netId.b[0] << "." << addr.netId.b[1] << "." << addr.netId.b[2] << "." << addr.netId.b[3];
+    remote_ip << (int)addr.netId.b[0] << "." << (int)addr.netId.b[1] << "." << (int)addr.netId.b[2] << "." << (int)addr.netId.b[3];
     printf("Remote IP addr: %s\n", remote_ip.str().c_str());
     if (getenv("ADDROUTE") != NULL) {
         if ( (nErr = AdsAddRoute(addr.netId, remote_ip.str().c_str())) != 0 ) {
