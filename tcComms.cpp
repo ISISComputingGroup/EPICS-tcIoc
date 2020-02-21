@@ -391,13 +391,18 @@ bool TcPLC::start()
 	long nErr = AdsGetLocalAddressEx (nReadPort, &localAddr);
 	if (nErr) {
 		errorPrintf("AdsGetLocalAddressEx", nErr);
-        if (getenv("SETLOCAL") != NULL) {
-            printf("error getting local address - setting manually\n");
-            AdsSetLocalAddress({130, 246, 53, 209, 1, 1});
-        }
-		//return false;
-	}
-
+	} else {
+	    printf("Local NetID is %i.%i.%i.%i.%i.%i\n",
+			localAddr.netId.b[0], localAddr.netId.b[1], localAddr.netId.b[2], 
+			localAddr.netId.b[3], localAddr.netId.b[4], localAddr.netId.b[5]);
+    }
+#ifndef TCADS
+    if (getenv("SETLOCAL") != 0)
+    {
+        printf("Setting local address to %\n", getenv("SETLOCAL"));
+        AdsSetLocalAddress(AmsNetId(getenv("SETLOCAL")));
+    }
+#endif
 	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
@@ -414,17 +419,19 @@ bool TcPLC::start()
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], port);
 	}
     
+	printf("Target NetID is %i.%i.%i.%i.%i.%i, port is %i \n",
+			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
+			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], addr.port);
     // set route
-    std::ostringstream remote_ip;
-    remote_ip << (int)addr.netId.b[0] << "." << (int)addr.netId.b[1] << "." << (int)addr.netId.b[2] << "." << (int)addr.netId.b[3];
-    printf("Remote IP addr: %s\n", remote_ip.str().c_str());
+#ifndef TCADS
     if (getenv("ADDROUTE") != NULL) {
-        if ( (nErr = AdsAddRoute(addr.netId, remote_ip.str().c_str())) != 0 ) {
+        printf("Adding route %s\n", getenv("ADDROUTE"));
+        if ( (nErr = AdsAddRoute(addr.netId, getenv("ADDROUTE"))) != 0 ) {
             errorPrintf("AdsAddRoute", nErr);
 		    return false;
         }
     }
-    
+#endif    
 	// Setup ADS notifications
 	setup_ads_notification();
 	// start scanners
