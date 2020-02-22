@@ -399,7 +399,7 @@ bool TcPLC::start()
 #ifndef TCADS
     if (getenv("SETLOCAL") != 0)
     {
-        printf("Setting local address to %\n", getenv("SETLOCAL"));
+        printf("Setting local address to %s\n", getenv("SETLOCAL"));
         AdsSetLocalAddress(AmsNetId(getenv("SETLOCAL")));
     }
 #endif
