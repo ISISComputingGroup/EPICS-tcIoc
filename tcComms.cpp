@@ -716,12 +716,20 @@ void ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* pNotificati
 		}
 	}
 	if (tCatPlcUser) {
+		unsigned nbytes = pNotification->cbSampleSize;
+		if (nbytes >= 2) {
 #ifdef TCADS
 		ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
 #else
-		ADSSTATE state = ADSSTATE_INVALID;
+		const uint8_t* data = reinterpret_cast<const uint8_t*>(pNotification + sizeof(AdsNotificationHeader));
+		ADSSTATE state = (ADSSTATE) *(const unsigned short*)data;
 #endif
 		tCatPlcUser->set_ads_state(state);
+		}
+		else
+		{
+		ADSSTATE state = ADSSTATE_INVALID;
+		}
 	}
 	else {
 		printf("Unknown PLC ID %i\n", plcId);
