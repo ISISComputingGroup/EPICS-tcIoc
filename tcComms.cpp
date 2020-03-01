@@ -263,7 +263,7 @@ void* tcProcWrite::read_ptr (int sz)
 
 /* tcProcWrite::add
  ************************************************************************/
-bool tcProcWrite::add (long igroup, long ioffs, long sz)
+bool tcProcWrite::add (tcuint32_t igroup, tcuint32_t ioffs, tcuint32_t sz)
 {
 	if (count == maxrec) {
 		// Just queue it up!
@@ -272,10 +272,10 @@ bool tcProcWrite::add (long igroup, long ioffs, long sz)
 	if (!check_alloc (0)) {
 		return false;
 	}
-	char* p = ptr + count * 3 * sizeof (long);
-	memcpy (p, &igroup, sizeof (long));
-	memcpy (p + sizeof (long), &ioffs, sizeof (long));
-	memcpy (p + 2 * sizeof (long), &sz, sizeof (long));
+	char* p = ptr + count * 3 * sizeof (tcuint32_t);
+	memcpy (p, &igroup, sizeof (tcuint32_t));
+	memcpy (p + sizeof (tcuint32_t), &ioffs, sizeof (tcuint32_t));
+	memcpy (p + 2 * sizeof (tcuint32_t), &sz, sizeof (tcuint32_t));
 	++count;
 	return true;
 }
@@ -288,7 +288,7 @@ bool tcProcWrite::check_alloc (int extra)
 		return false;
 	}
 
-	size_t unit = maxrec * sizeof (long);
+	size_t unit = maxrec * sizeof (tcuint32_t);
 	size_t newalloc = (alloc < 8 * unit) ? 8 * unit : alloc;
 	while (3 * unit + size + extra > newalloc) newalloc *= 2;
 	if (!ptr || (newalloc > alloc)) {
@@ -313,7 +313,7 @@ void tcProcWrite::tcwrite()
 {
 	if (!ptr || (count == 0)) return;
 	if ((count < maxrec) && (size > 0)) {
-		memmove (ptr + count * 3 * sizeof (long), data, size);
+		memmove (ptr + count * 3 * sizeof (tcuint32_t), data, size);
 	}
 	// ads write
 	char* ret = new char [4 * count];
@@ -321,8 +321,8 @@ void tcProcWrite::tcwrite()
 	tcuint32_t read;
 	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
 		static_cast<unsigned long>(count),
-		static_cast<unsigned long>(sizeof(long)*count), ret, 
-		static_cast<unsigned long>(3*sizeof(long)*count + size), ptr, &read);
+		static_cast<unsigned long>(sizeof(tcuint32_t)*count), ret, 
+		static_cast<unsigned long>(3*sizeof(tcuint32_t)*count + size), ptr, &read);
 	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf ("AdsSyncReadWriteReqEx2", nErr);
 	// ready for next transfer
 	count = 0;
@@ -721,7 +721,7 @@ void ADScallback (const AmsAddr* pAddr, const AdsNotificationHeader* pNotificati
 #ifdef TCADS
 		ADSSTATE state = (ADSSTATE) *(unsigned short*)pNotification->data;
 #else
-		const uint8_t* data = reinterpret_cast<const uint8_t*>(pNotification + sizeof(AdsNotificationHeader));
+		const uint8_t* data = reinterpret_cast<const uint8_t*>(pNotification + 1);
 		ADSSTATE state = (ADSSTATE) *(const unsigned short*)data;
 #endif
 		tCatPlcUser->set_ads_state(state);

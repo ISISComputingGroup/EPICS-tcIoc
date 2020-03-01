@@ -228,7 +228,7 @@ public:
 	/// @param ioffs  iOffset number for tc write
 	/// @param sz Size of data to be written
 	/// @return true if succesful
-	bool add (long igroup, long ioffs, long sz);
+	bool add (tcuint32_t igroup, tcuint32_t ioffs, tcuint32_t sz);
 
 protected:
 	/// AMS address
