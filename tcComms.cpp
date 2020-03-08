@@ -403,10 +403,10 @@ bool TcPLC::start()
 			localAddr.netId.b[3], localAddr.netId.b[4], localAddr.netId.b[5]);
     }
 #ifndef TCADS
-    if (getenv("SETLOCAL") != 0)
+    if (getenv("TCIOC_SETLOCAL") != 0)
     {
-        printf("Setting local address to %s\n", getenv("SETLOCAL"));
-        AdsSetLocalAddress(AmsNetId(getenv("SETLOCAL")));
+        printf("Setting local address to %s\n", getenv("TCIOC_SETLOCAL"));
+        AdsSetLocalAddress(AmsNetId(getenv("TCIOC_SETLOCAL")));
     }
 #endif
 	// Optain local ADS address if netid is zero
@@ -430,9 +430,9 @@ bool TcPLC::start()
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], addr.port);
     // set route
 #ifndef TCADS
-    if (getenv("ADDROUTE") != NULL) {
-        printf("Adding route %s\n", getenv("ADDROUTE"));
-        if ( (nErr = AdsAddRoute(addr.netId, getenv("ADDROUTE"))) != 0 ) {
+    if (getenv("TCIOC_ADDROUTE") != NULL) {
+        printf("Adding route %s\n", getenv("TCIOC_ADDROUTE"));
+        if ( (nErr = AdsAddRoute(addr.netId, getenv("TCIOC_ADDROUTE"))) != 0 ) {
             errorPrintf("AdsAddRoute", nErr);
 		    return false;
         }

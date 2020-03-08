@@ -544,3 +544,9 @@ above performance figures.
 
 * The IOC has safely run for ~200 hours continuously on H1ECATC1
   without any noticeable changes in memory usage or performance.
+
+### other notes
+
+On Windows TwinCat ADS is used, on linux you need to use https://github.com/Beckhoff/ADS for which an epics module has been created at https://github.com/ISISComputingGroup/ADS  Currently you do not add the ADS area to RELEASE as it would confuse a windows build, so the path is hardcoded in tcIocApp/src/makefile and assumed to be $(SUPPORT)/ADS/master but you can edit the Makefile
+
+Also see st-common.cmd to add the local Ams netid and the IP address of the target - this is used by the ADS library to set a route. You will also need to add a route back to the linux computer  on the target windows computer/plc. Also see note in st-common.cmd about importance of using latest built TPY file even if no change to PLC code since last one you copied over
