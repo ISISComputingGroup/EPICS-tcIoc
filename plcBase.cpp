@@ -1,7 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include <epicsTime.h>
+#include <epicsThread.h>
 #include "plcBase.h"
 #undef _CRT_SECURE_NO_WARNINGS
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 /** @file plcBase.cpp
 	Defines methods for the internal record entry.
@@ -519,7 +523,9 @@ bool DataValue::GetValid (atomic_bool& dirty) const
  ************************************************************************/
 BasePLC::time_type BaseRecord::get_timestamp() const
 {
-	if (!parent) return 0;
+	if (!parent) {
+	    return BasePLC::time_type({0, 0});
+	}
 	return parent->get_timestamp();
 }
 
@@ -530,7 +536,7 @@ BasePLC::time_type BaseRecord::get_timestamp() const
 /* BasePLC::BasePLC
  ************************************************************************/
 BasePLC::BasePLC()
-	: timestamp (0), read_scanner_period (1000), write_scanner_period (1000),
+	: timestamp ( {0, 0} ), read_scanner_period (1000), write_scanner_period (1000),
 	update_scanner_period (1000), scanners_active (false)
 {
 	records.max_load_factor (0.5);
@@ -601,29 +607,19 @@ bool BasePLC::get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const
 
 /* BasePLC::get_timestamp_unix
  ************************************************************************/
-static const BasePLC::time_type TICKS_PER_SECOND = 10000000ULL;
-static const BasePLC::time_type EPOCH_DIFFERENCE = 11644473600ULL;
 
 time_t BasePLC::get_timestamp_unix() const 
 {
-    time_type temp;
-	//convert from 100ns intervals to seconds
-    temp = timestamp / TICKS_PER_SECOND; 
-	// too early? return 0
-	if (temp < EPOCH_DIFFERENCE) {
-		return 0;
-	}
-	//subtract number of seconds between epochs
-	else {
-		return (time_t) (temp - EPOCH_DIFFERENCE);
-	}
+    time_t temp;
+    epicsTimeToTime_t(&temp, &timestamp);
+    return temp;
 }
 
 /* BasePLC::update_timestamp
  ************************************************************************/
 void BasePLC::update_timestamp()
 {
-	GetSystemTimeAsFileTime ((LPFILETIME )&timestamp);
+    epicsTimeGetCurrent(&timestamp);
 }
 
 /* BasePLC::count
@@ -638,20 +634,22 @@ int BasePLC::count() const
  ************************************************************************/
 void BasePLC::user_data_set_valid (bool valid)
 {
-	for_each (
-		[&valid](BaseRecord* rec) {
-			rec->UserSetValid (valid);
-	});
+	auto f = [&valid](BaseRecord* rec) {
+                        rec->UserSetValid (valid);
+        };
+
+	for_each ( f );
 }
 
 /* BasePLC::test
  ************************************************************************/
 void BasePLC::plc_data_set_valid (bool valid)
 {
-	for_each (
-		[&valid](BaseRecord* rec) {
+	auto f = [&valid](BaseRecord* rec) {
 			rec->PlcSetValid (valid);
-	});
+	};
+
+	for_each ( f );
 }
 
 /** Structure for arguments sent to a scanner thread
@@ -670,11 +668,8 @@ typedef struct
 /** Scanner thread callback with periodic timer
 	@brief Scanner thread callback
  ************************************************************************/
-VOID CALLBACK ScannerProc (
-   LPVOID lpArg,               // Data value
-   DWORD dwTimerLowValue,      // Timer low value
-   DWORD dwTimerHighValue )    // Timer high value
-
+static void ScannerProc (
+   void* lpArg)               // Data value
 {
 	scanner_thread_args* scan = ((scanner_thread_args*) lpArg);
 	if (scan->plc->is_scanner_active()) {
@@ -689,32 +684,14 @@ VOID CALLBACK ScannerProc (
 	update_scanner.
     @brief Scanner thread
 ************************************************************************/
-DWORD WINAPI scannerThread (scanner_thread_args args)
+static int scannerThread (scanner_thread_args args)
 {
-	HANDLE				hTimer;
-	LARGE_INTEGER		due_time;
-
-	// Default security attributes, auto-reset timer, unnamed
-	hTimer = CreateWaitableTimer (NULL, FALSE, NULL); 
-	if (hTimer == NULL) {
-
-		printf("CreateWaitableTimer failed with error %d\n", GetLastError());
-		return 1;
-	}
-	// Create an integer that will be used to signal the timer 
-	// 3 seconds from now.
-	due_time.QuadPart = -1 * (LONGLONG) TICKS_PER_SECOND;
-	if (!SetWaitableTimer (hTimer, &due_time, args.scanperiod, 
-						   ScannerProc, &args, FALSE)) {
-		printf("SetWaitableTimer failed with error %d\n", GetLastError());
-		CloseHandle (hTimer);
-		return 1;
-	}
-	// Wait forever and put thread in an alertable state
-	while (true) {
-		SleepEx (INFINITE, true);
-	}
-	CloseHandle (hTimer);
+	epicsThreadSleep(1.0);
+	while(true)
+	{
+	    epicsThreadSleep(args.scanperiod / 1000.0);
+	    ScannerProc(&args);
+        }
 	return 1;
 }
 
@@ -834,22 +811,28 @@ BasePLCPtr System::find (std::stringcase id)
 
 void System::start()
 {
-	for_each ([] (BasePLC* plc) {
+	auto f = ([] (BasePLC* plc) {
 		plc->set_scanners_active (true);
 	});
+
+	for_each (f);
 }
 
 void System::stop()
 {
-	for_each ([] (BasePLC* plc) {
+	auto f = ([] (BasePLC* plc) {
 		plc->set_scanners_active (false);
 	});
+	for_each (f);
 }
 }
 
 extern "C" {
 	/// Stop TwinCAT
-	__declspec(dllexport) void stopTc(void) {
+#ifdef _WIN32
+	__declspec(dllexport) 
+#endif
+	void stopTc(void) {
 		plc::System::get().stop();
 	}
 }

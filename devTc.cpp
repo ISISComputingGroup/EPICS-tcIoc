@@ -1,19 +1,21 @@
 #define _CRT_SECURE_NO_WARNINGS
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+#include <iostream>
+#include "epicsStdio.h"
 #include "devTc.h"
 #include "ParseTpy.h"
-#include "InfoPlc.h"
+#include "infoPlc.h"
 #include "errlog.h"
-#undef va_start
-#undef va_end
 #include "dbAccess.h"
 #include "dbCommon.h"
 #include "dbEvent.h"
 #include "recGbl.h"
 #include "recSup.h"
-#include "epicsExport.h"
 #include "aitConvert.h"
 #include "epicsRingPointer.h"
-#include <iostream>
+#include "epicsExport.h"
 #undef _CRT_SECURE_NO_WARNINGS
 
 //int nProcessed = 0;
@@ -111,7 +113,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 		return false;
 	}
 
-	std::smatch match;
+	std::match_results<std::stringcase::const_iterator> match;
 	for (auto i : the_register_devsup.tp_list) {
 		if (std::regex_search (inpout, match, i.first)) {
 			// Get PLC name from EPICS name string
@@ -158,7 +160,7 @@ bool EpicsInterface::get_callbackRequestPending() const
 
 /* Callback complete_io_scan
  ************************************************************************/
-static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 {
 	epics->ioscan_reset(prio);
 }
@@ -168,7 +170,7 @@ static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 void EpicsInterface::ioscan_reset (int bitnum)
 {
 	std::lock_guard<std::mutex> guard(ioscanmux);
-	std::atomic_fetch_and(&ioscan_inuse, ~(1 << bitnum));
+	std::atomic_fetch_and(&ioscan_inuse, static_cast<unsigned>(~(1 << bitnum)));
 }
 
 /* EpicsInterface::push
@@ -221,10 +223,15 @@ bool EpicsInterface::push()
 /* load_callback_queue variable
  ************************************************************************/
  /// @cond Doxygen_Suppress
+#ifdef _WIN32
 const char* const callback_queue_library = "dbCore.dll";
+#else
+const char* const callback_queue_library = "dbCore.so";
+#endif
+
 const char* const callback_queue_symbol = "tcat_callbackQueue";
 typedef epicsRingPointerId(__cdecl *callback_queue_func)(int);
-static std::atomic<bool> callback_queue_init = false;
+static std::atomic<bool> callback_queue_init{ false };
 static std::mutex callback_queue_mux;
 static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
 
@@ -234,10 +241,11 @@ static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
 static bool load_callback_queue_func()
 {
 	// Use dynamic DLL linking in case of unpatched EPICS base
-	HINSTANCE hinstLib;
 	callback_queue_func func;
 	bool RunTimeLinkSuccess = false;
+#ifdef _WIN32
 	// Get a handle to the DLL module.
+	HINSTANCE hinstLib;
 	hinstLib = LoadLibrary (callback_queue_library);
 	// If the handle is valid, try to get the function address.
 	if (hinstLib != nullptr) {
@@ -252,6 +260,24 @@ static bool load_callback_queue_func()
 		// Free the DLL module.
 		FreeLibrary (hinstLib);
 	}
+#else
+	// Get a handle to the DLL module.
+	void* hinstLib;
+	hinstLib = dlopen (callback_queue_library, RTLD_NOW);
+	// If the handle is valid, try to get the function address.
+	if (hinstLib != nullptr) {
+		func = (callback_queue_func)dlsym (hinstLib, callback_queue_symbol);
+		// If the function address is valid, call the function.
+		if (func != nullptr) {
+			RunTimeLinkSuccess = true;
+			callback_queue[priorityLow] = func(priorityLow);
+			callback_queue[priorityMedium] = func(priorityMedium);
+			callback_queue[priorityHigh] = func(priorityHigh);
+		}
+		// Free the DLL module.
+		dlclose (hinstLib);
+	}
+#endif
 	// If unable to call the DLL function, use an alternative.
 	if (!RunTimeLinkSuccess) {
 		printf("Unable to load callback queue information\n");

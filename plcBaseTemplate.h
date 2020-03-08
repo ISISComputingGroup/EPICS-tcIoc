@@ -1,7 +1,9 @@
 namespace plc {
 
+#ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4800 4244)
+#endif
 
 /** @file plcBaseTemplate.h
 	Header which includes templated methods for abstract record class and 
@@ -221,5 +223,7 @@ void System::for_each (func& f)
 	}
 }
 
+#ifdef _WIN32
 #pragma warning (pop)
+#endif
 }

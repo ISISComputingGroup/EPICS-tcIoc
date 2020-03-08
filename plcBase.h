@@ -116,7 +116,7 @@ struct DataValueTraits
 	/// enumerated type for data type
 	typedef plc::data_type_enum data_type_enum;
 	/// traits type
-	typedef typename T traits_type;
+	using traits_type = T;
 	/// atomic variable type
 	typedef typename std::atomic<T> traits_atomic;
 	/// data type enumertaion value
@@ -198,7 +198,7 @@ struct DataValueTypeDef
 	typedef DataValueTraits<type_binary>::traits_atomic atomic_binary;
 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	typedef epicsTimeStamp time_type;
 };
 
 /** Class for data value
@@ -570,19 +570,19 @@ public:
 	/// @param data Reference to data
 	/// @return true if successfull
 	template <typename T> bool UserWrite (const T& data) {
-		bool ret = value.UserWrite (data); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data); if (ret) { PlcPush(); }; return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_string_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data, max); if (ret) { PlcPush(); }; return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool UserWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+		bool ret = value.UserWrite (data, max); if (ret) { PlcPush(); }; return ret; }
 
 	/// Execute a user read, but pull plc first
 	/// @param p Pointer to data (destination buffer)
@@ -596,7 +596,7 @@ public:
 	/// @return Number of bytes written (0 on error)
 	size_type UserWriteBinary (const type_binary p, size_type len) {
 		size_type ret = value.UserWriteBinary (p, len); 
-		if (ret > 0) PlcPush(); return ret; }
+		if (ret > 0) { PlcPush(); }; return ret; }
 	/// Ckecks if the user needs to read an updated value
 	bool UserIsDirty() const {return value.UserIsDirty(); }
 	/// Set dirty flag for user
@@ -637,19 +637,19 @@ public:
 	/// @param data Reference to data
 	/// @return true if successfull
 	template <typename T> bool PlcWrite (const T& data) {
-		bool ret = value.PlcWrite (data); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data); if (ret) { UserPush(); }; return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_string_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data, max); if (ret) { UserPush(); }; return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
 	bool PlcWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+		bool ret = value.PlcWrite (data, max); if (ret) { UserPush(); }; return ret; }
 
 	/// Execute a plc read, but pull user first
 	/// @param p Pointer to data (destination buffer)
@@ -663,7 +663,7 @@ public:
 	/// @return Number of bytes written (0 on error)
 	size_type PlcWriteBinary (const type_binary p, size_type len) {
 		size_type ret = value.PlcWriteBinary (p, len); 
-		if (ret > 0) UserPush(); return ret; }
+		if (ret > 0) { UserPush(); }; return ret; }
 	/// Checks if the plc needs to read an updated value
 	bool PlcIsDirty() const {return value.PlcIsDirty(); }
 	/// Set dirty flag for plc
@@ -725,7 +725,7 @@ public:
 	/// Defined the mutex guard type
 	typedef std::lock_guard<mutex_type> guard; 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	typedef epicsTimeStamp time_type;
 	/// Function pointer to scanner
 	typedef void (BasePLC::*scanner_func) ();
 
@@ -824,7 +824,7 @@ public:
 	/// Does not include leap seconds
 	virtual time_t get_timestamp_unix() const;
 	/// Set time stamp
-	virtual void set_timestamp (time_type tstamp) { timestamp = tstamp; }
+	virtual void set_timestamp (const time_type& tstamp) { timestamp = tstamp; }
 	/// Set time stamp to current time
 	virtual void update_timestamp();
 

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <epicsStdio.h>
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
 
@@ -7,7 +8,9 @@ using namespace ParseUtil;
 using namespace ParseTpy;
 using namespace EpicsTpy;
 
+#ifdef _WIN32
 #pragma warning (disable: 4996)
+#endif
 
 /** @file EpicsDbGen.cpp
 	Source for the main program that generates an EPICs .db file

@@ -1,7 +1,30 @@
 #pragma once
 #include "stdafx.h"
+#ifdef TCADS
 #include "TcAdsDef.h"
+#else
+#include "AdsLib.h"
+typedef enum nAmsRouterEvent
+{
+	AMSEVENT_ROUTERSTOP	= 0,
+	AMSEVENT_ROUTERSTART	= 1,
+	AMSEVENT_ROUTERREMOVED	= 2
+}AmsRouterEvent;
+#endif
 #include "plcBase.h"
+#ifndef _WIN32
+#define __stdcall
+#define __cdecl
+#endif
+
+// twincat and GitHub ADS differ some types
+// long is 64bit on Linux x64, so GutHub ads uses uint32 ratherthan unsigned long 
+#ifdef TCADS
+typedef unsigned long tcuint32_t;
+#else
+typedef uint32_t tcuint32_t;
+#endif
+
 
 /** @file tcComms.h
 	Header which includes classes to interface with the TCat system and 
@@ -186,7 +209,12 @@ public:
 	~tcProcWrite();
 	/// Move constructor
 	tcProcWrite (tcProcWrite&& tp) noexcept 
-		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), port(0), ptr(nullptr),
+#ifdef TCADS
+		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), 
+#else
+		: addr({ AmsNetId(0,0,0,0,0,0),0 }), 
+#endif
+                port(0), ptr(nullptr),
 		data (nullptr), maxrec (0), size (0), alloc (0), count (0) {
 		*this = std::move (tp); }
 
@@ -200,7 +228,7 @@ public:
 	/// @param ioffs  iOffset number for tc write
 	/// @param sz Size of data to be written
 	/// @return true if succesful
-	bool add (long igroup, long ioffs, long sz);
+	bool add (tcuint32_t igroup, tcuint32_t ioffs, tcuint32_t sz);
 
 protected:
 	/// AMS address
@@ -257,7 +285,11 @@ private:
 class TcPLC	:	public plc::BasePLC
 {
 	/// Notification callback is a friend
+#ifdef TCADS
 	friend void __stdcall ADScallback (AmsAddr*, AdsNotificationHeader*, unsigned long);
+#else
+	friend void ADScallback (const AmsAddr*, const AdsNotificationHeader*, uint32_t);
+#endif
 public:
 	/// Buffer type
 	typedef char						buffer_type;
@@ -381,7 +413,7 @@ protected:
 	/// ADS state
 	std::atomic<ADSSTATE> ads_state;
 	/// ADS handle
-	unsigned long ads_handle;
+	tcuint32_t  ads_handle;
 	/// ADS restart
 	std::atomic<bool> ads_restart;
 

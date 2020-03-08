@@ -17,8 +17,10 @@
 #include <ctype.h>
 #include <time.h>
 #include <stddef.h>
+#ifdef _WIN32
 #include <conio.h>
 #include <tchar.h>
+#endif
 #include <string>
 #include "stringcase.h"
 #include <list>

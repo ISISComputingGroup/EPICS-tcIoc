@@ -1,6 +1,15 @@
 // This is the implementation of ParseTpy.
+#include <epicsStdio.h>
 #include "ParseUtil.h"
 #include "ParseUtilConst.h"
+#if !defined(_WIN32) && !defined(__STDC_LIB_EXT1__)
+static int strncpy_s(char* dest, size_t destsz, const char* src, size_t count)
+{
+    strncpy(dest, src, destsz);
+    dest[destsz-1] = '\0';
+    return 0;
+}
+#endif
 
 using namespace std;
 
@@ -271,7 +280,7 @@ std::stringcase memory_location::get() const
 		return "";
 	}
 	char buf[256];
-	sprintf_s (buf, sizeof (buf), "%i/%i:%i", igroup, ioffset, bytesize);
+	epicsSnprintf (buf, sizeof (buf), "%i/%i:%i", igroup, ioffset, bytesize);
 	buf[255] = 0;
 	return buf;
 }
@@ -281,7 +290,7 @@ std::stringcase memory_location::get() const
 bool memory_location::set (const std::stringcase& s)
 {
 	int ig (0), io (0), sz (0), n (0);
-	int num = sscanf_s (s.c_str(), "%i/%i:%i%n", &ig, &io, &sz, &n);
+	int num = sscanf (s.c_str(), "%i/%i:%i%n", &ig, &io, &sz, &n);
 	if ((num != 3) || (n != s.length())) {
 		igroup = -1;
 		ioffset = -1;

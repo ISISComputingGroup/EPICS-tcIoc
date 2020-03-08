@@ -1,3 +1,4 @@
+#include <epicsTime.h>
 #include "infoPlc.h"
 #include "tcComms.h"
 #include "svn_version.h"
@@ -592,7 +593,7 @@ void InfoInterface::printVal (FILE* fp)
 		if (record.PlcRead(floatPLCVar)) fprintf(fp, "%f", floatPLCVar);
 	}
 	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT") {
-		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%d", sliPLCVar);
+		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%ld", sliPLCVar);
 	}
 	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		if (record.PlcRead(ssiPLCVar)) fprintf(fp, "%d", ssiPLCVar);
@@ -726,7 +727,7 @@ bool InfoInterface::info_update_timestamp_str()
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	char buf[100];
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof (buf));
 	}
@@ -741,7 +742,7 @@ bool InfoInterface::info_update_timestamp_year()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
@@ -755,7 +756,7 @@ bool InfoInterface::info_update_timestamp_month()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
@@ -769,7 +770,7 @@ bool InfoInterface::info_update_timestamp_day()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mday);
 	}
 	return false;
@@ -783,7 +784,7 @@ bool InfoInterface::info_update_timestamp_hour()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_hour);
 	}
 	return false;
@@ -797,7 +798,7 @@ bool InfoInterface::info_update_timestamp_min()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_min);
 	}
 	return false;
@@ -811,7 +812,7 @@ bool InfoInterface::info_update_timestamp_sec()
 	if (!tc) return false;
 	time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_sec);
 	}
 	return false;
@@ -894,7 +895,7 @@ bool InfoInterface::info_update_tpy_time_str()
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	char buf[100];
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof(buf));
 	}
@@ -909,7 +910,7 @@ bool InfoInterface::info_update_tpy_time_year()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
@@ -923,7 +924,7 @@ bool InfoInterface::info_update_tpy_time_month()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
@@ -937,7 +938,7 @@ bool InfoInterface::info_update_tpy_time_day()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_mday);
 	}
 	return false;
@@ -951,7 +952,7 @@ bool InfoInterface::info_update_tpy_time_hour()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_hour);
 	}
 	return false;
@@ -965,7 +966,7 @@ bool InfoInterface::info_update_tpy_time_min()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_min);
 	}
 	return false;
@@ -979,7 +980,7 @@ bool InfoInterface::info_update_tpy_time_sec()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (epicsTime_gmtime(&tstamp, &utc) == 0) {
 		return record.PlcWrite(utc.tm_sec);
 	}
 	return false;

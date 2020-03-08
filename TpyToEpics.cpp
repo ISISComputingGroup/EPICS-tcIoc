@@ -1,17 +1,25 @@
 #include "stdafx.h"
+#include <epicsStdio.h>
 #include "ParseUtilConst.h"
 #include "ParseTpyConst.h"
 #include "ParseTpy.h"
 #include "TpyToEpicsConst.h"
 #include "TpyToEpics.h"
+
 #include <filesystem>
+#ifdef _WIN32
+using namespace std::experimental::filesystem::v1; 
+#else
+using namespace std::filesystem; 
+#endif
 
 using namespace std;
-using namespace std::experimental::filesystem::v1; 
 using namespace ParseTpy;
 using namespace ParseUtil;
 
+#ifdef _WIN32
 #pragma warning (disable: 4996)
+#endif
 
 /** @file TpyToEpics.cpp
 	Source for methods that generate EPICs .db file from a .tpy file
@@ -304,9 +312,9 @@ void split_io_support::set_filename (const stringcase& fn)
 			}
 			if (split_n > 0) {
 				char buf[20];
-				sprintf_s (buf, sizeof (buf), ".%03i", file_num_in);
+				epicsSnprintf (buf, sizeof (buf), ".%03i", file_num_in);
 				file_num_in_s = buf;
-				sprintf_s (buf, sizeof (buf), ".%03i", file_num_io);
+				epicsSnprintf (buf, sizeof (buf), ".%03i", file_num_io);
 				file_num_io_s = buf;
 			}
 			if (split_io) {
@@ -385,7 +393,7 @@ bool split_io_support::increment (bool readonly)
 				if ((rec_num_in > 0) && (rec_num_in % split_n == 0) && outf_in) {
 					++file_num_in;
 					char buf[20];
-					sprintf_s (buf, sizeof(buf), ".%03i", file_num_in);
+					epicsSnprintf (buf, sizeof(buf), ".%03i", file_num_in);
 					file_num_in_s = buf;
 					fclose (outf_in);
 					stringcase fname = outfilename + file_in_s + file_num_in_s + ".db";
@@ -400,7 +408,7 @@ bool split_io_support::increment (bool readonly)
 				if ((rec_num_io > 0) && (rec_num_io % split_n == 0) && outf_io) {
 					++file_num_io;
 					char buf[20];
-					sprintf_s (buf, sizeof(buf), ".%03i", file_num_io);
+					epicsSnprintf (buf, sizeof(buf), ".%03i", file_num_io);
 					file_num_io_s = buf;
 					fclose (outf_io);
 					stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
@@ -1546,7 +1554,7 @@ epics_db_processing::process_field_numeric
 bool epics_db_processing::process_field_numeric (stringcase name, int val)
 {
 	char buf[40];
-	sprintf_s (buf, sizeof(buf), "%i", val);
+	epicsSnprintf (buf, sizeof(buf), "%i", val);
 	return process_field_string (name, buf);
 }
 
@@ -1556,7 +1564,7 @@ epics_db_processing::process_field_numeric
 bool epics_db_processing::process_field_numeric (stringcase name, double val)
 {
 	char buf[40];
-	sprintf_s (buf, sizeof(buf), "%g", val);
+	epicsSnprintf (buf, sizeof(buf), "%g", val);
 	return process_field_string (name, buf);
 }
 

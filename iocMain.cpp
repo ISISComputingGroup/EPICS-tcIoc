@@ -5,7 +5,10 @@
 #include <ctime>
 
 extern "C" {
-__declspec(dllimport) void stopTc(void); ///< DLL import for stopTc
+#ifdef _WIN32
+__declspec(dllimport) 
+#endif
+void stopTc(void); ///< DLL import for stopTc
 }
 
 

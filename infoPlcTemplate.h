@@ -14,18 +14,18 @@ int InfoInterface::get_infodb(const std::stringcase& prefix,
 {
 	int num = 0;
 	for (const auto& rec:dbinfo_list) {
-		if (std::get<ParseUtil::opc_list>(rec).get_opc_state() != publish) {
+		if (std::get<2>(rec).get_opc_state() != ParseUtil::publish) {
 			continue;
 		}
 		std::stringcase alias = prefix;
-		if (!std::get<ParseUtil::variable_name>(rec).get_alias().empty()) {
-			alias += '.' + std::get<ParseUtil::variable_name>(rec).get_alias();
+		if (!std::get<0>(rec).get_alias().empty()) {
+			alias += '.' + std::get<0>(rec).get_alias();
 		}
 		ParseUtil::variable_name var (
-			std::get<ParseUtil::variable_name>(rec).get_name(), alias);
-		ParseUtil::opc_list opc (std::get<ParseUtil::opc_list>(rec));
-		process_arg_info arg (var, std::get< ParseUtil::process_type_enum>(rec),
-			opc, std::get<std::stringcase>(rec), std::get<bool>(rec), plcaddr);
+			std::get<0>(rec).get_name(), alias);
+		ParseUtil::opc_list opc (std::get<2>(rec));
+		process_arg_info arg (var, std::get<1>(rec),
+			opc, std::get<3>(rec), std::get<4>(rec), plcaddr);
 		if (proc (arg)) {
 			++num;
 		}

@@ -1,11 +1,14 @@
 #include "stdafx.h"
+#include <epicsStdio.h>
 #include "ParseTpy.h"
 
 using namespace std;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
+#ifdef _WIN32
 #pragma warning (disable: 4996)
+#endif
 
 /** @file ParseTpyInfo.cpp
 	Source file for tpy parsing methods.
@@ -166,7 +169,8 @@ int main (int argc, char *argv[])
 
 	// work through the symbol list
 	clock_t t2 = clock();
-	if (!tpyfile.process_symbols (syminfo_processing (outf), prefix)) {
+        auto outfsym = syminfo_processing (outf);
+	if (!tpyfile.process_symbols (outfsym, prefix)) {
 		fprintf (stderr, "Unable to parse %s\n", inpfilename.c_str());
 		return 1;
 	}

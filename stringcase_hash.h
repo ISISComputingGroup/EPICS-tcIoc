@@ -9,7 +9,7 @@ namespace std {
     @brief hash for case insensitive string.
  ************************************************************************/
 template<>
-struct std::hash<std::stringcase>
+struct hash<std::stringcase>
 {
 public:
 	/// Perform a 32 or 64 bit Fowler/Noll/Vo hash on a string
@@ -25,7 +25,7 @@ public:
     @brief hash for case insensitive unicode string.
  ************************************************************************/
 template<>
-struct std::hash<std::wstringcase>
+struct hash<std::wstringcase>
 {
 public:
 	/// Perform a 32 or 64 bit Fowler/Noll/Vo hash on a string

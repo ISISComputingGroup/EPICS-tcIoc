@@ -1,4 +1,5 @@
 // This is the implementation of ParseTpy.
+#include <epicsStdio.h>
 #include "ParseTpy.h"
 #include "ParseUtilConst.h"
 #include "ParseTpyConst.h"
@@ -203,7 +204,7 @@ bool ads_routing_info::isValid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (ads_netid.c_str(), "%*i.%*i.%*i.%*i.%*i.%*i%n", &end);
+	int num = sscanf (ads_netid.c_str(), "%*i.%*i.%*i.%*i.%*i.%*i%n", &end);
 	if ((num != 0) || (end != ads_netid.length())) {
 		return false;
 	}
@@ -218,7 +219,7 @@ std::stringcase ads_routing_info::get() const
 		return "";
 	}
 	char buf[256];
-	sprintf_s (buf, sizeof (buf), "tc://%s:%i/", ads_netid.c_str(), ads_port);
+	epicsSnprintf (buf, sizeof (buf), "tc://%s:%i/", ads_netid.c_str(), ads_port);
 	buf[255] = 0;
 	return buf;
 }
@@ -234,7 +235,7 @@ bool ads_routing_info::get (unsigned char& a1, unsigned char& a2,
 	}
 	int end = 0;
 	int b1(0), b2(0), b3(0), b4(0), b5(0), b6 (0); 
-	int num = sscanf_s (ads_netid.c_str(), "%i.%i.%i.%i.%i.%i%n", 
+	int num = sscanf (ads_netid.c_str(), "%i.%i.%i.%i.%i.%i%n", 
 		&b1, &b2, &b3, &b4, &b5, &b6, &end);
 	if ((num == 0) || (num == EOF) || (end != ads_netid.length())) {
 		return false;
@@ -251,8 +252,8 @@ bool ads_routing_info::set (const std::stringcase& s)
 	char buf[256];
 	int p = 0;
 	int end = 0;
-	int num = sscanf_s (s.c_str(), " tc://%255s:%i%n", 
-		buf, static_cast<unsigned>(sizeof (buf)), &p, &end);
+	int num = sscanf (s.c_str(), " tc://%255s:%i%n", 
+		buf, &p, &end);
 	if ((num != 2) || (end != s.length())) {
 		ads_netid = "";
 		ads_port = 0;
@@ -278,7 +279,7 @@ void compiler_info::set_cmpl_versionstr (const std::stringcase& versionstr)
 	cmpl_versionstr = versionstr; 
 	if (is_cmpl_Valid ()) {
 		int v1, v2;
-		sscanf_s (cmpl_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
+		sscanf (cmpl_versionstr.c_str(), "%i.%i.%*s", &v1, &v2);
 		if (v2 > 99) {
 			cmpl_version = v1 + (double)v2/1000;
 		} 
@@ -305,7 +306,7 @@ bool compiler_info::is_cmpl_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
+	int num = sscanf (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
 	if ((num != 0) || (end != cmpl_versionstr.length())) {
 		return false;
 	}
@@ -318,7 +319,7 @@ void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr)
 { 
 	tcat_versionstr = versionstr; 
 	if (is_tcat_Valid ()) {
-		sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u", &tcat_version_major, 
+		sscanf (tcat_versionstr.c_str(), "%u.%u.%u", &tcat_version_major, 
 			&tcat_version_minor, &tcat_version_build);
 	}
 	else {
@@ -336,7 +337,7 @@ bool compiler_info::is_tcat_Valid() const
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
+	int num = sscanf (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
 	if ((num != 0) || (end != tcat_versionstr.length())) {
 		return false;
 	}

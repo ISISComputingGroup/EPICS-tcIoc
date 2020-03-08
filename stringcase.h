@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
+#include <cstring>
 #include <ctype.h>
+#include <wctype.h>
 
 /** @file stringcase.h
 	Functions and classes for a case-insensitive string.
@@ -21,7 +23,11 @@ namespace std {
  ************************************************************************/
 inline
 int strncasecmp (const char *s1, const char *s2, size_t n) {
+#ifdef _WIN32
 	return _strnicmp (s1, s2, n); }
+#else
+	return ::strncasecmp (s1, s2, n); }
+#endif
 
 /** Case insensitive compare for unicode string.
 	@param s1 first string
@@ -32,7 +38,11 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
  ************************************************************************/
 inline
 int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, size_t n) {
+#ifdef _WIN32
 	return _wcsnicmp (s1, s2, n); }
+#else
+	return ::wcsncasecmp(s1, s2, n); }
+#endif
 
 /** This traits class is not case sensitive.
     @brief case insensitive traits.
