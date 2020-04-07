@@ -44,8 +44,9 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
   *
   * \param[in] devMotorName The name of the motor port.
   * \param[in] axisNo Index number of this axis, range 1 to pC->numAxes_
+  * \param[in] versionNumber The PLC version to use: 0 for the old ISIS code, 1 for the collaboration code
   */
-extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
+extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo, int versionNumber) {
     devMotorController *pC;
 
     pC = (devMotorController*) findAsynPortDriver(devMotorName);
@@ -55,7 +56,11 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
         return asynError;
     }
     pC->lock();
-    new devMotorAxis(pC, axisNo);
+	if (versionNumber == 0) {
+		new ISISMotorAxis(pC, axisNo);
+	} else if (versionNumber == 1) {
+		new twincatMotorAxis(pC, axisNo);
+	}
     pC->unlock();
     return asynSuccess;
 }
@@ -71,8 +76,8 @@ extern "C" int devMotorCreateAxis(const char *devMotorName, int axisNo) {
   */
 asynStatus devMotorAxis::sendCommand(const int command) {
     int exec = 1;
-    int status = putDb("ECOMMAND", &command);
-    status |= putDb("BEXECUTE", &exec);
+    int status = putDb(COMMAND(), &command);
+    status |= putDb(EXECUTE(), &exec);
     return (asynStatus)status;
 }
 
@@ -92,14 +97,14 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
 		scaleValueFromMotorRecord(&position);
 		scaleValueFromMotorRecord(&maxVelocity);
 
-		int status = putDb("FVELOCITY", &maxVelocity);
+		int status = putDb(VELOCITY_SP(), &maxVelocity);
 		
 		if (relative == 0) {
-			status |= putDb("FPOSITION", &position);
-			return (asynStatus)sendCommand(MOVE_ABS_COMMAND);
+			status |= putDb(POSITION_SP(), &position);
+			return (asynStatus)sendCommand(MOVE_ABS_COMMAND());
 		} else {
-			status |= putDb("FDISTANCE", &position);
-			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND);
+			status |= putDb(DISTANCE_SP(), &position);
+			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND());
 		}
 	}  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
@@ -120,7 +125,7 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
   */
 asynStatus devMotorAxis::home(double minVelocity, double maxVelocity, double acceleration, int forwards) {
     try {
-		return (asynStatus)sendCommand(HOME_COMMAND);
+		return (asynStatus)sendCommand(HOME_COMMAND());
 	}  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to home axis %i: %s\n", axisNo, e.what());
@@ -141,14 +146,33 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
     try {
 		scaleValueFromMotorRecord(&maxVelocity);
 		
-		int status = putDb("FVELOCITY", &maxVelocity);
-		status |= sendCommand(MOVE_VELO_COMMAND);
+		int status = putDb(VELOCITY_SP(), &maxVelocity);
+		status |= sendCommand(MOVE_VELO_COMMAND());
 		return (asynStatus)status;
     }  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to move velocity axis %i: %s\n", axisNo, e.what());
 		return asynError;
 	}
+}
+
+/** 
+  * Stops the ISISMotorAxis specific stop commnad.
+  *
+  * \return The status code for the stop.
+  */
+asynStatus ISISMotorAxis::sendStop() {
+	return (asynStatus)sendCommand(STOP_COMMAND());
+}
+
+/** 
+  * Stops the twincatMotorAxis specific stop commnad.
+  *
+  * \return The status code for the stop.
+  */
+asynStatus twincatMotorAxis::sendStop() {
+	int stop = 1;
+	return (asynStatus)putDb(STOP(), &stop);
 }
 
 /** 
@@ -160,7 +184,7 @@ asynStatus devMotorAxis::moveVelocity(double minVelocity, double maxVelocity, do
   */
 asynStatus devMotorAxis::stop(double acceleration) {
     try {
-		return (asynStatus)sendCommand(STOP_COMMAND);
+		return sendStop();
 	}  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to stop axis %i: %s\n", axisNo, e.what());
@@ -217,8 +241,8 @@ void devMotorAxis::scaleValueToMotorRecord(double* value) {
 void devMotorAxis::getDirection(int *direction) {
     int positiveDirection = 0;
     int negativeDirection = 0;
-    getInteger("BPOSITIVEDIRECTION", &positiveDirection);
-    getInteger("BNEGATIVEDIRECTION", &negativeDirection);
+    getInteger(POSITIVE_DIR(), &positiveDirection);
+    getInteger(NEGATIVE_DIR(), &negativeDirection);
     if (positiveDirection && negativeDirection) {
         throw std::runtime_error(std::string("Axis is running in both directions"));
     } else if (positiveDirection) {
@@ -226,6 +250,16 @@ void devMotorAxis::getDirection(int *direction) {
     } else if (negativeDirection) {
         *direction = 0;
     }
+}
+
+void twincatMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) { 
+	getInteger("STATUS-BFWENABLED", &axis_status->bLimitFwd); 
+	getInteger("STATUS-BBWENABLED", &axis_status->bLimitBwd);
+}
+
+void ISISMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) {
+	getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
+	getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
 }
 
 /**
@@ -236,18 +270,17 @@ void devMotorAxis::getDirection(int *direction) {
   * \return The status code for the polling.
   */
 asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) { 
-	getInteger("BENABLE", &axis_status->bEnable);
-	getInteger("BEXECUTE", &axis_status->bExecute);
-	getDouble("FVELOCITY", &axis_status->fVelocity);
-	getDouble("FPOSITION", &axis_status->fPosition);
-	getInteger("FWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitFwd, &pC_->pvPrefix); 
-	getInteger("BWLIMIT_" + std::to_string(axisNo + 1), &axis_status->bLimitBwd, &pC_->pvPrefix);
-	getInteger("BERROR", &axis_status->bError);
-	getDouble("FACTPOSITION", &axis_status->fActPosition);
-	getDouble("FACTVELOCITY", &axis_status->fActVelocity);
-	getInteger("BCALIBRATED", &axis_status->bHomed);
-	getInteger("BMOVING", &axis_status->bMoving);
+	getInteger(ENABLE_STATUS(), &axis_status->bEnable);
+	getInteger(EXECUTE(), &axis_status->bExecute);
+	getDouble(VELOCITY_SP(), &axis_status->fVelocity);
+	getDouble(POSITION_SP(), &axis_status->fPosition);
+	getInteger(ERROR_STATUS(), &axis_status->bError);
+	getDouble(POSITION_RBV(), &axis_status->fActPosition);
+	getDouble(VELOCITY_RBV(), &axis_status->fActVelocity);
+	getInteger(HOMED(), &axis_status->bHomed);
+	getInteger(BUSY(), &axis_status->bMoving);
 	getDirection(&axis_status->bDirection);
+	populateLimitStatus(axis_status);
     return asynSuccess;
 }
 
