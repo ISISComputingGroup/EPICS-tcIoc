@@ -23,7 +23,6 @@ typedef struct {
     double fActPosition;   
     int bHomed;            
     int bMoving;           
-    int bDirection;
 } st_axis_status_type;
 
 class epicsShareClass devMotorAxis : public asynMotorAxis
@@ -52,7 +51,6 @@ protected:
 private:
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
-	void getDirection(int *direction);
 	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
@@ -72,9 +70,7 @@ private:
 	virtual std::string POSITION_RBV() = 0;
 	virtual std::string VELOCITY_RBV() = 0;
 	virtual std::string HOMED() = 0;
-	virtual std::string BUSY() = 0;
-	virtual std::string POSITIVE_DIR() = 0;
-	virtual std::string NEGATIVE_DIR() = 0;
+	virtual std::string MOVING() = 0;
 	virtual std::string COMMAND() = 0;
 	
 	virtual epicsInt32 HOME_COMMAND() = 0;
@@ -89,20 +85,18 @@ public:
     twincatMotorAxis(class devMotorController *pC, int axisNo): devMotorAxis(pC, axisNo) {};
 
 private:
-    std::string ENABLE_STATUS() { return "STATUS-BENABLED"; };
-	std::string EXECUTE() { return "CONTROL-BEXECUTE"; };
-	std::string STOP() { return "CONTROL-BSTOP"; };
-	std::string VELOCITY_SP() { return "CONFIG-FVELOCITY"; };
-	std::string POSITION_SP() { return "CONFIG-FPOSITION"; };
-	std::string DISTANCE_SP() { return "CONFIG-FPOSITION"; };
-	std::string ERROR_STATUS() { return "STATUS-BERROR"; };
-	std::string POSITION_RBV() { return "STATUS-FACTPOSITION"; };
-	std::string VELOCITY_RBV() { return "STATUS-FACTVELOCITY"; };
-	std::string HOMED() { return "STATUS-BHOMED"; };
-	std::string BUSY() { return "STATUS-BBUSY"; };
-	std::string POSITIVE_DIR() { return "AXIS-STATUS_POSITIVEDIRECTION"; };
-	std::string NEGATIVE_DIR() { return "AXIS-STATUS_NEGATIVEDIRECTION"; };
-	std::string COMMAND() { return "CONTROL-ECOMMAND"; };
+	std::string ENABLE_STATUS() { return "STSTATUS-BENABLED"; };
+	std::string EXECUTE() { return "STCONTROL-BEXECUTE"; };
+	std::string STOP() { return "STCONTROL-BSTOP"; };
+	std::string VELOCITY_SP() { return "STCONTROL-FVELOCITY"; };
+	std::string POSITION_SP() { return "STCONTROL-FPOSITION"; };
+	std::string DISTANCE_SP() { return "STCONTROL-FPOSITION"; };
+	std::string ERROR_STATUS() { return "STSTATUS-BERROR"; };
+	std::string POSITION_RBV() { return "STSTATUS-FACTPOSITION"; };
+	std::string VELOCITY_RBV() { return "STSTATUS-FACTVELOCITY"; };
+	std::string HOMED() { return "STSTATUS-BHOMED"; };
+	std::string MOVING() { return "STSTATUS-BMOVING"; };
+	std::string COMMAND() { return "STCONTROL-ECOMMAND"; };
 	
     epicsInt32 HOME_COMMAND() { return 10; };
 	epicsInt32 STOP_COMMAND() { return 15; };
@@ -129,9 +123,7 @@ private:
 	std::string POSITION_RBV() { return "FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "FACTVELOCITY"; };
 	std::string HOMED() { return "BCALIBRATED"; };
-	std::string BUSY() { return "BMOVING"; };
-	std::string POSITIVE_DIR() { return "BPOSITIVEDIRECTION"; };
-	std::string NEGATIVE_DIR() { return "BNEGATIVEDIRECTION"; };
+	std::string MOVING() { return "BMOVING"; };
 	std::string COMMAND() { return "ECOMMAND"; };
 	
 	epicsInt32 HOME_COMMAND() { return 13; };

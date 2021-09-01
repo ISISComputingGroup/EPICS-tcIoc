@@ -32,7 +32,7 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
     : asynMotorAxis(pC, axisNo), pC_(pC), axisNo(axisNo)
 {
     printf("Axis %i created\n", axisNo);
-	pvPrefix = pC_->pvPrefix + "AXES_" + std::to_string(axisNo + 1) + ":";
+	pvPrefix = pC_->pvPrefix + "ASTAXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
 	setIntegerParam(pC_->motorStatusHasEncoder_, 1);
 }
@@ -230,31 +230,9 @@ void devMotorAxis::scaleValueToMotorRecord(double* value) {
     *value /= getMotorResolution();
 }
 
-/**
-  * Get the direction which the motor is running in.
-  *
-  * The PLC has two flags, one for moving in a positive direction and one for negative,
-  * this merges these two flags into a single direction integer.
-  *
-  * \param[out] direction The variable to put the direction into.
-  */
-void devMotorAxis::getDirection(int *direction) {
-    int positiveDirection = 0;
-    int negativeDirection = 0;
-    getInteger(POSITIVE_DIR(), &positiveDirection);
-    getInteger(NEGATIVE_DIR(), &negativeDirection);
-    if (positiveDirection && negativeDirection) {
-        throw std::runtime_error(std::string("Axis is running in both directions"));
-    } else if (positiveDirection) {
-        *direction = 1;
-    } else if (negativeDirection) {
-        *direction = 0;
-    }
-}
-
 void twincatMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) { 
-	getInteger("STATUS-BFWENABLED", &axis_status->bLimitFwd); 
-	getInteger("STATUS-BBWENABLED", &axis_status->bLimitBwd);
+	getInteger("STINPUTS-BLIMITFWD", &axis_status->bLimitFwd); 
+	getInteger("STINPUTS-BLIMITBWD", &axis_status->bLimitBwd);
 }
 
 void ISISMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) {
@@ -269,7 +247,7 @@ void ISISMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) {
   *
   * \return The status code for the polling.
   */
-asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) { 
+asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
 	getInteger(ENABLE_STATUS(), &axis_status->bEnable);
 	getInteger(EXECUTE(), &axis_status->bExecute);
 	getDouble(VELOCITY_SP(), &axis_status->fVelocity);
@@ -278,8 +256,7 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
 	getDouble(POSITION_RBV(), &axis_status->fActPosition);
 	getDouble(VELOCITY_RBV(), &axis_status->fActVelocity);
 	getInteger(HOMED(), &axis_status->bHomed);
-	getInteger(BUSY(), &axis_status->bMoving);
-	getDirection(&axis_status->bDirection);
+	getInteger(MOVING(), &axis_status->bMoving);
 	populateLimitStatus(axis_status);
     return asynSuccess;
 }
@@ -393,6 +370,7 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
 asynStatus devMotorAxis::poll(bool *moving) {
     asynStatus comStatus = asynSuccess;
     int nowMoving = 0;
+    double oldMotorPosition = 0;
 	st_axis_status_type st_axis_status;
 	memset(&st_axis_status, 0, sizeof(st_axis_status));
 	
@@ -417,19 +395,23 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
 	setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
 	setIntegerParam(pC_->motorStatusAtHome_, 0);
-	setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
 	
 	// Get the actual position
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
+    pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &oldMotorPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
-	
+
 	// Calculate if moving and set appropriate bits
 	nowMoving = st_axis_status.bMoving;
 	setIntegerParam(pC_->motorStatusMoving_, nowMoving);
 	setIntegerParam(pC_->motorStatusDone_, !nowMoving);
 	*moving = nowMoving ? true : false;
 	
+    // Calculate direction based on old position
+    bool direction = oldMotorPosition < st_axis_status.fActPosition;
+    setIntegerParam(pC_->motorStatusDirection_, int(direction));
+
 	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
 	
     callParamCallbacks();
