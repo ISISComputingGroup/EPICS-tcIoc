@@ -15,7 +15,7 @@
  ************************************************************************/
 
 using namespace std;
-using namespace std::experimental::filesystem::v1;
+using namespace std::filesystem;
 using namespace plc;
 
 static bool debug = false;
@@ -24,6 +24,12 @@ static bool tcdebug = false;
 
 
 namespace TcComms {
+
+template <typename T>
+static time_t clockToTimeT(const std::chrono::time_point<T>& t)
+{
+    return std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() + (t - T::now()));
+}
 
 /** Print an error message for an ADS error return code
 	@brief errorPrintf
@@ -322,7 +328,8 @@ TcPLC::TcPLC (std::string tpyPath)
 {
 	// modification time
 	path fpath(pathTpy);
-	timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
+	auto ftime = last_write_time (fpath);
+	timeTpy = clockToTimeT(ftime);
 	if (debug) printf("Tpy time: %s\n", std::asctime(std::localtime(&timeTpy)));
 	// Set PLC ID and initialize list of PLC instances
 	{
@@ -409,7 +416,8 @@ bool TcPLC::is_valid_tpy()
 		checkTpy = false;
 		path fpath (pathTpy);
 		if (exists (fpath)) {
-			time_t modtime = file_time_type::clock::to_time_t (last_write_time (fpath));
+			auto ftime = last_write_time (fpath);
+			time_t modtime = clockToTimeT(ftime);
 			validTpy = (modtime == timeTpy);
 		}
 		else {
@@ -835,7 +843,7 @@ void TcPLC::update_scanner()
 	// restart ads callback when needed
 	if ((get_ads_state() == ADSSTATE_INVALID) ||
 		(is_read_active() && ads_restart.load())) {
-		time_t t = file_time_type::clock::to_time_t (std::chrono::system_clock::now());
+		time_t t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 		if (t > last_restart + 10) {
 			last_restart = t;
 			printf("Reconnect to PLC %s\n", name.c_str());
