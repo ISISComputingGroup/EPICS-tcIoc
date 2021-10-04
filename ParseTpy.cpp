@@ -1014,10 +1014,6 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlEnumInfo) == 0 && pinfo->enum_parse == 2) {
 			pinfo->enum_parse = 1;
 			pinfo->rec.get_enum_list().insert (pinfo->enum_element);
-			if (!pinfo->enum_comment.empty() && (pinfo->enum_element.first >= 0) &&
-			   (pinfo->enum_element.first < 16)) {
-				pinfo->rec.get_opc().get_properties()[OPC_PROP_ZRST+pinfo->enum_element.first] = pinfo->enum_comment;
-			}
 		}
 		// enum tag
 		else if (n.compare (xmlEnumEnum) == 0 && 
