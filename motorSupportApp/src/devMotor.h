@@ -22,7 +22,8 @@ typedef struct {
     double fActVelocity;   
     double fActPosition;   
     int bHomed;            
-    int bMoving;           
+    int bMoving;
+    int bDirection;
 } st_axis_status_type;
 
 class epicsShareClass devMotorAxis : public asynMotorAxis
@@ -51,6 +52,7 @@ protected:
 private:
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
+	void getDirection(int* direction);
 	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
@@ -72,6 +74,9 @@ private:
 	virtual std::string HOMED() = 0;
 	virtual std::string MOVING() = 0;
 	virtual std::string COMMAND() = 0;
+	virtual std::string POSITIVE_DIR() = 0;
+	virtual std::string NEGATIVE_DIR() = 0;
+
 	
 	virtual epicsInt32 HOME_COMMAND() = 0;
 	virtual epicsInt32 MOVE_ABS_COMMAND() = 0;
@@ -97,6 +102,8 @@ private:
 	std::string HOMED() { return "STSTATUS-BHOMED"; };
 	std::string MOVING() { return "STSTATUS-BMOVING"; };
 	std::string COMMAND() { return "STCONTROL-ECOMMAND"; };
+	std::string POSITIVE_DIR() { return "STSTATUS-BMOVINGFORWARD"; };
+	std::string NEGATIVE_DIR() { return "STSTATUS-BMOVINGBACKWARD"; };
 	
     epicsInt32 HOME_COMMAND() { return 10; };
 	epicsInt32 STOP_COMMAND() { return 15; };
@@ -123,6 +130,8 @@ private:
 	std::string POSITION_RBV() { return "FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "FACTVELOCITY"; };
 	std::string HOMED() { return "BCALIBRATED"; };
+	std::string POSITIVE_DIR() { return "BPOSITIVEDIRECTION"; }; // TODO: should we use this? 
+	std::string NEGATIVE_DIR() { return "BNEGATIVEDIRECTION"; };
 	std::string MOVING() { return "BMOVING"; };
 	std::string COMMAND() { return "ECOMMAND"; };
 	

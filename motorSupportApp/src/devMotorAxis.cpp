@@ -241,6 +241,31 @@ void ISISMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) {
 }
 
 /**
+  * Get the direction which the motor is running in.
+  *
+  * The PLC has two flags, one for moving in a positive direction and one for negative,
+  * this merges these two flags into a single direction integer.
+  *
+  * \param[out] direction The variable to put the direction into.
+  */
+void devMotorAxis::getDirection(int* direction) {
+	int positiveDirection = 0;
+	int negativeDirection = 0;
+	getInteger(POSITIVE_DIR(), &positiveDirection);
+	getInteger(NEGATIVE_DIR(), &negativeDirection);
+	if (positiveDirection && negativeDirection) {
+		throw std::runtime_error(std::string("Axis is running in both directions"));
+	}
+	else if (positiveDirection) {
+		*direction = 1;
+	}
+	else if (negativeDirection) {
+		*direction = 0;
+	}
+}
+
+
+/**
   * Pulls all relevant values out of the PLC.
   *
   * \param[out] axis_status The st_axis_status_type variable to put the information into.
@@ -257,6 +282,7 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
 	getDouble(VELOCITY_RBV(), &axis_status->fActVelocity);
 	getInteger(HOMED(), &axis_status->bHomed);
 	getInteger(MOVING(), &axis_status->bMoving);
+	getDirection(&axis_status->bDirection);
 	populateLimitStatus(axis_status);
     return asynSuccess;
 }
@@ -370,7 +396,6 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
 asynStatus devMotorAxis::poll(bool *moving) {
     asynStatus comStatus = asynSuccess;
     int nowMoving = 0;
-    double oldMotorPosition = 0;
 	st_axis_status_type st_axis_status;
 	memset(&st_axis_status, 0, sizeof(st_axis_status));
 	
@@ -395,10 +420,10 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
 	setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
 	setIntegerParam(pC_->motorStatusAtHome_, 0);
+	setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
 	
 	// Get the actual position
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
-    pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &oldMotorPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
 
@@ -407,10 +432,6 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	setIntegerParam(pC_->motorStatusMoving_, nowMoving);
 	setIntegerParam(pC_->motorStatusDone_, !nowMoving);
 	*moving = nowMoving ? true : false;
-	
-    // Calculate direction based on old position
-    bool direction = oldMotorPosition < st_axis_status.fActPosition;
-    setIntegerParam(pC_->motorStatusDirection_, int(direction));
 
 	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
 	
