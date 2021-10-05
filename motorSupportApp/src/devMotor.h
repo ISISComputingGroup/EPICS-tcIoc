@@ -130,7 +130,7 @@ private:
 	std::string POSITION_RBV() { return "FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "FACTVELOCITY"; };
 	std::string HOMED() { return "BCALIBRATED"; };
-	std::string POSITIVE_DIR() { return "BPOSITIVEDIRECTION"; }; // TODO: should we use this? 
+	std::string POSITIVE_DIR() { return "BPOSITIVEDIRECTION"; };
 	std::string NEGATIVE_DIR() { return "BNEGATIVEDIRECTION"; };
 	std::string MOVING() { return "BMOVING"; };
 	std::string COMMAND() { return "ECOMMAND"; };
