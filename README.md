@@ -2,12 +2,13 @@ TwinCAT-EPICS IOC
 =================
 
 The TwinCAT-EPICS IOC synchronizes TwinCAT variables with EPICS
-channels. This software can be considered as an alternate to the
+channels. This software can be considered an alternate to the
 OPC-EPICS Gateway from HZB.
 
 Further documentation is available at:
 
 * https://dcc.ligo.org/LIGO-T1300690/public
+* https://git.ligo.org/cds/tcIoc
 
 Overview
 --------
@@ -82,8 +83,36 @@ available options can be found on page TwinCAT EPICS Options.
 Versions
 --------
 
-* Version 2.0
-*************
+** Version 2.2 **
+
+Added features:
+
+* Updated to EPICS base-3.15.9
+* Support for the TwinCAT LINT, ULINT and LWORD 64-bit integers. 
+  Due to limitations in EPICS, they still only represented as 32-bit 
+  values by channel access.
+* Support for a long string records. 
+  Strings over  39 characters can now be accessed over channel access 
+  as character arrays.
+
+Bug Fixes:
+ * Fix filetime conversion
+ * Compile with most recent VS2019
+
+** Version 2.1 **
+
+Added features:
+
+* Updated to Visual Studio Community Edition 2019
+* Updated to EPICS base-3.15.7
+* Support for a channel prefix option "-p 'name'" to add a prefix to 
+  all channel names (thanks Dominic Oram) 
+
+Bug Fixes:
+ * Problem with 4 digit version numbers for TwinCAT
+ * Issue with input directory for macro generation in TwinCAT 3.1
+
+** Version 2.0 **
 
 Added features:
 
@@ -108,8 +137,7 @@ Bug Fixes:
 * Use MT-safe compare/exchange in record read/write
 * Documentation clean up
 
-* Version 1.3
-*************
+** Version 1.3 **
 
 Added features:
 * Support for replacement rules in aliases 
@@ -130,8 +158,7 @@ Bug Fixes:
   into a long. Removed tags and added LOPR and HOPR.
 * Fix problem with multi-dimensional arrays
 
-* Version 1.2
-*************
+** Version 1.2 **
 
 Added features:
 * Add support for TwinCAT 3.1
@@ -160,8 +187,7 @@ Bug Fixes:
 * Fix lost namespace issues in TwinCAT 3.1
 * Fix macro support for TwinCAT 3.1
 
-* Version 1.1
-*************
+** Version 1.1 **
 
 Added features:
 * Add support for alias OPC properties to assign alternate names to
@@ -173,8 +199,10 @@ Bug Fixes:
 * Fixed severity for analog alarm values.
 * Added additional messages for ADS errors.
 
-* Version 1.0: Initial release.
-*************
+** Version 1.0 **
+
+Initial release.
+
 
 Future Features
 ---------------
@@ -213,8 +241,8 @@ Building the IOC
 Requirements
 ------------
 
-* Microsoft Visual Studio Community Edition 2017
-* EPICS (3.15.6 was used)
+* Microsoft Visual Studio Community Edition 2019
+* EPICS (3.15.7 was used)
 * Perl (e.g., Strawberry Perl which includes gmake)
 * Make (gmake)
 
@@ -223,13 +251,6 @@ Building tcIoc
 
 * Open tcIoc.sln in MSVS, then build 'debug' or 'release' version.
 * Run install.ps1 to install.
-
-WARNING: this installs the software in a LIGO-specific verion:
-
-    C:\SlowControls\EPICS\Utilities\Bin
-
-Patches to generalize the install script are welcome.
-
 * Online documentation can be build with doxygen by using the included
   "Doxyfile".
 
@@ -407,6 +428,7 @@ Channel Name Conversion:
 | /yd | Leave leading dot in channel name |
 | /yi | Leave array indices in channel names |
 | /ni | Replace array brackets with a single leading underscore (default) |
+| /p 'name' | Include a prefix of 'name' for every channel (defaults to no prefix) |
 
 Split File Support:
 

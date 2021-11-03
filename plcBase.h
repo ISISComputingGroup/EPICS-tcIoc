@@ -71,7 +71,7 @@ typedef std::unique_ptr<Interface> InterfacePtr;
 /** This is an enumerated type listing all the available data types
     @brief Data type enumeration
  ************************************************************************/
-enum data_type_enum 
+enum class data_type_enum 
 {
 	/// Invalid data type
 	dtInvalid,
@@ -227,13 +227,13 @@ public:
 	typedef void* data_type;
 
 	/// Default constructor
-	DataValue() : mydata (nullptr), mytype (dtInvalid), mysize (0), 
+	DataValue() : mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0),
 		myvalid (false), myuserdirty (false), myplcdirty (false) {}
 	/// Constructor
 	/// @param rt Data type enumeration value
 	/// @param len Length of data
 	explicit DataValue (data_type_enum rt, size_type len = 0) 
-		: mydata (nullptr), mytype (dtInvalid), mysize (0), 
+		: mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0),
 		myvalid (false), myuserdirty (false), myplcdirty (false) { 
 		Init(rt, len); }
 	/// Desctructor
@@ -249,7 +249,7 @@ public:
 	void Init (data_type_enum rt, size_type len = 0);
 	/// is valid
 	bool IsValid () const { 
-		return (mydata && (mytype != dtInvalid) && (mysize > 0) && myvalid); };
+		return (mydata && (mytype != data_type_enum::dtInvalid) && (mysize > 0) && myvalid); };
 	/// get type
 	data_type_enum get_data_type() const { return mytype; }
 	/// get size
@@ -476,7 +476,7 @@ protected:
 /** Enum for access rights of a record
 	@brief Access righths enum
 ************************************************************************/
-enum access_rights_enum 
+enum class access_rights_enum 
 {
 	/// Read only
 	read_only, 
@@ -496,11 +496,11 @@ class BaseRecord : public DataValueTypeDef
 {
 public:
 	/// Default constructor
-	BaseRecord() : access (read_write), process (false), parent (nullptr) {}
+	BaseRecord() : access (access_rights_enum::read_write), process (false), parent (nullptr) {}
 	/// Constructor
 	/// @param tag Name of tag/channel
 	explicit BaseRecord (const std::stringcase& tag)
-		: name (tag), access (read_write), process (true), parent (nullptr) {}
+		: name (tag), access (access_rights_enum::read_write), process (true), parent (nullptr) {}
 	/// Constructor
 	/// @param recordName Name of tag/channel
 	/// @param rt Data type
@@ -508,7 +508,7 @@ public:
 	/// @param pplc Pointer to plc interface object (will be adopted!)
 	BaseRecord (const std::stringcase& recordName, 
 		data_type_enum rt, Interface* puser = nullptr, Interface* pplc = nullptr)
-		: name (recordName), access (read_write), process (true), value (rt), 
+		: name (recordName), access (access_rights_enum::read_write), process (true), value (rt), 
 		user (puser), plc (pplc), parent (nullptr) {}
 	/// Desctructor
 	virtual ~BaseRecord() {};
@@ -809,6 +809,11 @@ public:
 	/// for the entire processing time
 	/// @param f Function which takes BaseRecord* as the argument
 	template <typename func> void for_each (func& f);
+	/// Iterate over all list elements
+	/// This will yield good performance, but will lock the PLC 
+	/// for the entire processing time
+	/// @param f Function which takes BaseRecord* as the argument
+	template <typename func> void for_each(const func& f);
 	/// Count the number of records
 	int count() const;
 
@@ -922,6 +927,11 @@ public:
 	/// for the entire processing time
 	/// @param f Function which takes BaseRecord* as the argument
 	template <typename func> void for_each (func& f);
+	/// Iterate over all list elements
+	/// This will yield good performance, but will lock the PLC 
+	/// for the entire processing time
+	/// @param f Function which takes BaseRecord* as the argument
+	template <typename func> void for_each(const func& f);
 
 	/// Print all PLC record values to the console
 	void printVals();

@@ -1,4 +1,3 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
 #include "infoPlc.h"
 #include "ParseTpy.h"
@@ -8,14 +7,15 @@
 #include "TcAdsApi.h"
 #include <memory>
 #include <filesystem>
-#undef _CRT_SECURE_NO_WARNINGS
+#include <chrono>
 
 /** @file tcComms.cpp
 	Defines methods for TwinCAT communication.
  ************************************************************************/
 
 using namespace std;
-using namespace std::experimental::filesystem::v1;
+using namespace std::filesystem;
+//using namespace std::experimental::filesystem::v1;
 using namespace plc;
 
 static bool debug = false;
@@ -140,6 +140,7 @@ void TCatInterface::printVal (FILE* fp)
 
 	double				doublePLCVar;
 	float				floatPLCVar;
+	signed long long	sllPLCVar;
 	signed long int		sliPLCVar;
 	signed short int	ssiPLCVar;
 	signed char			charPLCVar;
@@ -158,6 +159,10 @@ void TCatInterface::printVal (FILE* fp)
 		floatPLCVar		= *(float*)pTCatVal;
 		fprintf(fp,"%f",floatPLCVar);
 	}
+	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT") {
+		sllPLCVar = *(signed long long*)pTCatVal;
+		fprintf(fp, "%lld", sllPLCVar);
+	}
 	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")  {
 		sliPLCVar		= *(signed long int*)pTCatVal;
 		fprintf(fp,"%d",sliPLCVar);
@@ -171,7 +176,9 @@ void TCatInterface::printVal (FILE* fp)
 		fprintf(fp,"%d",charPLCVar);
 	}
 	else if (tCatType.substr(0,6) == "STRING") {
+		#pragma warning (disable : 4996)
 		strncpy(chararrPLCVar, (char*)pTCatVal, min (tCatSymbol.length, sizeof(chararrPLCVar)));
+		#pragma warning (default : 4996)
 		fprintf(fp,"%s",chararrPLCVar);
 	}
 	else {
@@ -311,6 +318,12 @@ void tcProcWrite::tcwrite()
 /************************************************************************
   TcPLC
  ************************************************************************/
+const time_t WINDOWS_TICK = 10'000'000;
+const time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
+static time_t FileTimeToUnixSeconds(time_t windowsTicks)
+{
+	return (time_t)(windowsTicks / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
+}
 
  /* TcPLC::TcPLC constructor
   ************************************************************************/
@@ -322,8 +335,15 @@ TcPLC::TcPLC (std::string tpyPath)
 {
 	// modification time
 	path fpath(pathTpy);
-	timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
-	if (debug) printf("Tpy time: %s\n", std::asctime(std::localtime(&timeTpy)));
+	//timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
+	timeTpy = last_write_time(fpath).time_since_epoch().count();
+
+	#pragma warning (disable : 4996)
+	if (debug) {
+		time_t unixt = FileTimeToUnixSeconds(timeTpy);
+		printf("Tpy time: %s\n", std::asctime(std::localtime(&unixt)));
+	}
+	#pragma warning (default : 4996)
 	// Set PLC ID and initialize list of PLC instances
 	{
 		std::lock_guard<std::mutex> lock(plcVecMutex);
@@ -406,10 +426,11 @@ static bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 bool TcPLC::is_valid_tpy()
 {
 	if (validTpy && checkTpy.load()) {
-		checkTpy = false;
+		checkTpy = false; // only check when we switch to online
 		path fpath (pathTpy);
 		if (exists (fpath)) {
-			time_t modtime = file_time_type::clock::to_time_t (last_write_time (fpath));
+			//time_t modtime = file_time_type::clock::to_time_t(last_write_time(fpath));
+			time_t modtime = last_write_time(fpath).time_since_epoch().count();
 			validTpy = (modtime == timeTpy);
 		}
 		else {
@@ -434,7 +455,7 @@ bool TcPLC::optimizeRequests()
 
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
-	for (auto& it : records) {
+	for (const auto& it : records) {
 		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
 		// add tc records to optimize list
 		if (a) {
@@ -454,8 +475,8 @@ bool TcPLC::optimizeRequests()
 	if (recordList.size() == 0) {
 		return false;
 	}
-	auto it = recordList.begin();
-	TCatInterface* rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
+	TCatInterface* rec = dynamic_cast<TCatInterface*>(
+							recordList.begin()->get()->get_plcInterface());
 	if (!rec) return false;
 	DataPar request;
 	nextOffs = rec->get_indexOffset(); 
@@ -468,9 +489,9 @@ bool TcPLC::optimizeRequests()
 	int nextGap;
 
 	// Iterate through the record list
-	for (it = recordList.begin(); it != recordList.end(); ++it)
+	for (const auto& it : recordList)
 	{
-		rec = dynamic_cast<TCatInterface*>((*it).get()->get_plcInterface());
+		rec = dynamic_cast<TCatInterface*>(it.get()->get_plcInterface());
 		if (!rec) continue;
 		if (tcdebug) printf("Processing record: %s\n", rec->get_tCatName().c_str());
 	
@@ -512,7 +533,7 @@ bool TcPLC::optimizeRequests()
 
 	// Make response buffer
 	if (debug) printf("Making buffer...\n");
-	for (auto i : adsGroupReadRequestVector)
+	for (const auto& i : adsGroupReadRequestVector)
 	{
 		size_t bufsize = (size_t)i.length + 4;
 		buffer_type* buffer = new (nothrow) buffer_type [bufsize];
@@ -524,7 +545,7 @@ bool TcPLC::optimizeRequests()
 	int reqNum;
 	size_t recOffs;
 	size_t reqOffs;
-	for (auto const& it : recordList)
+	for (const auto& it : recordList)
 	{
 		rec = dynamic_cast<TCatInterface*>(it.get()->get_plcInterface());
 		if (!rec) continue;
@@ -552,7 +573,7 @@ TcPLC::buffer_ptr TcPLC::get_responseBuffer(size_t idx)
 void TcPLC::printAllRecords()
 {
 	std::vector<BaseRecordPtr> rlist;
-	for (auto const& i : records) {
+	for (const auto& i : records) {
 		if (i.second.get() && i.second->get_plcInterface() && 
 			i.second->get_plcInterface()->get_symbol_name()) {
 			rlist.push_back(i.second);
@@ -563,7 +584,7 @@ void TcPLC::printAllRecords()
 		return _stricmp (p1->get_plcInterface()->get_symbol_name(), 
 						 p2->get_plcInterface()->get_symbol_name()) < 0; });
 	int num = 0;
-	for (auto const& it : rlist) {
+	for (const auto& it : rlist) {
 		Interface* iface = it.get()->get_plcInterface();
 		if (iface) {
 			iface->printVal (stdout);
@@ -620,7 +641,7 @@ static std::string WildcardToRegex (const std::string& pattern)
 void TcPLC::printRecord (const std::string& var)
 {
 	std::vector<BaseRecordPtr> rlist;
-	for (auto const& i : records) {
+	for (const auto& i : records) {
 		if (i.second.get() && i.second->get_plcInterface() && 
 			i.second->get_plcInterface()->get_symbol_name()) {
 			rlist.push_back(i.second);
@@ -633,7 +654,7 @@ void TcPLC::printRecord (const std::string& var)
 	int num = 0;
 	std::string pattern = WildcardToRegex(var);
 	std::regex	exp (pattern);
-	for (auto const& it : rlist) {
+	for (const auto& it : rlist) {
 		Interface* iface = it.get()->get_plcInterface();
 		if (iface && std::regex_match (iface->get_symbol_name(), exp)) {
 			iface->printVal(stdout);
@@ -764,12 +785,12 @@ void TcPLC::read_scanner()
 	if (readAll) cyclesLeft = scanRateMultiple;
 
 	// Update all tc records
-	for (auto recordsEntry = records.begin(); recordsEntry != records.end(); ++recordsEntry) {
-		BaseRecord* pRecord = recordsEntry->second.get();
+	for (const auto& recordsEntry : records) {
+		BaseRecord* pRecord = recordsEntry.second.get();
 		if (!pRecord) continue;
 		TCatInterface* tcat = dynamic_cast<TCatInterface*>(pRecord->get_plcInterface());
 		if (!tcat) continue;
-		bool isReadOnly = (pRecord->get_access_rights() == read_only);
+		bool isReadOnly = (pRecord->get_access_rights() == access_rights_enum::read_only);
 		buffer_type* buffer = adsResponseBufferVector[tcat->get_requestNum()].get();
 		if (readAll || !isReadOnly) {
 			if (read_success) {
@@ -783,7 +804,7 @@ void TcPLC::read_scanner()
 
 	// update non tc records (try using a different cycle to distribute load)
 	if (cyclesLeft == 1) {
-		for (auto const& it : nonTcRecords) {
+		for (const auto& it : nonTcRecords) {
 			InfoPlc::InfoInterface* iface = dynamic_cast<InfoPlc::InfoInterface*> (it.second->get_plcInterface());
 			if (iface) {
 				iface->update();
@@ -800,11 +821,12 @@ void TcPLC::write_scanner()
 {
 	std::lock_guard<std::mutex>	lockit (sync);
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
-		for_each (tcProcWrite (addr, nWritePort));
+		tcProcWrite proc(addr, nWritePort);
+		for_each (proc);
 	}
 
 	// update non tc records (try using a different cycle to distribute load)
-	for (auto const& it : nonTcRecords) {
+	for (const auto& it : nonTcRecords) {
 		plc::Interface* iface = it.second->get_plcInterface();
 		if (iface) {
 			iface->push();
@@ -835,7 +857,7 @@ void TcPLC::update_scanner()
 	// restart ads callback when needed
 	if ((get_ads_state() == ADSSTATE_INVALID) ||
 		(is_read_active() && ads_restart.load())) {
-		time_t t = file_time_type::clock::to_time_t (std::chrono::system_clock::now());
+		time_t t = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now());
 		if (t > last_restart + 10) {
 			last_restart = t;
 			printf("Reconnect to PLC %s\n", name.c_str());

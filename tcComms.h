@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#include "TcAdsDef.h"
+#include <TcAdsDef.h>
 #include "plcBase.h"
 
 /** @file tcComms.h
@@ -288,7 +288,9 @@ public:
 	void set_read_scanner_multiple (int mult) { 
 		scanRateMultiple = mult; };
 	/// Get ADS state
+#pragma warning(disable :26812)
 	ADSSTATE get_ads_state() const { return ads_state.load(); }
+#pragma warning(default :26812)
 	/// Is read scanner active and successful
 	bool is_read_active() const { return read_active; }
 
@@ -412,8 +414,10 @@ class AmsRouterNotification
 	friend void __stdcall RouterCall (long);
 public:
 	/// get router notification
+#pragma warning(disable :26812)
 	static AmsRouterEvent get_router_notification() {
 		return gAmsRouterNotification.ams_router_event.load(); };
+#pragma warning(default :26812)
 	///get global instance
 	static const AmsRouterNotification& get_instance() {
 		return gAmsRouterNotification; }

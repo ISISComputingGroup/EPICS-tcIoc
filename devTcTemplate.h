@@ -1,5 +1,8 @@
 #include "tcComms.h"
 #define _CRT_SECURE_NO_WARNINGS
+#pragma warning (disable : 26812)
+#pragma warning (disable : 26495)
+#pragma warning (disable: 4996)
 #include "aiRecord.h"
 #include "aaiRecord.h"
 #include "aoRecord.h"
@@ -8,8 +11,14 @@
 #include "boRecord.h"
 #include "longinRecord.h"
 #include "longoutRecord.h"
+#if EPICS_VERSION >= 7
+#include "int64inRecord.h"
+#include "int64outRecord.h"
+#endif
 #include "stringinRecord.h"
 #include "stringoutRecord.h"
+#include "lsiRecord.h"
+#include "lsoRecord.h"
 #include "mbbiRecord.h"
 #include "mbboRecord.h"
 #include "mbbiDirectRecord.h"
@@ -19,6 +28,9 @@
 #include "histogramRecord.h"
 #include "alarm.h"
 #include "recGbl.h"
+#pragma warning (default: 4996)
+#pragma warning (default : 26495)
+#pragma warning (default : 26812)
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file devTcTemplate.h
@@ -35,7 +47,9 @@ struct epics_record_traits<aaival>
 	typedef aaiRecord traits_type;
 	typedef void* value_type;
 	static const char* const name () { return "aaival"; };
+#pragma warning (disable : 26812)
 	static const aitEnum value_ait_type = aitEnumFloat64;
+#pragma warning (default : 26812)
 	static const aitInt32 value_count = 0;
     static const int value_conversion = 0;
 	static const bool input_record = true;
@@ -260,6 +274,50 @@ struct epics_record_traits<longoutval>
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
+#if EPICS_VERSION >= 7
+/// Epics traits class specialization for int64in record
+template<>
+struct epics_record_traits<int64inval>
+{
+	typedef int64inRecord traits_type;
+	typedef epicsInt64 value_type;
+	static const char* const name() { return "int64inval"; };
+	static const aitEnum value_ait_type = aitEnumInt64;
+	static const aitInt32 value_count = 1;
+	static const int value_conversion = 2;
+	static const bool input_record = true;
+	static const bool raw_record = false;
+	static value_type* val(traits_type* prec) { return (value_type*)&prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+		return baserec->UserRead(*val(epicsrec));
+	}
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+		return baserec->UserWrite(*val(epicsrec));
+	}
+};
+
+/// Epics traits class specialization for int64out record
+template<>
+struct epics_record_traits<int64outval>
+{
+	typedef int64outRecord traits_type;
+	typedef epicsInt64 value_type;
+	static const char* const name() { return "int64outval"; };
+	static const aitEnum value_ait_type = aitEnumInt64;
+	static const aitInt32 value_count = 1;
+	static const int value_conversion = 0;
+	static const bool input_record = false;
+	static const bool raw_record = false;
+	static value_type* val(traits_type* prec) { return (value_type*)&prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+		return baserec->UserRead(*val(epicsrec));
+	}
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+		return baserec->UserWrite(*val(epicsrec));
+	}
+};
+#endif
+
 /// Epics traits class specialization for mbbi record
 template<>
 struct epics_record_traits<mbbival>
@@ -419,16 +477,16 @@ struct epics_record_traits<stringinval>
 	typedef stringinRecord traits_type;
 	typedef char value_type[40];
 	static const char* const name () { return "stringinval"; };
-	static const aitEnum value_ait_type = aitEnumString;
+	static const aitEnum value_ait_type = aitEnumFixedString;
 	static const aitInt32 value_count = 40;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static char* val (traits_type* prec) { return prec->val; }
 	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
-		return baserec->UserRead((char*) val(epicsrec), baserec->get_data().get_size()); }
+		return baserec->UserRead(val(epicsrec), sizeof(value_type)); }
 	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
-		return baserec->UserWrite((const char*) val(epicsrec), sizeof (value_type)); }
+		return baserec->UserWrite(val(epicsrec), sizeof (value_type)); }
 };
 
 /// Epics traits class specialization for stringout record
@@ -438,16 +496,62 @@ struct epics_record_traits<stringoutval>
 	typedef stringoutRecord traits_type;
 	typedef char value_type[40];
 	static const char* const name () { return "stringoutval"; };
-	static const aitEnum value_ait_type = aitEnumString;
+	static const aitEnum value_ait_type = aitEnumFixedString;
 	static const aitInt32 value_count = 40;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static char* val (traits_type* prec) { return prec->val; }
 	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
-		return baserec->UserRead((char*) val(epicsrec), baserec->get_data().get_size()); }
+		return baserec->UserRead(val(epicsrec), sizeof(value_type)); }
 	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
-		return baserec->UserWrite((const char*) val(epicsrec), sizeof (value_type)); }
+		return baserec->UserWrite(val(epicsrec), sizeof(value_type)); }
+};
+
+/// Epics traits class specialization for long stringin record
+template<>
+struct epics_record_traits<lsival>
+{
+	typedef lsiRecord traits_type;
+	typedef char* value_type;
+	static const char* const name() { return "lsival"; };
+	static const aitEnum value_ait_type = aitEnumString;
+	static const aitInt32 value_count = 65535;
+	static const int value_conversion = 0;
+	static const bool input_record = true;
+	static const bool raw_record = false;
+	static char* val(traits_type* prec) { return prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+		bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
+		if (succ) epicsrec->len = (epicsUInt32)strnlen(val(epicsrec), epicsrec->sizv) + 1;
+		return succ;
+	}
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+		return baserec->UserWrite(val(epicsrec), epicsrec->sizv);
+	}
+};
+
+/// Epics traits class specialization for long stringout record
+template<>
+struct epics_record_traits<lsoval>
+{
+	typedef lsoRecord traits_type;
+	typedef char* value_type;
+	static const char* const name() { return "lsoval"; };
+	static const aitEnum value_ait_type = aitEnumString;
+	static const aitInt32 value_count = 65535;
+	static const int value_conversion = 0;
+	static const bool input_record = false;
+	static const bool raw_record = false;
+	static char* val(traits_type* prec) { return prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+		bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
+		if (succ) epicsrec->len = (epicsUInt32)strnlen(val(epicsrec), epicsrec->sizv) + 1;
+		return succ;
+	}
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+		return baserec->UserWrite(val(epicsrec), epicsrec->sizv);
+	}
 };
 
 /// Epics traits class specialization for waveform record
@@ -509,8 +613,8 @@ devTcDefIo<RecType>::devTcDefIo ()
 template <epics_record_enum RecType>
 devTcDefIn<RecType>::devTcDefIn ()
 {
-	init_record_fn = (DEVSUPFUN)init_read_record;
-	io_fn = (DEVSUPFUN)read;
+	devTcDefIn<RecType>::init_record_fn = (DEVSUPFUN)init_read_record;
+	devTcDefIn<RecType>::io_fn = (DEVSUPFUN)read;
 }
 
 /* devTcDefOut<>::devTcDefOut
@@ -518,8 +622,8 @@ devTcDefIn<RecType>::devTcDefIn ()
 template <epics_record_enum RecType>
 devTcDefOut<RecType>::devTcDefOut ()
 {
-	init_record_fn = (DEVSUPFUN)init_write_record;
-	io_fn = (DEVSUPFUN)write;
+	devTcDefOut<RecType>::init_record_fn = (DEVSUPFUN)init_write_record;
+	devTcDefOut<RecType>::io_fn = (DEVSUPFUN)write;
 }
 
 /* devTcDefWaveformIn<>::devTcDefWaveformIn
@@ -527,8 +631,8 @@ devTcDefOut<RecType>::devTcDefOut ()
 template <epics_record_enum RecType>
 devTcDefWaveformIn<RecType>::devTcDefWaveformIn ()
 {
-	init_record_fn = (DEVSUPFUN)init_read_waveform_record;
-	io_fn = (DEVSUPFUN)read_waveform;
+	devTcDefWaveformIn<RecType>::init_record_fn = (DEVSUPFUN)init_read_waveform_record;
+	devTcDefWaveformIn<RecType>::io_fn = (DEVSUPFUN)read_waveform;
 }
 
 /* Initialization for I/O interrupts
@@ -541,7 +645,7 @@ long devTcDefIo<RecType>::
     if(!prec || !prec->dpvt)
         return 1;
 
-	BaseRecord* pRecord = (BaseRecord*)(prec->dpvt);
+	plc::BaseRecord* pRecord = (plc::BaseRecord*)(prec->dpvt);
 	EpicsInterface* epics = pRecord ? dynamic_cast<EpicsInterface*>(pRecord->get_userInterface()) : NULL;
 
 	if (!epics) return 1;
@@ -561,7 +665,7 @@ template <epics_record_enum RecType>
 long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 {
 	// Make pointer to TCat record
-    BaseRecordPtr pRecord;
+    plc::BaseRecordPtr pRecord;
 	// Check for valid EPICS record pointer
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
@@ -607,7 +711,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
         exit(S_db_badField);
 	}
 	// Set scan properties
-	pRecord->set_access_rights(read_only);
+	pRecord->set_access_rights(plc::access_rights_enum::read_only);
     if(prec->scan == SCAN_IO_EVENT) {
 		// Set properties for a read record with SCAN = I/O Intr
 		scanIoInit(&(epics->ioscan()));
@@ -630,7 +734,7 @@ template <epics_record_enum RecType>
 long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 {
     // Make pointer to TCat record
-    BaseRecordPtr pRecord;
+    plc::BaseRecordPtr pRecord;
 	// Check for valid EPICS record pointer
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
@@ -670,7 +774,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
         exit(S_db_badField);
 	}
 	// Set scan properties
-	pRecord->set_access_rights(read_write);
+	pRecord->set_access_rights(plc::access_rights_enum::read_write);
 	epics->set_isCallback(true); // readwrite record: need to generate callback to do a read
 	epics->set_isPassive(true);
 	// Set parameters for generating callbacks
@@ -746,7 +850,7 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 	// Get the conversion setting for this record
 	long ret = epics_record_traits<RecType>::value_conversion;
 	// Get the IOC internal record entry and EPICS user interface
-	BaseRecord* pBaseRecord = (BaseRecord*)precord->dpvt;
+	plc::BaseRecord* pBaseRecord = (plc::BaseRecord*)precord->dpvt;
 	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface()) : NULL;
 
 	if (!pBaseRecord || !epics) {
@@ -779,7 +883,7 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 	// Grab data value into EPICS 
 	epics_record_traits<RecType>::read (precord, pBaseRecord);
 	// set time stamp
-	BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
+	plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
 	precord->time = epicsTime (*((_FILETIME*)&timestamp)); 
 
 	precord->udf = udf;
@@ -798,7 +902,7 @@ template <epics_record_enum RecType>
 long devTcDefOut<RecType>::write (rec_type_ptr precord)
 {
 	// Get the IOC internal record entry and EPICS user interface
-	BaseRecord* pBaseRecord = (BaseRecord*) precord->dpvt;
+	plc::BaseRecord* pBaseRecord = (plc::BaseRecord*) precord->dpvt;
 	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() ) : NULL;
 
     if(!pBaseRecord || !epics) {
@@ -835,16 +939,14 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 		// Read data value
 		epics_record_traits<RecType>::read (precord, pBaseRecord);
 		// set time stamp
-		BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
-		precord->time = epicsTime (*((FILETIME*)&timestamp)); 
+		plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
+		precord->time = epicsTime(*((_FILETIME*)&timestamp));
 	}
 	else {
 		// Write data value
 		epics_record_traits<RecType>::write (pBaseRecord, precord);
 		// set time stamp
-		FILETIME timestamp;
-		GetSystemTimeAsFileTime (&timestamp);
-		precord->time = epicsTime (timestamp);
+		precord->time = epicsTime::getCurrent();
 	}
 
 	precord->udf = udf;

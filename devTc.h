@@ -1,5 +1,10 @@
 #pragma once
 #include "stdafx.h"
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning (disable : 26812)
+#pragma warning (disable : 26495)
+#pragma warning (disable: 4996)
+#include "epicsVersion.h"
 #include "dbAccess.h"
 #include "aitTypes.h"
 #include "alarm.h"
@@ -10,6 +15,10 @@
 #include "menuFtype.h"
 #include "devSup.h"
 #include "dbAccessDefs.h"
+#pragma warning (default: 4996)
+#pragma warning (default : 26495)
+#pragma warning (default : 26812)
+#undef _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
 
 /** @file devTc.h
@@ -33,6 +42,7 @@ const std::regex tc_regex (
 /// Regex for indentifying info records
 const std::regex info_regex(
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(info)/([A-Za-z0-9_]+)");
+
 
 /** This is a class for managing device support for multiple record
     types, such as TwinCAT/ADS and Info.
@@ -131,7 +141,7 @@ public:
 	/// Does nothing
 	virtual bool pull() override { return true; }
 
-	/** Get the size of the callback ring buffer
+	/** Get the size of the callback ring buffer 
 		For this function to return a valid value the EPICS
 		distribution needs to be patched. Add the following lines:
 
@@ -144,6 +154,8 @@ public:
 		after the declaration of
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+
+		in src\ioc\db\callback.c
 
 		@param pri Priority of ring buffer
 		@return size of the callback ring buffer */
@@ -162,6 +174,8 @@ public:
 
 		    static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
+		in src\ioc\db\callback.c
+
 		@param pri Priority of ring buffer
 		@return used entries in the callback ring buffer */
 	static int get_callback_queue_used (int pri);
@@ -178,6 +192,8 @@ public:
 		after the declaration of
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
+
+		in src\ioc\db\callback.c
 
 		@param pri Priority of ring buffer
 		@return free entries in the callback ring buffer */
@@ -230,6 +246,12 @@ enum epics_record_enum
 	longinval,
 	/// integer output
 	longoutval,
+#if EPICS_VERSION >= 7
+	/// 64-bit integer input
+	int64inval,
+	/// 64-bit integer output
+	int64outval,
+#endif
 	/// enum input
 	mbbival,
 	/// enum output
@@ -242,6 +264,10 @@ enum epics_record_enum
 	stringinval,
 	/// string output
 	stringoutval,
+	/// long string input
+	lsival,
+	/// long string output
+	lsoval,
 	/// waveform
 	waveformval,
 	/// raw double input
@@ -311,6 +337,7 @@ struct epics_record_traits
 template <epics_record_enum RecType>
 struct devTcDefIo 
 {
+public:
 	/// Record type: aiRecord, etc.
 	typedef typename epics_record_traits<RecType>::traits_type rec_type;
 	/// Pointer to record type
@@ -346,6 +373,12 @@ protected:
 template <epics_record_enum RecType>
 struct devTcDefIn : public devTcDefIo <RecType>
 {
+public:
+	/// Record type: aiRecord, etc.
+	typedef typename devTcDefIo<RecType>::rec_type rec_type;
+	/// Pointer to record type
+	typedef typename devTcDefIo<RecType>::rec_type_ptr rec_type_ptr;
+
 	/// Constructor
 	devTcDefIn();
 	/// init callback for read records
@@ -362,6 +395,12 @@ struct devTcDefIn : public devTcDefIo <RecType>
 template <epics_record_enum RecType>
 struct devTcDefOut : public devTcDefIo <RecType>
 {
+public:
+	/// Record type: aiRecord, etc.
+	typedef typename devTcDefIo<RecType>::rec_type rec_type;
+	/// Pointer to record type
+	typedef typename devTcDefIo<RecType>::rec_type_ptr rec_type_ptr;
+
 	/// Constructor
 	devTcDefOut();
 	/// init callback for write records
@@ -378,6 +417,12 @@ struct devTcDefOut : public devTcDefIo <RecType>
 template <epics_record_enum RecType>
 struct devTcDefWaveformIn : public devTcDefIo <RecType>
 {
+public:
+	/// Record type: aiRecord, etc.
+	typedef typename devTcDefIo <RecType>::rec_type rec_type;
+	/// Pointer to record type
+	typedef typename devTcDefIo <RecType>::rec_type_ptr rec_type_ptr;
+
 	/// Constructor
 	devTcDefWaveformIn();
 	/// init callback for read records
@@ -385,6 +430,8 @@ struct devTcDefWaveformIn : public devTcDefIo <RecType>
 	/// read callback
 	static long read_waveform (rec_type_ptr precord);
 };
+
+void complete_io_scan(EpicsInterface* epics, IOSCANPVT ioscan, int prio);
 
 }
 #include "devTcTemplate.h"

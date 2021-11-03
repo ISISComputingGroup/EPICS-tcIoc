@@ -8,7 +8,7 @@
 #
 # Requires .NET 4.0 or higher
 # http://www.microsoft.com/en-us/download/details.aspx?id=30653
-# Requires PowerShell 3.0 or higher
+# Requires PowerShell 5.0 or higher
 # http://www.microsoft.com/en-us/download/details.aspx?id=34595
 # Enable script execution by issuing "Set-ExecutionPolicy RemoteSigned"
 # once from a powershell command line with administrative priviliges.
@@ -24,11 +24,11 @@ param ([switch] $d,
 
 write "Install tcIoc Binaries"
 
-$version = "2_0"
+$version = "2_2"
 # Path
 $parent = "$PSScriptRoot"
 $download = "$parent\Download"
-$epicsbase = "..\..\base-3.15.6"
+$epicsbase = "..\..\base-3.15.9"
 if ($x64) {
     $platform = "x64"
     $epicstarget = "windows-x64"

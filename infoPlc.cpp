@@ -12,9 +12,12 @@ extern "C" {
 	int get_callback_queue_used(int pri);
 	int get_callback_queue_free(int pri);
 }
+static int queue0_max = 0;
+static int queue1_max = 0;
+static int queue2_max = 0;
 /// @endcond
 
-/** @file InfoPlc.cpp
+/** @file infoPlc.cpp
 	Defines methods for the info PLC.
  ************************************************************************/
 
@@ -28,7 +31,7 @@ const info_dbrecord_list InfoInterface::dbinfo_list({
 info_dbrecord_type(
 	variable_name(""),
 	process_type_enum::pt_binary,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "3"),
 		property_el(OPC_PROP_DESC, "PLC Info structure")
 	})),
@@ -37,25 +40,25 @@ info_dbrecord_type(
 info_dbrecord_type (
 	variable_name("name"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Name of PLC")
 	})),
-	"STRING", true, update_enum::once,
+	"STRING(40)", true, update_enum::once,
 	&InfoInterface::info_update_name),
 info_dbrecord_type(
 	variable_name("alias"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Alias name")
 		})),
-	"STRING", true, update_enum::once,
+	"STRING(40)", true, update_enum::once,
 	&InfoInterface::info_update_alias),
 info_dbrecord_type(
 	variable_name("active"),
 	process_type_enum::pt_bool,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Running state of PLC"),
 		property_el(OPC_PROP_CLOSE, "ONLINE"),
@@ -66,7 +69,7 @@ info_dbrecord_type(
 info_dbrecord_type (
 	variable_name("state"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "AMS state of PLC")
 		})),
@@ -75,25 +78,34 @@ info_dbrecord_type (
 info_dbrecord_type(
 	variable_name("statestr"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "AMS state of PLC")
 		})),
-	"STRING", true, update_enum::forever,
+	"STRING(20)", true, update_enum::forever,
 	&InfoInterface::info_update_statestr),
 info_dbrecord_type(
 	variable_name("timestamp.str"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "PLC time stamp")
 		})),
-	"STRING", true, update_enum::forever,
+	"STRING(40)", true, update_enum::forever,
 	&InfoInterface::info_update_timestamp_str),
+info_dbrecord_type(
+	variable_name("timestamp.local"),
+	process_type_enum::pt_string,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "PLC local time stamp")
+		})),
+	"STRING(40)", true, update_enum::forever,
+	&InfoInterface::info_update_timestamp_local),
 info_dbrecord_type(
 	variable_name("timestamp.year"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Year of PLC time stamp")
 		})),
@@ -102,7 +114,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("timestamp.month"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Month of PLC time stamp")
 		})),
@@ -111,7 +123,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("timestamp.day"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Day of PLC time stamp")
 		})),
@@ -120,7 +132,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("timestamp.hour"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Hour of PLC time stamp")
 		})),
@@ -129,7 +141,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("timestamp.min"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Minute of PLC time stamp")
 		})),
@@ -138,7 +150,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("timestamp.sec"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Second of PLC time stamp")
 		})),
@@ -147,7 +159,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("rate.read"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Period of read scanner in ms"),
 		property_el(OPC_PROP_UNIT, "ms")
@@ -157,7 +169,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("rate.write"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Period of write scanner in ms"),
 		property_el(OPC_PROP_UNIT, "ms")
@@ -167,7 +179,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("rate.update"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Period of update scanner in ms"),
 		property_el(OPC_PROP_UNIT, "ms")
@@ -177,7 +189,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("records.num"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Number of records")
 		})),
@@ -186,16 +198,16 @@ info_dbrecord_type(
 info_dbrecord_type (
 	variable_name("tpy.filename"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Name of typ file")
 	})),
-	"STRING", true, update_enum::once,
+	"STRING(255)", true, update_enum::once,
 	&InfoInterface::info_update_tpy_filename),
 info_dbrecord_type(
 	variable_name("tpy.valid"),
 	process_type_enum::pt_bool,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Validity of tpy file"),
 		property_el(OPC_PROP_CLOSE, "VALID"),
@@ -206,16 +218,16 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.str"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Modifcation time of tpy file")
 		})),
-	"STRING", true, update_enum::forever,
+	"STRING(40)", true, update_enum::forever,
 	&InfoInterface::info_update_tpy_time_str),
 info_dbrecord_type(
 	variable_name("tpy.time.year"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Year of tpy file time")
 		})),
@@ -224,7 +236,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.month"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Month of tpy file time")
 		})),
@@ -233,7 +245,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.day"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Day of tpy file time")
 		})),
@@ -242,7 +254,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.hour"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Hour of tpy file time")
 		})),
@@ -251,7 +263,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.min"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Minute of tpy file time")
 		})),
@@ -260,7 +272,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("tpy.time.sec"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Second of tpy file time")
 		})),
@@ -269,7 +281,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.version"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS library version")
 		})),
@@ -278,7 +290,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.revision"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS library revision")
 		})),
@@ -287,7 +299,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.build"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS library build")
 		})),
@@ -296,7 +308,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.port"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS port of PLC")
 		})),
@@ -305,16 +317,16 @@ info_dbrecord_type(
 info_dbrecord_type (
 	variable_name("ads.netid.str"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address of PLC")
 	})),
-	"STRING", true, update_enum::once,
+	"STRING(24)", true, update_enum::once,
 	&InfoInterface::info_update_ads_netid_str),
 info_dbrecord_type(
 	variable_name("ads.netid.b0"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b0")
 		})),
@@ -323,7 +335,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.netid.b1"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b1")
 		})),
@@ -332,7 +344,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.netid.b2"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b2")
 		})),
@@ -341,7 +353,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.netid.b3"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b3")
 		})),
@@ -350,7 +362,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.netid.b4"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b4")
 		})),
@@ -359,7 +371,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("ads.netid.b5"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "ADS/AMS address b5")
 		})),
@@ -368,7 +380,7 @@ info_dbrecord_type(
 info_dbrecord_type(
 	variable_name("svn.local"),
 	process_type_enum::pt_bool,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "SVN local modifications"),
 		property_el(OPC_PROP_CLOSE, "MODIFIED"),
@@ -379,7 +391,7 @@ info_dbrecord_type(
 info_dbrecord_type (
 	variable_name("svn.revision"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "SVN revision if fully committed")
 		})),
@@ -388,16 +400,16 @@ info_dbrecord_type (
 info_dbrecord_type(
 	variable_name("svn.time.str"),
 	process_type_enum::pt_string,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "SVN compile time")
 		})),
-	"STRING", true, update_enum::once,
+	"STRING(40)", true, update_enum::once,
 	&InfoInterface::info_update_svn_time),
 info_dbrecord_type (
 	variable_name("cb.queue[0].size"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Size of low pri. callback queue")
 		})),
@@ -406,16 +418,25 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[0].used"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Used entries in low pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_used),
 info_dbrecord_type (
+	variable_name("cb.queue[0].max"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max. entries in low pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue0_max),
+info_dbrecord_type (
 	variable_name("cb.queue[0].free"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Free entries low pri. callback queue")
 		})),
@@ -424,7 +445,7 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[0].percent"),
 	process_type_enum::pt_real,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Use % of low pri. callback queue"),
 		property_el(OPC_PROP_HIEU, "1"),
@@ -435,9 +456,22 @@ info_dbrecord_type (
 	"LREAL", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_percent),
 info_dbrecord_type (
+	variable_name("cb.queue[0].mprcnt"),
+	process_type_enum::pt_real,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max % of low pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue0_mprcnt),
+info_dbrecord_type (
 	variable_name("cb.queue[1].size"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Size of med pri. callback queue")
 		})),
@@ -446,16 +480,25 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[1].used"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Used entries in med pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue1_used),
 info_dbrecord_type (
+	variable_name("cb.queue[1].max"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max. entries in med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_max),
+info_dbrecord_type (
 	variable_name("cb.queue[1].free"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Free entries med pri. callback queue")
 		})),
@@ -464,7 +507,7 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[1].percent"),
 	process_type_enum::pt_real,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Use % of med pri. callback queue"),
 		property_el(OPC_PROP_HIEU, "1"),
@@ -475,9 +518,22 @@ info_dbrecord_type (
 	"LREAL", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue1_percent),
 info_dbrecord_type (
+	variable_name("cb.queue[1].mprcnt"),
+	process_type_enum::pt_real,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max % of med pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_mprcnt),
+info_dbrecord_type (
 	variable_name("cb.queue[2].size"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
 		})),
@@ -486,16 +542,25 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[2].used"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue2_used),
 info_dbrecord_type (
+	variable_name("cb.queue[2].max"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max. entries in hi pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_max),
+info_dbrecord_type (
 	variable_name("cb.queue[2].free"),
 	process_type_enum::pt_int,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
 		})),
@@ -504,7 +569,7 @@ info_dbrecord_type (
 info_dbrecord_type (
 	variable_name("cb.queue[2].percent"),
 	process_type_enum::pt_real,
-	opc_list(publish, property_map({
+	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
 		property_el(OPC_PROP_HIEU, "1"),
@@ -513,7 +578,20 @@ info_dbrecord_type (
 		property_el(OPC_PROP_UNIT, "percent")
 		})),
 	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_percent)
+	&InfoInterface::info_update_callback_queue2_percent),
+info_dbrecord_type (
+	variable_name("cb.queue[2].mprcnt"),
+	process_type_enum::pt_real,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Max % of hi pri. callback queue"),
+		property_el(OPC_PROP_HIEU, "1"),
+		property_el(OPC_PROP_LOEU, "0"),
+		property_el(OPC_PROP_PREC, "1"),
+		property_el(OPC_PROP_UNIT, "percent")
+		})),
+	"LREAL", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue2_mprcnt)
 });
 
 
@@ -541,11 +619,11 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 		update_freq = get<update_enum>(*iter);
 		info_update = get<info_update_method>(*iter);
 		// check for enum
-		if (get<ParseUtil::process_type_enum>(*iter) == pt_enum) {
+		if (get<ParseUtil::process_type_enum>(*iter) == process_type_enum::pt_enum) {
 			tCatType = "ENUM";
 		}
 		// check for struct
-		if (get<ParseUtil::process_type_enum>(*iter) == pt_binary) {
+		if (get<ParseUtil::process_type_enum>(*iter) == process_type_enum::pt_binary) {
 			record.set_process(false);
 		}
 		if (debug) {
@@ -580,6 +658,7 @@ void InfoInterface::printVal (FILE* fp)
 
 	double				doublePLCVar;
 	float				floatPLCVar;
+	signed long long	sllPLCVar;
 	signed long int		sliPLCVar;
 	signed short int	ssiPLCVar;
 	signed char			charPLCVar;
@@ -590,6 +669,9 @@ void InfoInterface::printVal (FILE* fp)
 	}
 	else if (tCatType == "REAL") {
 		if (record.PlcRead(floatPLCVar)) fprintf(fp, "%f", floatPLCVar);
+	}
+	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT") {
+		if (record.PlcRead(sllPLCVar)) fprintf(fp, "%lld", sllPLCVar);
 	}
 	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT") {
 		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%d", sliPLCVar);
@@ -729,6 +811,22 @@ bool InfoInterface::info_update_timestamp_str()
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof (buf));
+	}
+	return false;
+}
+
+/* InfoInterface::info_update_timestamp_local
+ ************************************************************************/
+bool InfoInterface::info_update_timestamp_local()
+{
+	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	if (!tc) return false;
+	time_t tstamp = tc->get_timestamp_unix();
+	tm local;
+	char buf[100];
+	if (localtime_s(&local, &tstamp) == 0) {
+		strftime(buf, sizeof(buf), "%c", &local);
+		return record.PlcWrite(buf, sizeof(buf));
 	}
 	return false;
 }
@@ -887,6 +985,27 @@ bool InfoInterface::info_update_tpy_valid()
 
 /* InfoInterface::info_update_tpy_time_str
  ************************************************************************/
+const time_t WINDOWS_TICK = 10'000'000;
+const time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
+static time_t FileTimeToUnixSeconds(time_t windowsTicks)
+{
+	return (time_t)(windowsTicks / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
+}
+static errno_t GetFileTimeUnix (tm& utc, time_t ftime)
+{
+	if (ftime < 1000'000'000'000LL) {
+		if (gmtime_s(&utc, &ftime) == 0) {
+			return 0;
+		}
+	}
+	else {
+		time_t unixt = FileTimeToUnixSeconds(ftime);
+		if (gmtime_s(&utc, &unixt) == 0) {
+			return 0;
+		}
+	}
+	return 1;
+}
 bool InfoInterface::info_update_tpy_time_str()
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
@@ -894,10 +1013,10 @@ bool InfoInterface::info_update_tpy_time_str()
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	char buf[100];
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
 		return record.PlcWrite(buf, sizeof(buf));
-	}
+	} 
 	return false;
 }
 
@@ -909,7 +1028,7 @@ bool InfoInterface::info_update_tpy_time_year()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
 	}
 	return false;
@@ -923,7 +1042,7 @@ bool InfoInterface::info_update_tpy_time_month()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
 	}
 	return false;
@@ -937,7 +1056,7 @@ bool InfoInterface::info_update_tpy_time_day()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mday);
 	}
 	return false;
@@ -951,7 +1070,7 @@ bool InfoInterface::info_update_tpy_time_hour()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_hour);
 	}
 	return false;
@@ -965,7 +1084,7 @@ bool InfoInterface::info_update_tpy_time_min()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_min);
 	}
 	return false;
@@ -979,7 +1098,7 @@ bool InfoInterface::info_update_tpy_time_sec()
 	if (!tc) return false;
 	time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
-	if (gmtime_s(&utc, &tstamp) == 0) {
+	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_sec);
 	}
 	return false;
@@ -1131,7 +1250,16 @@ bool InfoInterface::info_update_callback_queue0_size()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue0_used()
 {
-	return record.PlcWrite(get_callback_queue_used(0));
+	int val = get_callback_queue_used(0);
+	if (val > queue0_max) queue0_max = val;
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue0_max
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue0_max()
+{
+	return record.PlcWrite(queue0_max);
 }
 
 /* InfoInterface::info_update_callback_queue0_free
@@ -1155,6 +1283,20 @@ bool InfoInterface::info_update_callback_queue0_percent()
 	}
 }
 
+/* InfoInterface::info_update_callback_queue0_mprcnt
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue0_mprcnt()
+{
+	double sz = (double)get_callback_queue_size(0);
+	double usd = (double)queue0_max;
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd / sz);
+	}
+	else {
+		return 0.0;
+	}
+}
+
 /* InfoInterface::info_update_callback_queue1_size
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue1_size()
@@ -1166,7 +1308,16 @@ bool InfoInterface::info_update_callback_queue1_size()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue1_used()
 {
-	return record.PlcWrite(get_callback_queue_used(1));
+	int val = get_callback_queue_used(1);
+	if (val > queue1_max) queue1_max = val;
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue1_max
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_max()
+{
+	return record.PlcWrite(queue1_max);
 }
 
 /* InfoInterface::info_update_callback_queue1_free
@@ -1190,6 +1341,20 @@ bool InfoInterface::info_update_callback_queue1_percent()
 	}
 }
 
+/* InfoInterface::info_update_callback_queue1_mprcnt
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_mprcnt()
+{
+	double sz = (double)get_callback_queue_size(1);
+	double usd = (double)queue1_max;
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd / sz);
+	}
+	else {
+		return 0.0;
+	}
+}
+
 /* InfoInterface::info_update_callback_queue2_size
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue2_size()
@@ -1201,7 +1366,16 @@ bool InfoInterface::info_update_callback_queue2_size()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue2_used()
 {
-	return record.PlcWrite(get_callback_queue_used(2));
+	int val = get_callback_queue_used(2);
+	if (val > queue2_max) queue2_max = val;
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue2_max
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_max()
+{
+	return record.PlcWrite(queue2_max);
 }
 
 /* InfoInterface::info_update_callback_queue2_free
@@ -1217,6 +1391,20 @@ bool InfoInterface::info_update_callback_queue2_percent()
 {
 	double sz = (double)get_callback_queue_size(2);
 	double usd = (double)get_callback_queue_used(2);
+	if ((sz > 1.0) && (usd > 1.0)) {
+		return record.PlcWrite(usd / sz);
+	}
+	else {
+		return 0.0;
+	}
+}
+
+/* InfoInterface::info_update_callback_queue2_mprcnt
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_mprcnt()
+{
+	double sz = (double)get_callback_queue_size(2);
+	double usd = (double)queue2_max;
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}

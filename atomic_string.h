@@ -17,9 +17,9 @@ class atomic_string
 {
 public:
 	/// Default constructor
-	atomic_string() { flag._My_flag = 0; }
+	atomic_string() { flag.clear(); }
 	/// Constructor from data 
-	atomic_string (const stringT& s) : data (s) { flag._My_flag = 0; }
+	atomic_string (const stringT& s) : data (s) { flag.clear(); }
 
 	/// Assignment operator on basic type
 	stringT operator= (const stringT& right);
@@ -55,7 +55,7 @@ protected:
 	/// flag for spin lock
 	mutable atomic_flag	flag;
 	/// data string
-	stringT					data;
+	stringT				data;
 
 private:
 	/// Copy constructor not defined

@@ -10,12 +10,10 @@ namespace ParseTpy {
 		const std::stringcase& prefix) const
 	{
 		int num = 0;
-		for (symbol_list::const_iterator sym = get_symbols().begin();
-			sym != get_symbols().end(); ++sym, ++num) {
+		for (const auto& sym : get_symbols()) {
 			if (get_export_all() || 
-				(sym->get_opc().get_opc_state() == publish)) {
-				int ret = process_type_tree (*sym, process, prefix);
-				num += ret;
+				(sym.get_opc().get_opc_state() == ParseUtil::opc_enum::publish)) {
+				num += process_type_tree (sym, process, prefix);
 			}
 		}
 		return num;
@@ -67,89 +65,86 @@ namespace ParseTpy {
 		// multiple implicit array types of the same index range and base type will
 		// share a single type defintion and therefore share the opc definitions of 
 		// the first implicit one
-		if ((typ.get_type_description() != arraytype) || 
+		if ((typ.get_type_description() != type_enum::arraytype) ||
 			(typ.get_name().find ('[') == std::stringcase::npos)) {
 			defopc.add (typ.get_opc());
 		}
 		switch (typ.get_type_description()) {
-		case simple :
+		case type_enum::simple :
 			{
 				return process_type_tree (typ.get_type_name(), 
 					typ.get_type_decoration(), defopc, loc, process, varname, level);
 			}
-		case arraytype :
+		case type_enum::arraytype :
 			// process array and iterate over all subindices
 			return process_array (typ, typ.get_array_dimensions(), defopc, loc, 
 				process, varname, level);
-		case enumtype :
-			if (get_process_tags() == process_atomic || 
-				get_process_tags() == process_all) {
+		case type_enum::enumtype :
+			if (get_process_tags() == ParseUtil::process_tag_enum::atomic ||
+				get_process_tags() == ParseUtil::process_tag_enum::all) {
 				// check if enum is contained with 0 to 15
 				bool withinhex = true;
 				int min = 0;
 				int max = -1;
-				for (enum_map::const_iterator e = typ.get_enum_list().begin(); 
-					e != typ.get_enum_list().end(); ++e) {
-						if ((e->first < 0) || (e->first >= 16)) {
+				for (const auto& e : typ.get_enum_list()) {
+						if ((e.first < 0) || (e.first >= 16)) {
 							withinhex = false;
 						}
 						if (min > max) {
-							min = max = e->first;
+							min = max = e.first;
 						}
-						else if (e->first < min) {
-							min = e->first;
+						else if (e.first < min) {
+							min = e.first;
 						}
-						else if (e->first > max) {
-							max = e->first;
+						else if (e.first > max) {
+							max = e.first;
 						}
 				}
 				// if not, treat as int
 				if (!withinhex) {
 					// add HOPR/LOPR
 					if (max >= min) {
-						defopc.get_properties().insert (property_el (102, std::to_string (max).c_str()));
-						defopc.get_properties().insert (property_el (103, std::to_string (min).c_str()));
+						defopc.get_properties().insert (ParseUtil::property_el (102, std::to_string (max).c_str()));
+						defopc.get_properties().insert (ParseUtil::property_el (103, std::to_string (min).c_str()));
 					}
-					process_arg_tc arg (loc, varname, pt_int, defopc, typ.get_type_name(), true);
+					ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_int, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 				// add opc property for enum values
 				else {
  					// add opc property for enum values
-					for (enum_map::const_iterator e = typ.get_enum_list().begin(); 
-						e != typ.get_enum_list().end(); ++e) {
+					for (const auto& e : typ.get_enum_list()) {
 							defopc.get_properties().insert (
-								property_el (8510 + e->first, e->second));
+								ParseUtil::property_el (8510 + e.first, e.second));
 					}
-					process_arg_tc arg (loc, varname, pt_enum, defopc, typ.get_type_name(), true);
+					ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_enum, defopc, typ.get_type_name(), true);
 					return process (arg) ? 1 : 0;
 				}
 			}
-		case structtype :
-		case functionblock :
+		case type_enum::structtype :
+		case type_enum::functionblock :
 			{
 				// Call process for entire array (not an atomic type)
 				int num = 0;
-				if (get_process_tags() == process_structured || 
-					get_process_tags() == process_all) {
-					process_arg_tc arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
+				if (get_process_tags() == ParseUtil::process_tag_enum::structured ||
+					get_process_tags() == ParseUtil::process_tag_enum::all) {
+					ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_binary, defopc, typ.get_name(), false);
 					num = process (arg) ? 1 : 0;
 				}
 				// iterate over all structure items
-				for (item_list::const_iterator i = typ.get_struct_list().begin(); 
-					i !=  typ.get_struct_list().end(); ++i) {
+				for (const auto& i : typ.get_struct_list()) {
 					// calculate sub element location
-					memory_location el_loc = loc;
-					if (!el_loc.set_section (*i)) {
+					ParseUtil::memory_location el_loc = loc;
+					if (!el_loc.set_section (i)) {
 						continue;
 					}
 					// Add a dot to the variable name
 					ParseUtil::variable_name n (varname);
-					n.append (i->get_name(), i->get_opc(), "."); 
-					opc_list o (defopc);
-					o.add (i->get_opc());
-					num += process_type_tree (i->get_type_name(), 
-						i->get_type_decoration(), o, el_loc, process, n, level + 1);
+					n.append (i.get_name(), i.get_opc(), "."); 
+					ParseUtil::opc_list o (defopc);
+					o.add (i.get_opc());
+					num += process_type_tree (i.get_type_name(), 
+						i.get_type_decoration(), o, el_loc, process, n, level + 1);
 				}
 				return num; 
 			}
@@ -171,34 +166,34 @@ namespace ParseTpy {
 		if ((typ == "SINT")  || (typ == "INT")  || (typ == "DINT")  || (typ == "LINT")  ||
 			(typ == "USINT") || (typ == "UINT") || (typ == "UDINT") || (typ == "ULINT") ||
 			(typ == "BYTE")  || (typ == "WORD") || (typ == "DWORD") || (typ == "LWORD")) {
-			if (get_process_tags() == process_atomic || 
-				get_process_tags() == process_all) {
-				process_arg_tc arg (loc, varname, pt_int, defopc, typ, true);
+			if (get_process_tags() == ParseUtil::process_tag_enum::atomic ||
+				get_process_tags() == ParseUtil::process_tag_enum::all) {
+				ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_int, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
 		}
 		else if (typ == "REAL" || typ == "LREAL") {
-			if (get_process_tags() == process_atomic || 
-				get_process_tags() == process_all) {
-				process_arg_tc arg (loc, varname, pt_real, defopc, typ, true);
+			if (get_process_tags() == ParseUtil::process_tag_enum::atomic ||
+				get_process_tags() == ParseUtil::process_tag_enum::all) {
+				ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_real, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
 		}
 		else if (typ == "BOOL") {
-			if (get_process_tags() == process_atomic || 
-				get_process_tags() == process_all) {
-				process_arg_tc arg (loc, varname, pt_bool, defopc, typ, true);
+			if (get_process_tags() == ParseUtil::process_tag_enum::atomic ||
+				get_process_tags() == ParseUtil::process_tag_enum::all) {
+				ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_bool, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
 		}
 		else if (typ.compare (0, 6, "STRING") == 0) {
-			if ((get_process_tags() == process_atomic || 
-				 get_process_tags() == process_all) &&
+			if ((get_process_tags() == ParseUtil::process_tag_enum::atomic ||
+				 get_process_tags() == ParseUtil::process_tag_enum::all) &&
 				 !get_no_strings()) {
-				process_arg_tc arg (loc, varname, pt_string, defopc, typ, true);
+				ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_string, defopc, typ, true);
 				return process (arg) ? 1 : 0;
 			}
 			else return 0;
@@ -236,10 +231,10 @@ namespace ParseTpy {
 				return 0;
 			}
 			// Call process for entire array (not an atomic type)
-			process_arg_tc arg (loc, varname, pt_binary, defopc, typ.get_name(), false);
+			ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_binary, defopc, typ.get_name(), false);
 			int num = 0;
-			if (get_process_tags() == process_structured || 
-				get_process_tags() == process_all) {
+			if (get_process_tags() == ParseUtil::process_tag_enum::structured ||
+				get_process_tags() == ParseUtil::process_tag_enum::all) {
 				num += process (arg) ? 1 : 0;
 			}
 
@@ -263,8 +258,8 @@ namespace ParseTpy {
 			type_record ntyp (typ);
 			ntyp.set_bit_size (el_bitsize);
 			for (int i = d.first; i < d.first + d.second; ++i) {
-				memory_location el_loc = loc;
-				bit_location el ((i - d.first) * el_bitsize, el_bitsize);
+				ParseUtil::memory_location el_loc = loc;
+				ParseUtil::bit_location el ((i - d.first) * el_bitsize, el_bitsize);
 				if (!el_loc.set_section (el)) {
 					continue;
 				}
