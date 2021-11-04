@@ -47,10 +47,6 @@ struct epics_record_traits<aaival>
 	typedef aaiRecord traits_type;
 	typedef void* value_type;
 	static const char* const name () { return "aaival"; };
-#pragma warning (disable : 26812)
-	static const aitEnum value_ait_type = aitEnumFloat64;
-#pragma warning (default : 26812)
-	static const aitInt32 value_count = 0;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -70,8 +66,6 @@ struct epics_record_traits<aaoval>
 	typedef aaoRecord traits_type;
 	typedef void* value_type;
 	static const char* const name () { return "aaoval"; };
-	static const aitEnum value_ait_type = aitEnumFloat64;
-	static const aitInt32 value_count = 0;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -91,8 +85,6 @@ struct epics_record_traits<aival>
 	typedef aiRecord traits_type;
 	typedef epicsFloat64 value_type;
 	static const char* const name () { return "aival"; };
-	static const aitEnum value_ait_type = aitEnumFloat64;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -110,8 +102,6 @@ struct epics_record_traits<airval>
 	typedef aiRecord traits_type;
 	typedef epicsInt32 value_type;
 	static const char* const name () { return "airval"; };
-	static const aitEnum value_ait_type = aitEnumInt32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
@@ -129,8 +119,6 @@ struct epics_record_traits<aoval>
 	typedef aoRecord traits_type;
 	typedef epicsFloat64 value_type;
 	static const char* const name () { return "aoval"; };
-	static const aitEnum value_ait_type = aitEnumFloat64;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -148,8 +136,6 @@ struct epics_record_traits<aorval>
 	typedef aoRecord traits_type;
 	typedef epicsInt32 value_type;
 	static const char* const name () { return "aorval"; };
-	static const aitEnum value_ait_type = aitEnumInt32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
@@ -167,8 +153,6 @@ struct epics_record_traits<bival>
 	typedef biRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "bival"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -186,8 +170,6 @@ struct epics_record_traits<birval>
 	typedef biRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "birval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
@@ -205,8 +187,6 @@ struct epics_record_traits<boval>
 	typedef boRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "boval"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -224,8 +204,6 @@ struct epics_record_traits<borval>
 	typedef boRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "borval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
@@ -243,8 +221,6 @@ struct epics_record_traits<longinval>
 	typedef longinRecord traits_type;
 	typedef epicsInt32 value_type;
 	static const char* const name () { return "longinval"; };
-	static const aitEnum value_ait_type = aitEnumInt32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -262,8 +238,6 @@ struct epics_record_traits<longoutval>
 	typedef longoutRecord traits_type;
 	typedef epicsInt32 value_type;
 	static const char* const name () { return "longoutval"; };
-	static const aitEnum value_ait_type = aitEnumInt32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -282,8 +256,6 @@ struct epics_record_traits<int64inval>
 	typedef int64inRecord traits_type;
 	typedef epicsInt64 value_type;
 	static const char* const name() { return "int64inval"; };
-	static const aitEnum value_ait_type = aitEnumInt64;
-	static const aitInt32 value_count = 1;
 	static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -303,8 +275,6 @@ struct epics_record_traits<int64outval>
 	typedef int64outRecord traits_type;
 	typedef epicsInt64 value_type;
 	static const char* const name() { return "int64outval"; };
-	static const aitEnum value_ait_type = aitEnumInt64;
-	static const aitInt32 value_count = 1;
 	static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -325,8 +295,6 @@ struct epics_record_traits<mbbival>
 	typedef mbbiRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "mbbival"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -344,8 +312,6 @@ struct epics_record_traits<mbbirval>
 	typedef mbbiRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "mbbirval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
@@ -363,8 +329,6 @@ struct epics_record_traits<mbboval>
 	typedef mbboRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "mbboval"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -382,8 +346,6 @@ struct epics_record_traits<mbborval>
 	typedef mbboRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "mbborval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
@@ -401,8 +363,6 @@ struct epics_record_traits<mbbiDirectval>
 	typedef mbbiDirectRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "mbbiDirectval"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -420,8 +380,6 @@ struct epics_record_traits<mbbiDirectrval>
 	typedef mbbiDirectRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "mbbiDirectrval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
@@ -439,8 +397,6 @@ struct epics_record_traits<mbboDirectval>
 	typedef mbboDirectRecord traits_type;
 	typedef epicsEnum16 value_type;
 	static const char* const name () { return "mbboDirectval"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -458,8 +414,6 @@ struct epics_record_traits<mbboDirectrval>
 	typedef mbboDirectRecord traits_type;
 	typedef epicsUInt32 value_type;
 	static const char* const name () { return "mbboDirectrval"; };
-	static const aitEnum value_ait_type = aitEnumUint32;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
@@ -477,8 +431,6 @@ struct epics_record_traits<stringinval>
 	typedef stringinRecord traits_type;
 	typedef char value_type[40];
 	static const char* const name () { return "stringinval"; };
-	static const aitEnum value_ait_type = aitEnumFixedString;
-	static const aitInt32 value_count = 40;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -496,8 +448,6 @@ struct epics_record_traits<stringoutval>
 	typedef stringoutRecord traits_type;
 	typedef char value_type[40];
 	static const char* const name () { return "stringoutval"; };
-	static const aitEnum value_ait_type = aitEnumFixedString;
-	static const aitInt32 value_count = 40;
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -515,8 +465,6 @@ struct epics_record_traits<lsival>
 	typedef lsiRecord traits_type;
 	typedef char* value_type;
 	static const char* const name() { return "lsival"; };
-	static const aitEnum value_ait_type = aitEnumString;
-	static const aitInt32 value_count = 65535;
 	static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -538,8 +486,6 @@ struct epics_record_traits<lsoval>
 	typedef lsoRecord traits_type;
 	typedef char* value_type;
 	static const char* const name() { return "lsoval"; };
-	static const aitEnum value_ait_type = aitEnumString;
-	static const aitInt32 value_count = 65535;
 	static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
@@ -561,8 +507,6 @@ struct epics_record_traits<waveformval>
 	typedef waveformRecord traits_type;
 	typedef void* value_type;
 	static const char* const name () { return "waveformval"; };
-	static const aitEnum value_ait_type = aitEnumInvalid;
-	static const aitInt32 value_count = 0;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -576,8 +520,6 @@ struct epics_record_traits<eventval>
 	typedef eventRecord traits_type;
 	typedef epicsUInt16 value_type;
 	static const char* const name () { return "eventval"; };
-	static const aitEnum value_ait_type = aitEnumUint16;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
@@ -591,8 +533,6 @@ struct epics_record_traits<histogramval>
 	typedef histogramRecord traits_type;
 	typedef void* value_type;
 	static const char* const name () { return "histogramval"; };
-	static const aitEnum value_ait_type = aitEnumInvalid;
-	static const aitInt32 value_count = 1;
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;

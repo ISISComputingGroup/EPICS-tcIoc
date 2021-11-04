@@ -14,14 +14,17 @@
 #include "recGbl.h"
 #include "recSup.h"
 #include "epicsExport.h"
-#include "aitConvert.h"
+//#include "aitConvert.h"
 #include "epicsRingPointer.h"
 #pragma warning (default : 4996)
 #pragma warning (default : 26495)
 #pragma warning (default : 26812)
 #undef _CRT_SECURE_NO_WARNINGS
 #include <iostream>
-
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
+#endif
 //int nProcessed = 0;
 //clock_t epicsbegin;
 //clock_t epicsend;
@@ -239,10 +242,11 @@ static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
  ************************************************************************/
 static bool load_callback_queue_func()
 {
+	bool RunTimeLinkSuccess = false;
+#ifdef _MSC_VER
 	// Use dynamic DLL linking in case of unpatched EPICS base
 	HINSTANCE hinstLib;
 	callback_queue_func func;
-	bool RunTimeLinkSuccess = false;
 	// Get a handle to the DLL module.
 	hinstLib = LoadLibrary (callback_queue_library);
 	// If the handle is valid, try to get the function address.
@@ -262,6 +266,7 @@ static bool load_callback_queue_func()
 	if (!RunTimeLinkSuccess) {
 		printf("Unable to load callback queue information\n");
 	}
+#endif
 	return RunTimeLinkSuccess;
 }
 
@@ -345,7 +350,7 @@ static devTcDefIn<longinval> longinval_record_tc_dset;
 
 // int64int record
 #if EPICS_VERSION >= 7
-static devTcDefIn<int65inval> int64inval_record_tc_dset;
+static devTcDefIn<int64inval> int64inval_record_tc_dset;
 #endif
 
 // mbbi record
@@ -380,7 +385,7 @@ static devTcDefOut<longoutval> longoutval_record_tc_dset;
 
 // int64out record
 #if EPICS_VERSION >= 7
-static devTcDefOut<int65outval> int64outval_record_tc_dset;
+static devTcDefOut<int64outval> int64outval_record_tc_dset;
 #endif
 // mbbo record
 static devTcDefOut<mbboval> mbboval_record_tc_dset;

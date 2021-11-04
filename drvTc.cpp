@@ -7,7 +7,7 @@
 #pragma warning (disable : 26812)
 #pragma warning (disable : 26495)
 #pragma warning (disable : 4996)
-#include "gdd.h"
+//#include "gdd.h"
 #include "dbStaticLib.h"
 #include "dbAccess.h"
 #include "dbDefs.h"

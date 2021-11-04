@@ -83,7 +83,7 @@ available options can be found on page TwinCAT EPICS Options.
 Versions
 --------
 
-** Version 2.2 **
+**Version 2.2**
 
 Added features:
 
@@ -99,7 +99,7 @@ Bug Fixes:
  * Fix filetime conversion
  * Compile with most recent VS2019
 
-** Version 2.1 **
+**Version 2.1**
 
 Added features:
 
@@ -112,7 +112,7 @@ Bug Fixes:
  * Problem with 4 digit version numbers for TwinCAT
  * Issue with input directory for macro generation in TwinCAT 3.1
 
-** Version 2.0 **
+**Version 2.0**
 
 Added features:
 
@@ -137,7 +137,7 @@ Bug Fixes:
 * Use MT-safe compare/exchange in record read/write
 * Documentation clean up
 
-** Version 1.3 **
+**Version 1.3**
 
 Added features:
 * Support for replacement rules in aliases 
@@ -158,7 +158,7 @@ Bug Fixes:
   into a long. Removed tags and added LOPR and HOPR.
 * Fix problem with multi-dimensional arrays
 
-** Version 1.2 **
+**Version 1.2**
 
 Added features:
 * Add support for TwinCAT 3.1
@@ -187,7 +187,7 @@ Bug Fixes:
 * Fix lost namespace issues in TwinCAT 3.1
 * Fix macro support for TwinCAT 3.1
 
-** Version 1.1 **
+**Version 1.1**
 
 Added features:
 * Add support for alias OPC properties to assign alternate names to
@@ -199,7 +199,7 @@ Bug Fixes:
 * Fixed severity for analog alarm values.
 * Added additional messages for ADS errors.
 
-** Version 1.0 **
+**Version 1.0**
 
 Initial release.
 
