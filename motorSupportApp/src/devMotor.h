@@ -37,6 +37,7 @@ public:
 	asynStatus stop(double acceleration);
 	asynStatus pollAll(st_axis_status_type *pst_axis_status);
 	asynStatus poll(bool *moving);
+	asynStatus setClosedLoop(bool closedLoop);
 
 protected:
 	void getInteger(std::string pvSuffix, epicsInt32* pvalue, const std::string* prefix = 0);
