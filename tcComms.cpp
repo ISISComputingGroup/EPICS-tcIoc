@@ -326,6 +326,7 @@ TcPLC::TcPLC (std::string tpyPath)
 	ads_state (ADSSTATE_INVALID), ads_handle (0), ads_restart (false), nReadPort(0), nWritePort(0),
 	nNotificationPort(0), read_active(false), plcId(0)
 {
+	printf("cyclesLeft set to %i", cyclesLeft);
 	// modification time
 	path fpath(pathTpy);
 	auto ftime = last_write_time (fpath);
@@ -358,6 +359,7 @@ bool TcPLC::set_addr(stringcase netIdStr, int port)
  ************************************************************************/
 bool TcPLC::start()
 {
+	printf("started");
 	// initialize update scanner
 	double ticks = 10.0 / fabs((double)update_scanner_period) * 1000.0;
 	if (ticks < 1) ticks = 1;
@@ -771,21 +773,28 @@ void TcPLC::read_scanner()
 	// Reset countdown until EPICS read
 	if (readAll) cyclesLeft = scanRateMultiple;
 
+	printf("reading all: %d cycles left: %i\n", readAll, cyclesLeft);
+
 	// Update all tc records
 	for (auto recordsEntry = records.begin(); recordsEntry != records.end(); ++recordsEntry) {
 		BaseRecord* pRecord = recordsEntry->second.get();
 		if (!pRecord) continue;
 		TCatInterface* tcat = dynamic_cast<TCatInterface*>(pRecord->get_plcInterface());
+		const std::basic_string name = pRecord->get_name();
 		if (!tcat) continue;
 		bool isReadOnly = (pRecord->get_access_rights() == read_only);
 		buffer_type* buffer = adsResponseBufferVector[tcat->get_requestNum()].get();
 		if (readAll || !isReadOnly) {
+			printf("reading %s \n", name.c_str());
 			if (read_success) {
 				pRecord->PlcWriteBinary(buffer + tcat->get_requestOffs(), tcat->get_size());
 			}
 			else {
 				pRecord->UserSetValid (false);
 			}
+		}
+		else {
+			printf("not reading %s \n", name.c_str());
 		}
 	}
 

@@ -395,47 +395,51 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
   */
 asynStatus devMotorAxis::poll(bool *moving) {
     asynStatus comStatus = asynSuccess;
-    int nowMoving = 0;
-	st_axis_status_type st_axis_status;
-	memset(&st_axis_status, 0, sizeof(st_axis_status));
+  //   int nowMoving = 0;
+	// st_axis_status_type st_axis_status;
+	// memset(&st_axis_status, 0, sizeof(st_axis_status));
 	
-	// The comms error neeeds to be set to 0 to start to force the new error on init
-	setIntegerParam(pC_->motorStatusCommsError_, 0);
+	// // The comms error neeeds to be set to 0 to start to force the new error on init
+	// setIntegerParam(pC_->motorStatusCommsError_, 0);
 
-	try {		
-		// Go and get all the values from the device
-		pollAll(&st_axis_status);
+	// try {		
+	// 	// Go and get all the values from the device
+	// 	pollAll(&st_axis_status);
 
-	} catch (const std::runtime_error& e) {
-		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
-		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
-		previousError = e.what();
-		comStatus = asynError;
-    }
+	// } catch (const std::runtime_error& e) {
+	// 	int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
+	// 	asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
+	// 	previousError = e.what();
+	// 	comStatus = asynError;
+  //   }
 
-	// Set the MSTA bits
-	setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
-	setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
-	setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
-	setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
-	setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
-	setIntegerParam(pC_->motorStatusAtHome_, 0);
-	setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
+	// // Set the MSTA bits
+	// setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
+	// setIntegerParam(pC_->motorStatusProblem_, st_axis_status.bError);
+	// setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
+	// setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
+	// setIntegerParam(pC_->motorStatusPowerOn_, st_axis_status.bEnable);
+	// setIntegerParam(pC_->motorStatusAtHome_, 0);
+	// setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
 	
-	// Get the actual position
-	scaleValueToMotorRecord(&st_axis_status.fActPosition);
-	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
-	setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
+	// // Get the actual position
+	// scaleValueToMotorRecord(&st_axis_status.fActPosition);
+	// setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
+	// setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
 
-	// Calculate if moving and set appropriate bits
-	nowMoving = st_axis_status.bMoving;
-	setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-	setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-	*moving = nowMoving ? true : false;
+	// // Calculate if moving and set appropriate bits
+  //  asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+	// 				"Bmoving is: %i\n", st_axis_status.bMoving);
+	// nowMoving = st_axis_status.bMoving;
+	// setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+	// setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+	// *moving = nowMoving ? true : false;
+  // asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+  //     "Moving is: %i\n", *moving);
 
-	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
+	// setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
 	
-    callParamCallbacks();
+  //   callParamCallbacks();
     
     return asynSuccess;
 }

@@ -722,6 +722,7 @@ DWORD WINAPI scannerThread (scanner_thread_args args)
  ************************************************************************/
 bool BasePLC::start_read_scanner()
 {
+	printf("read scanner period is: %i", read_scanner_period);
 	scanner_thread_args args = {this, read_scanner_period, &BasePLC::read_scanner};
 	try {
 		read_thread = std::thread (scannerThread, args);
