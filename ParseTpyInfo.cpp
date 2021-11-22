@@ -5,7 +5,6 @@ using namespace std;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
-#pragma warning (disable: 4996)
 
 /** @file ParseTpyInfo.cpp
 	Source file for tpy parsing methods.
@@ -20,15 +19,15 @@ public:
 	explicit syminfo_processing (FILE* outfile = 0, bool atomic = true)
 		: outf (outfile ? outfile : stdout), firstline (true) {}
 	/// Process
-	bool operator() (const process_arg& arg);
+	bool operator() (const process_arg& arg) const;
 protected:
 	/// Ouptut file
 	FILE*		outf;
 	/// Firstline?
-	bool		firstline;
+	mutable bool firstline;
 };
 
-bool syminfo_processing::operator() (const process_arg& arg)
+bool syminfo_processing::operator() (const process_arg& arg) const
 {
 	if (firstline) {
 		firstline = false;
@@ -45,31 +44,31 @@ bool syminfo_processing::operator() (const process_arg& arg)
 	switch (arg.get_process_type()) 
 	{
 	// Numeral type
-	case pt_int:
+	case process_type_enum::pt_int:
 		fprintf (outf, "int    ");
 		break;
 	// Floating point type
-	case pt_real:
+	case process_type_enum::pt_real:
 		fprintf (outf, "real   ");
 		break;
 	// Logic type
-	case pt_bool:
+	case process_type_enum::pt_bool:
 		fprintf (outf, "bool   ");
 		break;
 	// String type
-	case pt_string:
+	case process_type_enum::pt_string:
 		fprintf (outf, "string ");
 		break;
 	// Enumerated type
-	case pt_enum:
+	case process_type_enum::pt_enum:
 		fprintf (outf, "enum   ");
 		break;
 	// Binary type
-	case pt_binary:
+	case process_type_enum::pt_binary:
 		fprintf (outf, "binary ");
 		break;
 	// Invalid type
-	case pt_invalid:
+	case process_type_enum::pt_invalid:
 	default:
 		fprintf (outf, "?      ");
 		break;
@@ -142,7 +141,9 @@ int main (int argc, char *argv[])
 	FILE* inpf = stdin;
 	FILE* outf = stdout;
 	if (!inpfilename.empty()) {
+		#pragma warning (disable: 4996)
 		inpf = fopen (inpfilename.c_str(), "r");
+		#pragma warning (default: 4996)
 		if (!inpf) {
 			fprintf (stderr, "Failed to open input %s.\n", inpfilename.c_str());
 			return 1;
@@ -150,7 +151,9 @@ int main (int argc, char *argv[])
 	}
 	// open output file
 	if (!outfilename.empty()) {
+		#pragma warning (disable: 4996)
 		outf = fopen (outfilename.c_str(), "w");
+		#pragma warning (default: 4996)
 		if (!outf) {
 			fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 			return 1;
@@ -166,7 +169,8 @@ int main (int argc, char *argv[])
 
 	// work through the symbol list
 	clock_t t2 = clock();
-	if (!tpyfile.process_symbols (syminfo_processing (outf), prefix)) {
+	syminfo_processing syminfo(outf);
+	if (!tpyfile.process_symbols (syminfo, prefix)) {
 		fprintf (stderr, "Unable to parse %s\n", inpfilename.c_str());
 		return 1;
 	}

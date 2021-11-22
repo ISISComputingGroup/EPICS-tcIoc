@@ -7,7 +7,6 @@ using namespace ParseUtil;
 using namespace ParseTpy;
 using namespace EpicsTpy;
 
-#pragma warning (disable: 4996)
 
 /** @file EpicsDbGen.cpp
 	Source for the main program that generates an EPICs .db file
@@ -125,7 +124,9 @@ int main(int argc, char *argv[])
 	// open input file
 	FILE* inpf = stdin;
 	if (!inpfilename.empty()) {
+		#pragma warning (disable : 4996)
 		inpf = fopen (inpfilename.c_str(), "r");
+		#pragma warning (default : 4996)
 		if (!inpf) {
 			fprintf (stderr, "Failed to open input %s.\n", inpfilename.c_str());
 			return 1;

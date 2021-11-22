@@ -120,7 +120,7 @@ protected:
 /** This enum denotes the opc state.
      @brief OPC state enum
 ************************************************************************/
-enum opc_enum 
+enum class opc_enum 
 {
 	/// Do not change inherited behaviour
 	no_change, 
@@ -145,7 +145,7 @@ class opc_list
 {
 public:
 	/// Default constructor
-	opc_list() : opc (no_change) {}
+	opc_list() : opc (opc_enum::no_change) {}
 	/// Constructor
 	opc_list (opc_enum state, const property_map& map) 
 		: opc(state), opc_prop(map) {}
@@ -319,7 +319,7 @@ protected:
 /** Enumerated type to describe the process type
 	@brief Process type 
  ************************************************************************/
-enum process_type_enum 
+enum class process_type_enum 
 {
 	/// Invalid type
 	pt_invalid,
@@ -352,7 +352,7 @@ public:
 	process_arg (const variable_name& vname, process_type_enum pt, 
 		const opc_list& o, const std::stringcase& tname, bool at) 
 		: name (vname), type_n (tname), opc (o), 
-		ptype (pt), atomic (at) {}
+		ptype (pt), atomic (at), size (0) { deduce_size(); }
 
 	/// Get variable
 	const variable_name& get_var() const { return name; }
@@ -371,6 +371,8 @@ public:
 	std::stringcase get_process_string () const;
 	/// Is atomic (or structured) type
 	bool is_atomic() const { return atomic; }
+	/// Get string length
+	int get_size() const { return size; }
 
 	/// Gets a string representation of a PLC & memory location
 	/// @return string with format "prefixigroup/ioffset:size", empty on error
@@ -387,6 +389,11 @@ protected:
 	process_type_enum		ptype;
 	/// Atomic element
 	bool					atomic;
+	// Length if string
+	int						size;
+
+	/// deduce string length from type
+	virtual void deduce_size();
 };
 
 /** Argument which is passed to the name/tag processing function.
@@ -428,14 +435,14 @@ protected:
 /** Enumerated type to describe the tag processing
 	@brief Tag preoicessing enum
 ************************************************************************/
-enum process_tag_enum 
+enum class process_tag_enum 
 {
 	/// Process all data types
-	process_all,
+	all,
 	/// Process atomic data types
-	process_atomic,
+	atomic,
 	/// Process structured data type (array, struct, function block)
-	process_structured
+	structured
 };
 
 /** Class to specify which symbols and tags/names to process
@@ -445,7 +452,7 @@ class tag_processing
 {
 public:
 	/// Default constructor
-	tag_processing() : export_all (false), process_tags (process_all),
+	tag_processing() : export_all (false), process_tags (process_tag_enum::all),
 		no_string_tags (false) {}
 	/// Constructor
 	/// @param all Process all tags
@@ -463,7 +470,7 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	tag_processing (int argc, const char* const argv[], bool argp[] = 0)
-		: export_all (false), process_tags (process_all), 
+		: export_all (false), process_tags (process_tag_enum::all), 
 		no_string_tags (false) { getopt (argc, argv, argp); }
 
 	/// Parse a command line

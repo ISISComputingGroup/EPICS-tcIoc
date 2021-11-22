@@ -185,13 +185,13 @@ private:
  ************************************************************************/
  type_enum parserinfo_type::get_type_description() const
  {
-	 if (name_parse != 1) return unknown;
-	 if (array_parse == 1 && type_parse == 1) return arraytype;
-	 if (enum_parse == 1) return enumtype;
-	 if (struct_parse == 1 && !fb_parse) return structtype;
-	 if (struct_parse == 1 &&  fb_parse) return functionblock;
-	 if (type_parse == 1) return simple;
-	 return unknown;
+	 if (name_parse != 1) return type_enum::unknown;
+	 if (array_parse == 1 && type_parse == 1) return type_enum::arraytype;
+	 if (enum_parse == 1) return type_enum::enumtype;
+	 if (struct_parse == 1 && !fb_parse) return type_enum::structtype;
+	 if (struct_parse == 1 &&  fb_parse) return type_enum::functionblock;
+	 if (type_parse == 1) return type_enum::simple;
+	 return type_enum::unknown;
  }
 
 
@@ -304,12 +304,12 @@ bool compiler_info::is_cmpl_Valid() const
 	if (cmpl_versionstr.empty()) {
 		return false;
 	}
+	unsigned int v1;
+	unsigned int v2;
 	int end = 0;
-	int num = sscanf_s (cmpl_versionstr.c_str(), "%*u.%*u.%*s%n", &end);
-	if ((num != 0) || (end != cmpl_versionstr.length())) {
-		return false;
-	}
-	return true;
+	int num = sscanf_s (cmpl_versionstr.c_str(), "%u.%u.%*s%n", 
+						&v1, &v2, &end);
+	return (num == 2);
 }
 
 /* compiler_info::set_tcat_versionstr
@@ -335,12 +335,13 @@ bool compiler_info::is_tcat_Valid() const
 	if (tcat_versionstr.empty()) {
 		return false;
 	}
+	unsigned int v1;
+	unsigned int v2;
+	unsigned int v3;
 	int end = 0;
-	int num = sscanf_s (tcat_versionstr.c_str(), "%*u.%*u.%*u%n", &end);
-	if ((num != 0) || (end != tcat_versionstr.length())) {
-		return false;
-	}
-	return true;
+	int num = sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u%n", 
+						&v1, &v2, &v3, &end);
+	return (num == 3);
 }
 /* type_map::insert
  ************************************************************************/
@@ -473,8 +474,8 @@ void tpy_file::parse_finish ()
 {
 	std::stringcase tcname = project_info.get();
 	if (!tcname.empty()) {
-		for (auto sym = sym_list.begin(); sym != sym_list.end(); ++sym) {
-			sym->get_opc().add (property_el (OPC_PROP_PLCNAME, tcname));
+		for (auto& sym : sym_list) {
+			sym.get_opc().add (property_el (OPC_PROP_PLCNAME, tcname));
 		}
 	}
 }
@@ -915,7 +916,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 			pinfo->opc_parse = 1;
 			if (pinfo->opc_prop.first == -1) {
 				int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
-				pinfo->sym.get_opc().set_opc_state (num ? publish : silent);
+				pinfo->sym.get_opc().set_opc_state (num ? opc_enum::publish : opc_enum::silent);
 			}
 			else if (pinfo->opc_prop.first > 0) {
 				pinfo->sym.get_opc().add (pinfo->opc_prop);
@@ -966,7 +967,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 			--pinfo->types;
 			pinfo->rec.set_type_description (pinfo->get_type_description());
 			// remove simple type which reference themselves, ie., discard type aliases
-			if ((pinfo->rec.get_type_description() != simple) ||
+			if ((pinfo->rec.get_type_description() != type_enum::simple) ||
 				(pinfo->rec.get_name() != pinfo->rec.get_type_name())) {
 				pinfo->get_types().insert (
 				type_map::value_type (pinfo->rec.get_name_decoration(), pinfo->rec));
@@ -1074,7 +1075,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 			if (pinfo->opc_prop.first == -1) {
 				int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
 				if (pinfo->opc_cur) 
-					pinfo->opc_cur->set_opc_state (num ? publish : silent);
+					pinfo->opc_cur->set_opc_state (num ? opc_enum::publish : opc_enum::silent);
 			}
 			else if (pinfo->opc_prop.first > 0) {
 				if (pinfo->opc_cur) 

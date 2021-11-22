@@ -1,9 +1,12 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "drvTc.h"
 #include "ParseTpy.h"
 #include "TpyToEpics.h"
 #include "TpyToEpicsConst.h"
 #include "infoPlc.h"
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning (disable : 26812)
+#pragma warning (disable : 26495)
+#pragma warning (disable : 4996)
 #include "gdd.h"
 #include "dbStaticLib.h"
 #include "dbAccess.h"
@@ -18,6 +21,9 @@
 #include "initHooks.h"
 #include "tcComms.h"
 #include "epicsExit.h"
+#pragma warning (default : 4996)
+#pragma warning (default : 26495)
+#pragma warning (default : 26812)
 #undef _CRT_SECURE_NO_WARNINGS
 
 /** @file drvTc.cpp
@@ -107,7 +113,10 @@ public:
 		ParseUtil::replacement_table& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
 		: plc (&p), invnum (0), lists (l), macros (m) { 
-			device_support = device_support_tc_name; 
+			device_support = device_support_type::tc_name;
+#if EPICS_VERSION < 7
+			int_support = int_support_type::int_32;
+#endif
 			set_rule_table (rules);
 			init_lists(); init_macros(); }
 	~epics_tc_db_processing() { 
@@ -255,7 +264,7 @@ bool epics_tc_db_processing::process_list (filename_rule_list_tuple& listdef,
 {
 	epics_list_processing* lptr = std::get<2>(listdef);
 	if (!lptr) return false;
-	if (std::get<3>(listdef) && arg.get_process_type() == pt_string) return false;
+	if (std::get<3>(listdef) && arg.get_process_type() == process_type_enum::pt_string) return false;
 	return (*lptr) (arg);
 }
 
@@ -340,7 +349,7 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtInt8;
 	else if (arg.get_type_name() == "USINT" || arg.get_type_name() == "BYTE") 
 		rt = plc::data_type_enum::dtUInt8;
-	else if (arg.get_type_name() == "INT" || arg.get_process_type() == pt_enum) 
+	else if (arg.get_type_name() == "INT" || arg.get_process_type() == process_type_enum::pt_enum)
 		rt = plc::data_type_enum::dtInt16;
 	else if (arg.get_type_name() == "UINT" || arg.get_type_name() =="WORD") 
 		rt = plc::data_type_enum::dtUInt16;
@@ -348,7 +357,11 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtInt32;
 	else if (arg.get_type_name() == "UDINT" || arg.get_type_name() == "DWORD") 
 		rt = plc::data_type_enum::dtUInt32;
-	else if (arg.get_type_name() == "REAL") 
+	else if (arg.get_type_name() == "LINT")
+		rt = plc::data_type_enum::dtInt64;
+	else if (arg.get_type_name() == "ULINT" || arg.get_type_name() == "LWORD")
+		rt = plc::data_type_enum::dtUInt64;
+	else if (arg.get_type_name() == "REAL")
 		rt = plc::data_type_enum::dtFloat;
 	else if (arg.get_type_name() == "LREAL") 
 		rt = plc::data_type_enum::dtDouble;
@@ -377,8 +390,8 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 			targ->get_ioffset(),
 			targ->get_bytesize(),
 			arg.get_type_name(),
-			arg.get_process_type() == pt_binary,
-			arg.get_process_type() == pt_enum);
+			arg.get_process_type() == process_type_enum::pt_binary,
+			arg.get_process_type() == process_type_enum::pt_enum);
 		iface = tcat;
 	}
 	
@@ -442,7 +455,7 @@ bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
 {
 	bool err = false;
 	// first mark all channel names by a sentinel
-	std::regex e(R"++((record\w*\(\w*(bi|bo|ai|ao|mbbi|mbbo|longin|longout|stringin|stringout)\w*,\w*)"([^"]+)")++");
+	std::regex e(R"++((record\w*\(\w*(bi|bo|ai|ao|mbbi|mbbo|longin|longout|int64in|int64out|stringin|stringout|lsi|lso)\w*,\w*)"([^"]+)")++");
 	std::stringcase fmt("$1%#$3#%");
 	infodb = std::regex_replace(infodb, e, fmt);
 	// now: search and replace  
@@ -498,7 +511,9 @@ void tcLoadRecords (const iocshArgBuf *args)
 		return;
 	}
 	FILE* inpf = 0;
+	#pragma warning (disable : 4996)
 	inpf = fopen (args[0].sval, "r");
+	#pragma warning (default : 4996)
 	if (!inpf) {
 		printf ("Failed to open input %s.\n", args[0].sval);
 		return;
@@ -568,8 +583,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 	(split_io_support&)(dbproc) = iosupp;
 	// setup macro processing
 	for (dirname_arg_macro_tuple& macro : macros) {
-		if (get<2>(macro)) get<2>(macro)->set_twincat3 (
-				tpyfile.get_project_info().get_tcat_version_major() >= 3);
+		if (get<2>(macro)) {
+			bool twincat3 = (tpyfile.get_project_info().get_tcat_version_major() >= 3);
+			get<2>(macro)->set_twincat3(twincat3);
+			// set output dir to the input dir for Tc3
+			if (twincat3) get<2>(macro)->set_indirname(get<2>(macro)->get_outdirname());
+		}
 	}
 
 	// generate db file from tc records
@@ -606,7 +625,9 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	if (!tcplc->start ()) {
 		printf ("Failed to start\n");
+#ifdef DEBUG
 		return;
+#endif
 	}
 
 	plc::System::get().add(plc::BasePLCPtr(tcplc)); // adopted by TSystem
@@ -857,6 +878,8 @@ void tcPrintVal (const iocshArgBuf *args)
 /*  Process hook
     @brief piniProcessHook
  ************************************************************************/
+
+#pragma warning (disable : 26812)
 static void piniProcessHook (initHookState state)
 {
     switch (state) {
@@ -881,6 +904,7 @@ static void piniProcessHook (initHookState state)
         break;
     }
 }
+#pragma warning (default : 26812)
 
 
 /** Register functions to EPICS IOC shell
