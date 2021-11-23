@@ -6,7 +6,6 @@
 #pragma warning (disable: 4996)
 #include "epicsVersion.h"
 #include "dbAccess.h"
-#include "aitTypes.h"
 #include "alarm.h"
 #include "asDbLib.h"
 #include "cvtTable.h"
@@ -307,12 +306,6 @@ struct epics_record_traits
 	typedef epicsFloat64 value_type;
 	/// Name of the record
 	static const char* const name () { return "invalid"; };
-	/** Data type of records val/rval field
-	    aitEnumInvalid type signals an array. Take type/len from record */
-	static const aitEnum value_ait_type = aitEnumFloat64;
-	/** Array length: 1=scalar value, 0=array - see nelm for length,
-	    fixed for strings according to the record */
-	static const aitInt32 value_count = 0;
     /// return value for read_io functions 0=default, 2=don't convert
     static const int value_conversion = 0;
 	/// Indicates if this is an input record

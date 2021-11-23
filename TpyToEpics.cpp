@@ -1320,7 +1320,11 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		if (((arg.get_size() == 8) &&
 			(get_int_support() == int_support_type::int_auto)) ||
 			(get_int_support() == int_support_type::int_64))	{
+#if EPICS_VERSION >= 7
 			tname = readonly ? "int64in" : "int64out";
+#else
+			tname = readonly ? "longin" : "longout";
+#endif
 		}
 		else {
 			tname = readonly ? "longin" : "longout";
