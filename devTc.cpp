@@ -14,7 +14,6 @@
 #include "recGbl.h"
 #include "recSup.h"
 #include "epicsExport.h"
-//#include "aitConvert.h"
 #include "epicsRingPointer.h"
 #pragma warning (default : 4996)
 #pragma warning (default : 26495)

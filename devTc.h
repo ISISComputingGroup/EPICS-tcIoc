@@ -6,7 +6,6 @@
 #pragma warning (disable: 4996)
 #include "epicsVersion.h"
 #include "dbAccess.h"
-//#include "aitTypes.h"
 #include "alarm.h"
 #include "asDbLib.h"
 #include "cvtTable.h"
