@@ -154,7 +154,7 @@ public:
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
-		in src\ioc\db\callback.c
+		in src\ioc\db\callback.c (not needed in EPICS 7)
 
 		@param pri Priority of ring buffer
 		@return size of the callback ring buffer */
@@ -173,7 +173,7 @@ public:
 
 		    static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
-		in src\ioc\db\callback.c
+		in src\ioc\db\callback.c (not needed in EPICS 7)
 
 		@param pri Priority of ring buffer
 		@return used entries in the callback ring buffer */
@@ -192,11 +192,22 @@ public:
 
 			static cbQueueSet callbackQueue[NUM_CALLBACK_PRIORITIES];
 
-		in src\ioc\db\callback.c
+		in src\ioc\db\callback.c (not needed in EPICS 7)
 
 		@param pri Priority of ring buffer
 		@return free entries in the callback ring buffer */
 	static int get_callback_queue_free(int pri);
+	/** Get the high watermark in the callback ring buffer
+		@param pri Priority of ring buffer
+		@return high watermark in the callback ring buffer */
+	static int get_callback_queue_highwatermark(int pri);
+	/** Get the number of overflows in the callback ring buffer
+		@param pri Priority of ring buffer
+		@return number of overflows in the callback ring buffer */
+	static int get_callback_queue_overflow(int pri);
+	/** Reset the overflow count in the callback ring buffer
+		@return number of overflows in the callback ring buffer */
+	static int set_callback_queue_highwatermark_reset();
 
 protected:
 	/// Reset ioscan use flag

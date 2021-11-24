@@ -71,7 +71,7 @@ public:
 	~InfoInterface() {};
 
 	/// push data
-	virtual bool push() override {return true; };
+	virtual bool push() override;
 	/// pull data
 	virtual bool pull() override {return true; };
 	/// write data
@@ -101,6 +101,8 @@ protected:
 	std::stringcase		tCatType;
 	/// Update frequency
 	update_enum			update_freq;
+	/// Readonly flag
+	bool				readonly;
 
 	/// pointer to info update method
 	info_update_method	info_update;
@@ -189,38 +191,46 @@ protected:
 	bool info_update_callback_queue0_size();
 	/// info update: Used entries in low priority callback queue
 	bool info_update_callback_queue0_used();
-	/// info update: Maximum used entries in low priority callback queue
+	/// info update: Maximum used entries (high watermark) in low priority callback queue
 	bool info_update_callback_queue0_max();
+	/// info update: Overflows in low priority callback queue
+	bool info_update_callback_queue0_overflow();
 	/// info update: Free entries low priority callback queue
 	bool info_update_callback_queue0_free();
 	/// info update: Usage percentage of low priority callback queue
 	bool info_update_callback_queue0_percent();
 	/// info update: Maximum percentage of low priority callback queue
-	bool info_update_callback_queue0_mprcnt();
+	bool info_update_callback_queue0_max_prcnt();
 	/// info update: Size of medium priority callback queue
 	bool info_update_callback_queue1_size();
 	/// info update: Used entries in medium priority callback queue
 	bool info_update_callback_queue1_used();
-	/// info update: Maximum used entries in medium priority callback queue
+	/// info update: Maximum used entries (high watermark) in medium priority callback queue
 	bool info_update_callback_queue1_max();
+	/// info update: Overflows in medium priority callback queue
+	bool info_update_callback_queue1_overflow();
 	/// info update: Free entries medium priority callback queue
 	bool info_update_callback_queue1_free();
 	/// info update: Usage percentage of medium priority callback queue
 	bool info_update_callback_queue1_percent();
 	/// info update: Maximum percentage of medium priority callback queue
-	bool info_update_callback_queue1_mprcnt();
+	bool info_update_callback_queue1_max_prcnt();
 	/// info update: Size of high priority callback queue
 	bool info_update_callback_queue2_size();
 	/// info update: Used entries in high priority callback queue
 	bool info_update_callback_queue2_used();
-	/// info update: Maximum used entries in high priority callback queue
+	/// info update: Maximum used entries (high watermark) in high priority callback queue
 	bool info_update_callback_queue2_max();
+	/// info update: Overflows in high priority callback queue
+	bool info_update_callback_queue2_overflow();
 	/// info update: Free entries high priority callback queue
 	bool info_update_callback_queue2_free();
 	/// info update: Usage percentage of high priority callback queue
 	bool info_update_callback_queue2_percent();
 	/// info update: Maximum percentage of high priority callback queue
-	bool info_update_callback_queue2_mprcnt();
+	bool info_update_callback_queue2_max_prcnt();
+	/// info update: reset maximum values of callback buffer queues
+	bool info_update_callback_queue_reset_max();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

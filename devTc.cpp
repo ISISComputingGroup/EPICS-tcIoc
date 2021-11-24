@@ -14,13 +14,17 @@
 #include "recGbl.h"
 #include "recSup.h"
 #include "epicsExport.h"
+#if EPICS_VERSION < 7
 #include "epicsRingPointer.h"
+#else
+#include "callback.h"
+#endif
 #pragma warning (default : 4996)
 #pragma warning (default : 26495)
 #pragma warning (default : 26812)
 #undef _CRT_SECURE_NO_WARNINGS
 #include <iostream>
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && (EPICS_VERSION < 7)
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 #include <windows.h>
 #endif
@@ -225,7 +229,7 @@ bool EpicsInterface::push()
 	return true;
 }
 
-
+#if defined(_MSC_VER) && (EPICS_VERSION < 7)
 /* load_callback_queue variable
  ************************************************************************/
  /// @cond Doxygen_Suppress
@@ -235,14 +239,19 @@ typedef epicsRingPointerId(__cdecl *callback_queue_func)(int);
 static std::atomic<bool> callback_queue_init = false;
 static std::mutex callback_queue_mux;
 static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
+static int callback_queue_max[3] = { 0, 0, 0 };
+#else
+static std::mutex callback_queue_mux;
+callbackQueueStats callback_status{};
+#endif
 
+#if defined(_MSC_VER) && (EPICS_VERSION < 7)
 /* load_callback_queue_func
    Looking for tcat_queuePriorityHigh in dbCore.dll
  ************************************************************************/
 static bool load_callback_queue_func()
 {
 	bool RunTimeLinkSuccess = false;
-#ifdef _MSC_VER
 	// Use dynamic DLL linking in case of unpatched EPICS base
 	HINSTANCE hinstLib;
 	callback_queue_func func;
@@ -265,7 +274,6 @@ static bool load_callback_queue_func()
 	if (!RunTimeLinkSuccess) {
 		printf("Unable to load callback queue information\n");
 	}
-#endif
 	return RunTimeLinkSuccess;
 }
 
@@ -283,15 +291,40 @@ static void check_callback_init()
 	load_callback_queue_func();
 	callback_queue_init = true;
 }
+#else
+/* update_callback
+ ************************************************************************/
+static void update_callback(bool reset = false)
+{
+	std::lock_guard<std::mutex> lock(callback_queue_mux);
+	static epicsUInt64 last_access{ 0 };
+	epicsUInt64 current = epicsMonotonicGet();
+	if (current > last_access + 10000000UL) // 10ms
+	{
+		last_access = current;
+		callbackQueueStatus(reset, &callback_status);
+	}
+}
+#endif
 
 /* EpicsInterface::get_callback_queue_size
  ************************************************************************/
 int EpicsInterface::get_callback_queue_size (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER
 	check_callback_init();
 	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
 		epicsRingPointerGetSize(callback_queue[pri]) : 0;
+#else
+	return 1;
+#endif
+#else
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	update_callback();
+	return callback_status.size;
+#endif
 }
 
 /* EpicsInterface::get_callback_queue_used
@@ -299,9 +332,21 @@ int EpicsInterface::get_callback_queue_size (int pri)
 int EpicsInterface::get_callback_queue_used (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER
 	check_callback_init();
-	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
-		epicsRingPointerGetUsed(callback_queue[pri]) : 0;
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	int used = epicsRingPointerGetUsed(callback_queue[pri]);
+	if (used > callback_queue_max[pri])  callback_queue_max[pri] = used;
+	return used;
+#else
+	return 0;
+#endif
+#else
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	update_callback();
+	return callback_status.numUsed[pri];
+#endif
 }
 
 /* EpicsInterface::get_callback_queue_free
@@ -309,9 +354,74 @@ int EpicsInterface::get_callback_queue_used (int pri)
 int EpicsInterface::get_callback_queue_free (int pri)
 {
 	if (!plc::System::get().is_ioc_running()) return -1; 
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER	
 	check_callback_init();
 	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
 		epicsRingPointerGetFree(callback_queue[pri]) : 0;
+#else
+	return 0;
+#endif
+#else
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	update_callback();
+	return callback_status.size - callback_status.numUsed[pri];
+#endif
+}
+
+/* EpicsInterface::get_callback_queue_highwatermark
+ ************************************************************************/
+int EpicsInterface::get_callback_queue_highwatermark(int pri)
+{
+	if (!plc::System::get().is_ioc_running()) return -1;
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER
+	check_callback_init();
+	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
+		callback_queue_max[pri] : 0;
+#else
+	return 0;
+#endif
+#else
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	update_callback();
+	return callback_status.maxUsed[pri];
+#endif
+}
+
+/* EpicsInterface::get_callback_queue_overflow
+ ************************************************************************/
+int EpicsInterface::get_callback_queue_overflow(int pri)
+{
+	if (!plc::System::get().is_ioc_running()) return -1;
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER
+	check_callback_init();
+	return ((pri >= 0) && (pri < NUM_CALLBACK_PRIORITIES) && callback_queue[pri]) ?
+		callback_queue_max[pri] : 0;
+#else
+	return 0;
+#endif
+#else
+	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
+	update_callback();
+	return callback_status.numOverflow[pri];
+#endif
+}
+
+/* EpicsInterface::get_callback_queue_overflow
+ ************************************************************************/
+int EpicsInterface::set_callback_queue_highwatermark_reset()
+{
+	if (!plc::System::get().is_ioc_running()) return -1;
+#if EPICS_VERSION < 7
+#ifdef _MSC_VER
+	for (auto& i : callback_queue_max) i = 0;
+#endif
+#else
+	update_callback(true);
+#endif
+	return 0;
 }
 
 
@@ -324,6 +434,15 @@ extern "C" {
 	}
 	int get_callback_queue_free(int pri) {
 		return EpicsInterface::get_callback_queue_free(pri);
+	}
+	int get_callback_queue_highwatermark(int pri) {
+		return EpicsInterface::get_callback_queue_highwatermark(pri);
+	}
+	int get_callback_queue_overflow(int pri) {
+		return EpicsInterface::get_callback_queue_overflow(pri);
+	}
+	int set_callback_queue_highwatermark_reset(void) {
+		return EpicsInterface::set_callback_queue_highwatermark_reset();
 	}
 }
 /// @endcond

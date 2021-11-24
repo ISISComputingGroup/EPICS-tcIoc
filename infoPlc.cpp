@@ -11,10 +11,10 @@ extern "C" {
 	int get_callback_queue_size(int pri);
 	int get_callback_queue_used(int pri);
 	int get_callback_queue_free(int pri);
+	int get_callback_queue_highwatermark(int pri);
+	int get_callback_queue_overflow(int pri);
+	int set_callback_queue_highwatermark_reset(void);
 }
-static int queue0_max = 0;
-static int queue1_max = 0;
-static int queue2_max = 0;
 /// @endcond
 
 /** @file infoPlc.cpp
@@ -433,6 +433,15 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_max),
+info_dbrecord_type(
+	variable_name("cb.queue[0].overflow"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Overflows in low pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue0_overflow),
 info_dbrecord_type (
 	variable_name("cb.queue[0].free"),
 	process_type_enum::pt_int,
@@ -442,7 +451,7 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_free),
-info_dbrecord_type (
+info_dbrecord_type(
 	variable_name("cb.queue[0].percent"),
 	process_type_enum::pt_real,
 	opc_list(opc_enum::publish, property_map({
@@ -467,7 +476,7 @@ info_dbrecord_type (
 		property_el(OPC_PROP_UNIT, "percent")
 		})),
 	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue0_mprcnt),
+	&InfoInterface::info_update_callback_queue0_max_prcnt),
 info_dbrecord_type (
 	variable_name("cb.queue[1].size"),
 	process_type_enum::pt_int,
@@ -495,6 +504,15 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue1_max),
+info_dbrecord_type(
+	variable_name("cb.queue[1].overflow"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Overflows in med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_overflow),
 info_dbrecord_type (
 	variable_name("cb.queue[1].free"),
 	process_type_enum::pt_int,
@@ -510,88 +528,108 @@ info_dbrecord_type (
 	opc_list(opc_enum::publish, property_map({
 		property_el(OPC_PROP_RIGHTS, "1"),
 		property_el(OPC_PROP_DESC, "Use % of med pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
+property_el(OPC_PROP_HIEU, "1"),
+property_el(OPC_PROP_LOEU, "0"),
+property_el(OPC_PROP_PREC, "1"),
+property_el(OPC_PROP_UNIT, "percent")
 		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue1_percent),
-info_dbrecord_type (
-	variable_name("cb.queue[1].mprcnt"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max % of med pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue1_mprcnt),
-info_dbrecord_type (
-	variable_name("cb.queue[2].size"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_size),
-info_dbrecord_type (
-	variable_name("cb.queue[2].used"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_used),
-info_dbrecord_type (
-	variable_name("cb.queue[2].max"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max. entries in hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_max),
-info_dbrecord_type (
-	variable_name("cb.queue[2].free"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_free),
-info_dbrecord_type (
-	variable_name("cb.queue[2].percent"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_percent),
-info_dbrecord_type (
-	variable_name("cb.queue[2].mprcnt"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max % of hi pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_mprcnt)
+		"LREAL", true, update_enum::forever,
+	& InfoInterface::info_update_callback_queue1_percent),
+	info_dbrecord_type(
+		variable_name("cb.queue[1].mprcnt"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max % of med pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue1_max_prcnt),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].size"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_size),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].used"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_used),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].max"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max. entries in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_max),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].overflow"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Overflows in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_overflow),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].free"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_free),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].percent"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_percent),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].mprcnt"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max % of hi pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_max_prcnt),
+	info_dbrecord_type(
+		variable_name("cb.reset_max"),
+		process_type_enum::pt_bool,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "3"),
+			property_el(OPC_PROP_DESC, "Reset queue max values"),
+			property_el(OPC_PROP_CLOSE, "RESET"),
+			property_el(OPC_PROP_OPEN, "INACTIVE")
+			})),
+		"BOOL", false , update_enum::forever,
+	&InfoInterface::info_update_callback_queue_reset_max)
 });
 
 
@@ -617,6 +655,7 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 	else {
 		// Set update method & frequency
 		update_freq = get<update_enum>(*iter);
+		readonly = get<bool>(*iter);
 		info_update = get<info_update_method>(*iter);
 		// check for enum
 		if (get<ParseUtil::process_type_enum>(*iter) == process_type_enum::pt_enum) {
@@ -635,11 +674,23 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 	}
 };
 
+/* InfoInterface::push
+ ************************************************************************/
+bool InfoInterface::push()
+{
+	if (!info_update) return false;
+	if (readonly) return false; // only update input records
+	if (update_freq == update_enum::done) return true;
+	if (update_freq == update_enum::once) update_freq = update_enum::done;
+	return (this->*info_update)();
+}
+
 /* InfoInterface::InfoInterface
  ************************************************************************/
 bool InfoInterface::update() 
 {
 	if (!info_update) return false;
+	if (!readonly) return false; // do not update output records
 	if (update_freq == update_enum::done) return true;
 	if (update_freq == update_enum::once) update_freq = update_enum::done;
 	return (this->*info_update)();
@@ -1251,7 +1302,6 @@ bool InfoInterface::info_update_callback_queue0_size()
 bool InfoInterface::info_update_callback_queue0_used()
 {
 	int val = get_callback_queue_used(0);
-	if (val > queue0_max) queue0_max = val;
 	return record.PlcWrite(val);
 }
 
@@ -1259,7 +1309,16 @@ bool InfoInterface::info_update_callback_queue0_used()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue0_max()
 {
-	return record.PlcWrite(queue0_max);
+	int val = get_callback_queue_highwatermark(0);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue0_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue0_overflow()
+{
+	int val = get_callback_queue_overflow(0);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue0_free
@@ -1283,12 +1342,12 @@ bool InfoInterface::info_update_callback_queue0_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue0_mprcnt
+/* InfoInterface::info_update_callback_queue0_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_mprcnt()
+bool InfoInterface::info_update_callback_queue0_max_prcnt()
 {
 	double sz = (double)get_callback_queue_size(0);
-	double usd = (double)queue0_max;
+	double usd = (double)get_callback_queue_highwatermark(0);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1309,7 +1368,6 @@ bool InfoInterface::info_update_callback_queue1_size()
 bool InfoInterface::info_update_callback_queue1_used()
 {
 	int val = get_callback_queue_used(1);
-	if (val > queue1_max) queue1_max = val;
 	return record.PlcWrite(val);
 }
 
@@ -1317,7 +1375,16 @@ bool InfoInterface::info_update_callback_queue1_used()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue1_max()
 {
-	return record.PlcWrite(queue1_max);
+	int val = get_callback_queue_highwatermark(1);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue1_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_overflow()
+{
+	int val = get_callback_queue_overflow(1);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue1_free
@@ -1341,12 +1408,12 @@ bool InfoInterface::info_update_callback_queue1_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue1_mprcnt
+/* InfoInterface::info_update_callback_queue1_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_mprcnt()
+bool InfoInterface::info_update_callback_queue1_max_prcnt()
 {
 	double sz = (double)get_callback_queue_size(1);
-	double usd = (double)queue1_max;
+	double usd = (double)get_callback_queue_highwatermark(1);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1367,7 +1434,6 @@ bool InfoInterface::info_update_callback_queue2_size()
 bool InfoInterface::info_update_callback_queue2_used()
 {
 	int val = get_callback_queue_used(2);
-	if (val > queue2_max) queue2_max = val;
 	return record.PlcWrite(val);
 }
 
@@ -1375,7 +1441,16 @@ bool InfoInterface::info_update_callback_queue2_used()
  ************************************************************************/
 bool InfoInterface::info_update_callback_queue2_max()
 {
-	return record.PlcWrite(queue2_max);
+	int val = get_callback_queue_highwatermark(2);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue2_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_overflow()
+{
+	int val = get_callback_queue_overflow(2);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue2_free
@@ -1399,12 +1474,12 @@ bool InfoInterface::info_update_callback_queue2_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue2_mprcnt
+/* InfoInterface::info_update_callback_queue2_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_mprcnt()
+bool InfoInterface::info_update_callback_queue2_max_prcnt()
 {
 	double sz = (double)get_callback_queue_size(2);
-	double usd = (double)queue2_max;
+	double usd = (double)get_callback_queue_highwatermark(2);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1413,6 +1488,18 @@ bool InfoInterface::info_update_callback_queue2_mprcnt()
 	}
 }
 
+/* InfoInterface::info_update_callback_queue_reset_max
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue_reset_max()
+{
+	bool state;
+	if (!record.PlcRead(state)) return false;
+	if (state)	{
+		set_callback_queue_highwatermark_reset();
+		record.PlcWrite(false);
+	}
+	return true;
+}
 
 /* process_arg::get
  ************************************************************************/
