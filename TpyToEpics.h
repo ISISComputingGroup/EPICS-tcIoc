@@ -21,7 +21,7 @@ namespace EpicsTpy {
 /** This enum describes the TwinCAT/opc to EPICS conversion rule
 	@brief Conversion rules for TC/EPICS
  ************************************************************************/
-enum tc_epics_conv {
+enum class tc_epics_conv {
 	/// No conversion
 	no_conversion, 
 	/// Convert '.' to '_'
@@ -43,13 +43,13 @@ enum tc_epics_conv {
 /** This enum describes the case conversion rule
      @brief Case conversion rule enum
 ************************************************************************/
-enum case_type {
+enum class case_type {
 	/// Preserve the case
-	preserve_case, 
+	preserve, 
 	/// Convert to upper case
-	upper_case, 
+	upper, 
 	/// Convert to lower case
-	lower_case
+	lower
 };
 
 /** Epics channel conversion arguments
@@ -60,13 +60,13 @@ class epics_conversion : public ParseUtil::replacement_rules {
 public:
 	/// Default constructor
 	epics_conversion()
-		: conv_rule (ligo_std), case_epics_names (upper_case), 
+		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (case_type::upper), 
 		no_leading_dot (true), no_array_index (true) {}
 	/// Constructor
 	/// @param caseconv Case conversion specification
 	/// @param noindex Eliminate array indices '[n]' with '_n'
 	epics_conversion (case_type caseconv, bool noindex)
-		: conv_rule (ligo_std), case_epics_names (caseconv), 
+		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (caseconv), 
 		no_leading_dot (true), no_array_index (noindex) {}
 	/// Constructor
 	/// @param epics_conv Epics conversion rule
@@ -85,7 +85,7 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	epics_conversion (int argc, const char* const argv[], bool argp[] = 0)
-		: conv_rule (ligo_std), case_epics_names (upper_case), 
+		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (case_type::upper), 
 		no_leading_dot (true), no_array_index (true) { 
 		getopt (argc, argv ,argp);}
 
@@ -107,6 +107,7 @@ public:
 	/// /yd: Leaves leading dot in channel name
 	/// /ni: Replaces array brackets with underscore (default)
 	/// /yi: Leave array indices as is
+	/// /p 'name': Include a prefix of 'name' for every channel (defaults to no prefix) 
 	///
 	/// Command line arguments can use '-' instead of a '/'. Capitalization does
 	/// not matter. getopt will only override arguments that are specifically 
@@ -137,12 +138,12 @@ public:
 	/// Set the array conversion rule
 	void set_array_rule (bool noindex) {
 		no_array_index = noindex; }
-	/// Get the PV prefix
-	std::stringcase get_prefix () const { return prefix; }
-	/// Set the PV prefix
-	void set_prefix (std::stringcase pvPrefix) {
-		prefix = pvPrefix; }
-
+	/// Get the channel prefix
+	std::stringcase get_prefix() const { return prefix; }
+	/// Set the channel prefix
+	void set_prefix(const std::stringcase& pvPrefix) {
+		prefix = pvPrefix;
+	}
 	/// Converts a TwinCAT or OPC name to an EPICS channel name
 	/// @param name TwinCAT/opc name
 	/// @return EPICS name
@@ -158,7 +159,7 @@ protected:
 	/// Array index conversion rule
 	bool			no_array_index;
 	/// Prefix to apply to all EPICS names
-	std::stringcase		prefix;
+	std::stringcase		prefix; 
 };
 
 /** Split file IO support
@@ -419,13 +420,13 @@ protected:
 /** This enum describes the type of listing to produce
      @brief Listing type enum
 ************************************************************************/
-enum listing_type {
+enum class listing_type {
 	/// Standard listing using TwinCAT/OPC names
-	listing_standard, 
+	standard, 
 	/// Autoburt listing
-	listing_autoburt,
+	autoburt,
 	/// LIGO DAQ ini listing
-	listing_daqini
+	daqini
 };
 
 /** Class for generatig a channel list
@@ -436,7 +437,7 @@ class epics_list_processing :
 public:
 	/// Default constructor
 	epics_list_processing() 
-		: listing (listing_standard), verbose (false) {}
+		: listing (listing_type::standard), verbose (false) {}
 	/// Constructor
 	/// @param ltype Type of listing
 	/// @param ll long listing
@@ -522,7 +523,7 @@ enum class macrofile_type {
 ************************************************************************/
 struct macro_info {
 	/// Default constructor
-	macro_info () : ptype (ParseUtil::pt_invalid), readonly (false) {}
+	macro_info () : ptype (ParseUtil::process_type_enum::pt_invalid), readonly (false) {}
 
 	/// Process Type
 	ParseUtil::process_type_enum	ptype;
@@ -685,24 +686,50 @@ protected:
 	filename_set	missing;
 };
 
-/** This enum describes the type of listing to produce
+/** This enum describes the type of device support to use
 	@brief Device support enum
 ************************************************************************/
-enum device_support_type {
+enum class device_support_type {
 	/// Use opc names in the INPUT/OUTPUT epics fields
-	device_support_opc_name, 
+	opc_name, 
 	/// Use TwinCAT names in the INPUT/OUTPUT epics fields
-	device_support_tc_name
+	tc_name
 };
 
-/** Class for generatig an EPICS database record 
+/** This enum describes the type of string record to use
+	@brief String support enum
+************************************************************************/
+enum class string_support_type {
+	/// Use standard strings (stringin/stringout)
+	short_string,
+	/// Use long strings (lsi/lso)
+	long_string,
+	// Use long or short strings depending on size
+	vary_string
+};
+
+/** This enum describes the type of int record to use
+	@brief Integer support enum
+************************************************************************/
+enum class int_support_type {
+	/// Use standard 32-bit integers (longin/longout)
+	int_32,
+	/// Use 64-bit integers (int64in/int64out)
+	int_64,
+	// Use 32 or 64-bit integers depending on size
+	int_auto
+};
+
+/** Class for generatig an EPICS database record
 	@brief pics database record processing
 ************************************************************************/
 class epics_db_processing : 
 	public epics_conversion, public split_io_support {
 public:
 	/// Default constructor
-	epics_db_processing () : device_support (device_support_tc_name) {}
+	epics_db_processing () : device_support (device_support_type::tc_name), 
+		string_support (string_support_type::vary_string),
+		int_support (int_support_type::int_auto) {}
 
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
@@ -734,6 +761,14 @@ public:
 	///
 	/// /devopc: Uses OPC name in INPUT/OUTPUT field (default)
 	/// /devtc:  Uses TwinCAT name in INPUT/OUTPUT fields instead of OPC
+	/// 
+	/// /ss: Use standard strings (stringin/stringout)
+	/// /sl: Use long strings (lsi/lso)
+	/// /sd: Use long or short strings depending on size (default)
+	///
+	/// /is: Use standard 32-bit integers (longin/longout)
+	/// /il: Use 64-bit integers (int64in/int64out)
+	/// /id: Use 32 or 64-bit integers depending on size (default)
 	///
 	/// Command line arguments can use '-' instead of a '/'. Capitalization does
 	/// not matter. getopt will only override arguments that are specifically 
@@ -750,6 +785,20 @@ public:
 	/// Set device support conversion rule
 	void set_device_support (device_support_type devsup) {
 		device_support = devsup; }
+
+	/// Get string support conversion rule
+	string_support_type get_string_support() const {
+		return string_support; }
+	/// Set string support conversion rule
+	void set_string_support(string_support_type strsup) {
+		string_support = strsup; }
+
+	/// Get integer support conversion rule
+	int_support_type get_int_support() const {
+		return int_support;	}
+	/// Set integer support conversion rule
+	void set_int_support(int_support_type intsup) {
+		int_support = intsup; }
 
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
@@ -788,6 +837,10 @@ protected:
 
 	/// Device support field conversion rule
 	device_support_type	device_support;
+	/// String support field conversion rule
+	string_support_type string_support;
+	/// Integer support field conversion rule
+	int_support_type int_support;
 };
 
 

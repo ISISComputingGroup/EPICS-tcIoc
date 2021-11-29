@@ -77,6 +77,8 @@ const int OPC_PROP_ALMHHSV=	  8727;	/**< alarm: hihi severity */
 const int OPC_PROP_ALMHSV=	  8728;	/**< alarm: high severity */
 const int OPC_PROP_ALMLSV=	  8729;	/**< alarm: low severity */
 const int OPC_PROP_ALMLLSV=	  8730;	/**< alarm: lolo severity */
+const int OPC_PROP_FIELD_BEG= 8800;	/**< Beginning of field,value combination */
+const int OPC_PROP_FIELD_END= 9000;	/**< End of field,value combinations */
 
 /** @} */
 

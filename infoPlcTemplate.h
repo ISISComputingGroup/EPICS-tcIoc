@@ -14,7 +14,7 @@ int InfoInterface::get_infodb(const std::stringcase& prefix,
 {
 	int num = 0;
 	for (const auto& rec:dbinfo_list) {
-		if (std::get<ParseUtil::opc_list>(rec).get_opc_state() != publish) {
+		if (std::get<ParseUtil::opc_list>(rec).get_opc_state() != ParseUtil::opc_enum::publish) {
 			continue;
 		}
 		std::stringcase alias = prefix;

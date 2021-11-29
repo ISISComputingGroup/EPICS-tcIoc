@@ -109,8 +109,9 @@ epicsShareExtern dset *pvar_dset_devAaiSoft,
     *pvar_dset_devLiGeneralTime, *pvar_dset_longinval_record_tc_dset,
     *pvar_dset_devLoSoft, *pvar_dset_devLoSoftCallback,
     *pvar_dset_longoutval_record_tc_dset, *pvar_dset_devLsiSoft,
-    *pvar_dset_devLsiEnviron, *pvar_dset_devLsoSoft,
-    *pvar_dset_devLsoSoftCallback, *pvar_dset_devLsoStdio,
+    *pvar_dset_devLsiEnviron, *pvar_dset_lsival_record_tc_dset,
+    *pvar_dset_devLsoSoft, *pvar_dset_devLsoSoftCallback,
+    *pvar_dset_devLsoStdio, *pvar_dset_lsoval_record_tc_dset,
     *pvar_dset_devMbbiSoft, *pvar_dset_devMbbiSoftRaw,
     *pvar_dset_devMbbiSoftCallback, *pvar_dset_mbbival_record_tc_dset,
     *pvar_dset_mbbirval_record_tc_dset, *pvar_dset_devMbbiDirectSoft,
@@ -147,7 +148,8 @@ static const char * const deviceSupportNames[] = {
     "devLiSoft", "devLiSoftCallback", "devLiGeneralTime",
     "longinval_record_tc_dset", "devLoSoft", "devLoSoftCallback",
     "longoutval_record_tc_dset", "devLsiSoft", "devLsiEnviron",
-    "devLsoSoft", "devLsoSoftCallback", "devLsoStdio", "devMbbiSoft",
+    "lsival_record_tc_dset", "devLsoSoft", "devLsoSoftCallback",
+    "devLsoStdio", "lsoval_record_tc_dset", "devMbbiSoft",
     "devMbbiSoftRaw", "devMbbiSoftCallback", "mbbival_record_tc_dset",
     "mbbirval_record_tc_dset", "devMbbiDirectSoft",
     "devMbbiDirectSoftRaw", "devMbbiDirectSoftCallback",
@@ -185,12 +187,14 @@ static const dset * const devsl[] = {
     pvar_dset_devLiSoftCallback, pvar_dset_devLiGeneralTime,
     pvar_dset_longinval_record_tc_dset, pvar_dset_devLoSoft,
     pvar_dset_devLoSoftCallback, pvar_dset_longoutval_record_tc_dset,
-    pvar_dset_devLsiSoft, pvar_dset_devLsiEnviron, pvar_dset_devLsoSoft,
+    pvar_dset_devLsiSoft, pvar_dset_devLsiEnviron,
+    pvar_dset_lsival_record_tc_dset, pvar_dset_devLsoSoft,
     pvar_dset_devLsoSoftCallback, pvar_dset_devLsoStdio,
-    pvar_dset_devMbbiSoft, pvar_dset_devMbbiSoftRaw,
-    pvar_dset_devMbbiSoftCallback, pvar_dset_mbbival_record_tc_dset,
-    pvar_dset_mbbirval_record_tc_dset, pvar_dset_devMbbiDirectSoft,
-    pvar_dset_devMbbiDirectSoftRaw, pvar_dset_devMbbiDirectSoftCallback,
+    pvar_dset_lsoval_record_tc_dset, pvar_dset_devMbbiSoft,
+    pvar_dset_devMbbiSoftRaw, pvar_dset_devMbbiSoftCallback,
+    pvar_dset_mbbival_record_tc_dset, pvar_dset_mbbirval_record_tc_dset,
+    pvar_dset_devMbbiDirectSoft, pvar_dset_devMbbiDirectSoftRaw,
+    pvar_dset_devMbbiDirectSoftCallback,
     pvar_dset_mbbiDirectval_record_tc_dset,
     pvar_dset_mbbiDirectrval_record_tc_dset, pvar_dset_devMbboSoft,
     pvar_dset_devMbboSoftRaw, pvar_dset_devMbboSoftCallback,
@@ -212,7 +216,8 @@ static const dset * const devsl[] = {
 typedef void (*reg_func)(void);
 epicsShareExtern reg_func pvar_func_arrInitialize, pvar_func_asSub,
     pvar_func_caPutLogRegister, pvar_func_dbndInitialize,
-    pvar_func_syncInitialize, pvar_func_tsInitialize;
+    pvar_func_decInitialize, pvar_func_syncInitialize,
+    pvar_func_tsInitialize;
 
 epicsShareExtern int * const pvar_int_CASDEBUG;
 epicsShareExtern int * const pvar_int_asCaDebug;
@@ -229,6 +234,7 @@ epicsShareExtern int * const pvar_int_dbRecordsOnceOnly;
 epicsShareExtern int * const pvar_int_dbTemplateMaxVars;
 epicsShareExtern int * const pvar_int_dbThreadRealtimeLock;
 epicsShareExtern int * const pvar_int_histogramSDELprecision;
+epicsShareExtern int * const pvar_int_logClientDebug;
 epicsShareExtern double * const pvar_double_seqDLYlimit;
 epicsShareExtern int * const pvar_int_seqDLYprecision;
 
@@ -248,6 +254,7 @@ static struct iocshVarDef vardefs[] = {
     {"dbTemplateMaxVars", iocshArgInt, pvar_int_dbTemplateMaxVars},
     {"dbThreadRealtimeLock", iocshArgInt, pvar_int_dbThreadRealtimeLock},
     {"histogramSDELprecision", iocshArgInt, pvar_int_histogramSDELprecision},
+    {"logClientDebug", iocshArgInt, pvar_int_logClientDebug},
     {"seqDLYlimit", iocshArgDouble, pvar_double_seqDLYlimit},
     {"seqDLYprecision", iocshArgInt, pvar_int_seqDLYprecision},
     {NULL, iocshArgInt, NULL}
@@ -257,13 +264,14 @@ int tCat_registerRecordDeviceDriver(DBBASE *pbase)
 {
     static int executed = 0;
     const char *bldTop = "C:/SlowControls/EPICS/Utilities/tcIoc/TCatDeviceSupport";
-	char envTop[1024];
-	size_t ret;
-	if (getenv_s (&ret, envTop, sizeof(envTop), "TOP") || (ret >= sizeof (envTop))) {
-		envTop[0] = 0;
-	}
+    char envTop[1024];
+    size_t ret;
+    if (getenv_s(&ret, envTop, sizeof(envTop), "TOP") || (ret >= sizeof(envTop))) {
+        envTop[0] = 0;
+    }
+    //const char *envTop = getenv("TOP");
 
-	if ((strlen (envTop) > 0) && strcmp(envTop, bldTop)) {
+    if ((strlen (envTop) > 0) && strcmp(envTop, bldTop)) {
         printf("Warning: IOC is booting with TOP = \"%s\"\n"
                "          but was built with TOP = \"%s\"\n",
                envTop, bldTop);
@@ -283,8 +291,9 @@ int tCat_registerRecordDeviceDriver(DBBASE *pbase)
     registerDevices(pbase, NELEMENTS(devsl), deviceSupportNames, devsl);
     pvar_func_arrInitialize();
     pvar_func_asSub();
-    //pvar_func_caPutLogRegister();
+//    pvar_func_caPutLogRegister();
     pvar_func_dbndInitialize();
+    pvar_func_decInitialize();
     pvar_func_syncInitialize();
     pvar_func_tsInitialize();
     iocshRegisterVariable(vardefs);

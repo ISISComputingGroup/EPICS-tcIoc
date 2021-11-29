@@ -1,3 +1,26 @@
+
+function Invoke-BatchFile
+{
+   param([string]$Path, [string]$Parameters)  
+
+   $tempFile = [IO.Path]::GetTempFileName()  
+
+   ## Store the output of cmd.exe.  We also ask cmd.exe to output   
+   ## the environment table after the batch file completes  
+   cmd.exe /c " `"$Path`" $Parameters && set > `"$tempFile`" " 
+
+   ## Go through the environment variables in the temp file.  
+   ## For each of them, set the variable in our local environment.  
+   Get-Content $tempFile | Foreach-Object {   
+       if ($_ -match "^(.*?)=(.*)$")  
+       { 
+           Set-Content "env:\$($matches[1])" $matches[2]  
+       } 
+   }  
+
+   Remove-Item $tempFile
+}
+
 # Make the device support for info
 #
 # Device name
@@ -13,9 +36,9 @@ if ("${env:ProgramFiles(x86)}" -eq "") {
 # set up paths
 $perlpath="C:\Straberry\perl\site\bin;C:\Straberry\perl\bin"
 $makepath="C:\Straberry\c\bin"
-$vspath="${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\Community\VC"
+$vspath="${env:ProgramFiles(x86)}\Microsoft Visual Studio\2019\Community\VC"
 #$sdkpath="${env:ProgramFiles(x86)}\Microsoft SDKs\Windows\v7.1A"
-$epicspath="C:\SlowControlsMaggie\EPICS\base-3.15.6"
+$epicspath="C:\SlowControlsMaggie\EPICS\base-3.15.9"
 #
 # EPICS architecture
 $epicshostarch="win32-x86"

@@ -11,7 +11,6 @@ using namespace std::filesystem;
 using namespace ParseTpy;
 using namespace ParseUtil;
 
-#pragma warning (disable: 4996)
 
 /** @file TpyToEpics.cpp
 	Source for methods that generate EPICs .db file from a .tpy file
@@ -35,37 +34,37 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 		int oldnum = num;
 		// Does not apply any special conversion rules
 		if (arg == "-rn" || arg == "/rn" ) {
-			set_conversion_rule (no_conversion);
+			set_conversion_rule (tc_epics_conv::no_conversion);
 			++num;
 		}
 		// Replaces dots with underscores in channel names
 		else if (arg == "-rd" || arg == "/rd" ) {
-			set_conversion_rule (no_dot);
+			set_conversion_rule (tc_epics_conv::no_dot);
 			++num;
 		}
 		// LIGO standard conversion rule (default)
 		else if (arg == "-rl" || arg == "/rl" ) {
-			set_conversion_rule (ligo_std);
+			set_conversion_rule (tc_epics_conv::ligo_std);
 			++num;
 		}
 		// LIGO standard conversion rule for vacuum channels
 		else if (arg == "-rv" || arg == "/rv" ) {
-			set_conversion_rule (ligo_vac);
+			set_conversion_rule (tc_epics_conv::ligo_vac);
 			++num;
 		}
 		// Preserve case in EPICS channel names (default)
 		else if (arg == "-cp" || arg == "/cp" ) {
-			set_case_rule (preserve_case);
+			set_case_rule (case_type::preserve);
 			++num;
 		}
 		// Force upper case in EPICS channel names
 		else if (arg == "-cu" || arg == "/cu" ) {
-			set_case_rule (upper_case);
+			set_case_rule (case_type::upper);
 			++num;
 		}
 		// Force lower case in EPICS channel names
 		else if (arg == "-cl" || arg == "/cl" ) {
-			set_case_rule (lower_case);
+			set_case_rule (case_type::lower);
 			++num;
 		}
 		// Eliminates leading dot in channel name
@@ -94,8 +93,14 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 			i += 1;
 			++num;
 		}
-
-		// no set flag to indicated a processed option
+		// Check if a prefix has been specified
+		else if ((arg == "-p" || arg == "/p") && i + 1 < argc) {
+			set_prefix (i + 1 < argc && argv[i + 1] ? argv[i + 1] : "");
+			if (argp) argp[i] = true;
+			i += 1;
+			num += 2;
+		}
+		// now set flag to indicated a processed option
 		if (argp && (num > oldnum)) {
 			argp[i] = true;
 		}
@@ -116,7 +121,7 @@ string epics_conversion::to_epics (const stringcase& name) const
 	}
 
 	// eliminate leading dot
-	if (no_leading_dot || (conv_rule == ligo_std) || (conv_rule == ligo_vac)) {
+	if (no_leading_dot || (conv_rule == tc_epics_conv::ligo_std) || (conv_rule == tc_epics_conv::ligo_vac)) {
 		std::stringcase::size_type pos;
 		if (!n.empty() && (n[0] == '.')) {
 			n.erase (0, 1);
@@ -130,7 +135,7 @@ string epics_conversion::to_epics (const stringcase& name) const
 	// apply conversion rules
 	switch (conv_rule) {
 		// ligo standard
-	case ligo_std:
+	case tc_epics_conv::ligo_std:
 		// replace first dot with colon
 		pos = n.find ('.');
 		if (pos != stringcase::npos) {
@@ -147,7 +152,7 @@ string epics_conversion::to_epics (const stringcase& name) const
 		}
 		break;
 		// ligo standard
-	case ligo_vac:
+	case tc_epics_conv::ligo_vac:
 		// replace first underscore with colon
 		pos = n.find ('_');
 		if (pos != stringcase::npos) {
@@ -164,20 +169,20 @@ string epics_conversion::to_epics (const stringcase& name) const
 		}
 		break;
 		// replace all dots with underscores
-	case no_dot:
+	case tc_epics_conv::no_dot:
 		while ((pos = n.find ('.')) != stringcase::npos) {
 			n[pos] = '_';
 		}
 		break;
 		// do nothing
-	case no_conversion:
+	case tc_epics_conv::no_conversion:
 	default:
 		break;
 	}
 	// force case if necessary
-	if (case_epics_names != preserve_case) {
+	if (case_epics_names != case_type::preserve) {
 		for (pos = 0; pos < n.size(); ++pos) {
-			n[pos] = (case_epics_names == upper_case) ? toupper (n[pos]) : tolower (n[pos]);
+			n[pos] = (case_epics_names == case_type::upper) ? toupper (n[pos]) : tolower (n[pos]);
 		}
 	}
 	// replace array brackets with underscore if necessary
@@ -189,10 +194,9 @@ string epics_conversion::to_epics (const stringcase& name) const
 			n.erase (pos, 1);
 		}
 	}
-	
 	// add prefix
 	n = get_prefix() + n;
-	
+
 	return string (n.c_str());
 }
 
@@ -314,7 +318,9 @@ void split_io_support::set_filename (const stringcase& fn)
 				file_io_s = ".io";
 			}
 			stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
+			#pragma warning (disable: 4996)
 			outf_io = fopen (fname.c_str(), "w");
+			#pragma warning (default: 4996)
 			if (!outf_io) {
 				fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 				error = true;
@@ -323,7 +329,9 @@ void split_io_support::set_filename (const stringcase& fn)
 			outf = outf_io;
 			if (split_io) {
 				fname = outfilename + file_in_s + file_num_in_s + ".db";
+				#pragma warning (disable: 4996)
 				outf_in = fopen (fname.c_str(), "w");
+				#pragma warning (default: 4996)
 				if (!outf_io) {
 					fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 					error = true;
@@ -332,7 +340,9 @@ void split_io_support::set_filename (const stringcase& fn)
 			}
 		}
 		else {
+			#pragma warning (disable: 4996)
 			outf_io = fopen (outfilename.c_str(), "w");
+			#pragma warning (default: 4996)
 			if (!outf_io) {
 				fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 				error = true;
@@ -389,7 +399,9 @@ bool split_io_support::increment (bool readonly)
 					file_num_in_s = buf;
 					fclose (outf_in);
 					stringcase fname = outfilename + file_in_s + file_num_in_s + ".db";
+					#pragma warning (disable: 4996)
 					outf_in = fopen (fname.c_str(), "w");
+					#pragma warning (default: 4996)
 					if (!outf_in) {
 						fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 						error = true;
@@ -404,7 +416,9 @@ bool split_io_support::increment (bool readonly)
 					file_num_io_s = buf;
 					fclose (outf_io);
 					stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
+					#pragma warning (disable: 4996)
 					outf_io = fopen (fname.c_str(), "w");
+					#pragma warning (default: 4996)
 					if (!outf_io) {
 						fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 						error = true;
@@ -417,11 +431,13 @@ bool split_io_support::increment (bool readonly)
 			if ((rec_num > 0) && (rec_num % split_n == 0) && outf_io) {
 				++file_num_io;
 				char buf[20];
-				sprintf (buf, ".%03i", file_num_io);
+				snprintf (buf, sizeof (buf), ".%03i", file_num_io);
 				file_num_io_s = buf;
 				fclose (outf_io);
 				stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
+				#pragma warning (disable: 4996)
 				outf_io = fopen (fname.c_str(), "w");
+				#pragma warning (default: 4996)
 				if (!outf_io) {
 					fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 					error = true;
@@ -472,7 +488,9 @@ bool multi_io_support::open (const std::stringcase& fname,
 	}
 	path newfile ((filestat == io_filestat::read ? indirname : outdirname).c_str());
 	newfile /= fname.c_str();
+	#pragma warning (disable: 4996)
 	FILE* fio = fopen (newfile.string().c_str(), io.c_str());
+	#pragma warning (default: 4996)
 	if (!fio) {
 		filestat = io_filestat::closed;
 		if (!superrmsg) {
@@ -540,7 +558,7 @@ epics_list_processing::epics_list_processing (
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  split_io_support (fname, argc, argv, argp), 
-	  listing(listing_standard), verbose(false)
+	  listing(listing_type::standard), verbose(false)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -572,25 +590,25 @@ int epics_list_processing::mygetopt (int argc, const char* const argv[],
 		int oldnum = num;
 		// generate a standard listing
 		if (arg == "-l" || arg == "/l") {
-			set_listing (listing_standard);
+			set_listing (listing_type::standard);
 			set_verbose (false);
 			++num;
 		}
 		// generate a standard long listing
 		else if (arg == "-ll" || arg == "/ll") {
-			set_listing (listing_standard);
+			set_listing (listing_type::standard);
 			set_verbose (true);
 			++num;
 		}
 		// generate a burt save/restore listing
 		else if (arg == "-lb" || arg == "/lb") {
-			set_listing (listing_autoburt);
+			set_listing (listing_type::autoburt);
 			set_verbose (false);
 			++num;
 		}
 		// generate a LIGO DAQ ini listing
 		else if (arg == "-li" || arg == "/li") {
-			set_listing(listing_daqini);
+			set_listing(listing_type::daqini);
 			set_verbose(false);
 			++num;
 		}
@@ -608,7 +626,7 @@ int epics_list_processing::mygetopt (int argc, const char* const argv[],
 bool epics_list_processing::operator() (const process_arg& arg)
 {
 	// quit if not atomic and not a standard listing
-	if (!arg.is_atomic() && (listing != listing_standard)) {
+	if (!arg.is_atomic() && (listing != listing_type::standard)) {
 		return false;
 	}
 
@@ -616,12 +634,12 @@ bool epics_list_processing::operator() (const process_arg& arg)
 	// write record information to output file
 	// produce a listing
 	string epicsname = to_epics (arg.get_alias());
-	if (listing == listing_autoburt) {
+	if (listing == listing_type::autoburt) {
 		stringcase ro = arg.get_opc().is_readonly() ? "RO " : "";
 		fprintf (get_file(), "%s%s", ro.c_str(), epicsname.c_str());
 	}
 	// LIGO DAQ ini listing
-	else if (listing == listing_daqini) {
+	else if (listing == listing_type::daqini) {
 		// get unit string and datatype value
 		// we support float (4) and int32 (3)
 		std::stringcase s;
@@ -631,10 +649,10 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		arg.get_opc().get_property(OPC_PROP_UNIT, unit);
 		trim_space(unit);
 		switch (arg.get_process_type()) {
-		case pt_int:
+		case process_type_enum::pt_int:
 			datatype = LIGODAQ_DATATYPE_INT32;
 			break;
-		case pt_bool:
+		case process_type_enum::pt_bool:
 			datatype = LIGODAQ_DATATYPE_INT32;
 			if (arg.get_opc().get_property(OPC_PROP_OPEN, s)) {
 				trim_space(s);
@@ -646,7 +664,7 @@ bool epics_list_processing::operator() (const process_arg& arg)
 				unit += s;
 			}
 			break;
-		case pt_enum:
+		case process_type_enum::pt_enum:
 			datatype = LIGODAQ_DATATYPE_INT32;
 			unit = "";
 			sep = "";
@@ -675,7 +693,7 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		}
 		s = unit;
 		unit = "";
-		for (auto& c : s) {
+		for (const auto& c : s) {
 			unsigned char uc = c;
 			if (isprint(uc)) {
 				unit += isspace(uc) ? '_' : uc;
@@ -691,14 +709,13 @@ bool epics_list_processing::operator() (const process_arg& arg)
 	}
 
 	// long listing?
-	if (verbose && (listing != listing_autoburt) && (listing != listing_daqini)) {
+	if (verbose && (listing != listing_type::autoburt) && (listing != listing_type::daqini)) {
 		fprintf (get_file(), " (%s", arg.get_process_string().c_str());
 		fprintf (get_file(), ", opc %c", arg.get_opc().is_published() ? '1' : '0');
-		for (property_map::const_iterator i = arg.get_opc().get_properties().begin();
-			i != arg.get_opc().get_properties().end(); ++i) {
-				stringcase s = i->second;
+		for (const auto& i : arg.get_opc().get_properties()) {
+				stringcase s = i.second;
 				trim_space (s);
-				fprintf (get_file(), ", prop[%i]=\"%s\"", i->first, s.c_str());
+				fprintf (get_file(), ", prop[%i]=\"%s\"", i.first, s.c_str());
 		}
 		fprintf (get_file(), ")");
 	}
@@ -786,7 +803,7 @@ int epics_macrofiles_processing::mygetopt (
 bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 {
 	// Check if this is a valid
-	if (arg.get_process_type() == pt_invalid) {
+	if (arg.get_process_type() == process_type_enum::pt_invalid) {
 		return false;
 	}
 	// ignore arrays
@@ -852,20 +869,24 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 std::stringcase epics_macrofiles_processing::to_filename (
 	const std::stringcase& epicsname)
 {
-	std::stringcase ret (epicsname);
+	std::stringcase ret(epicsname);
 	std::stringcase::size_type pos;
 	if (isTwinCAT3) {
 		if ((pos = ret.find ('.')) == 0) ret.erase (0, 1);
-		if ((pos = ret.find (':')) != stringcase::npos) ret.erase (0, pos+1);
+		bool top = true;
+		if ((pos = ret.find(':')) != stringcase::npos) {
+			top = false;
+			ret.erase(0, pos + 1);
+		}
 		if (!get_plcname().empty()) {
 			if (ret.empty()) {
 				// nothing
 			}
-			else if ((ret.length() == 2) && (get_plcname().compare (0, 2, ret) == 0)) {
-				ret = get_plcname();
+			else if (top) {
+				ret = "Top";
 			}
 			else {
-				ret.insert (0, get_plcname() + '_');
+				//ret.insert (0, get_plcname() + '_');
 			}
 		}
 		while ((pos = ret.find_first_of ("-:.")) != stringcase::npos) ret[pos] = '_';
@@ -911,7 +932,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 												  int level)
 {
 	// Check if we have a valid record
-	if (mrec.record.ptype == pt_invalid) {
+	if (mrec.record.ptype == process_type_enum::pt_invalid) {
 		return false;
 	}
 	// No processing for erorr records
@@ -929,7 +950,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 		bool succ = false;
 		std::stringcase fname;
 		if (isTwinCAT3) {
-			fname = "ADL\\";
+			fname = "";
 			std::stringcase::size_type pos = mrec.record.type_n.find('.');
 			if (pos == std::stringcase::npos) {
 				fname += mrec.record.type_n + errorlistext31;
@@ -1121,7 +1142,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 				//std::stringcase suberr = mrec.record.name + "_" + *i;
 				auto mlen =  mrec.record.name.length();
 				for (const auto& j : mrec.fields) {
-					if ((j.ptype == pt_binary) &&
+					if ((j.ptype == process_type_enum::pt_binary) &&
 						(mlen + i->length() + 1 == j.name.length()) &&
 						!isalnum (j.name[mlen]) &&
 						(j.name.compare (mlen + 1, std::stringcase::npos, *i) == 0)) {
@@ -1152,30 +1173,30 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			if (mrec.erroridx == idx) continue;
 			// set field type
 			switch (i.ptype) {
-			case pt_bool:
+			case process_type_enum::pt_bool:
 				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "bi" : "bo");
 				break;
-			case pt_enum:
+			case process_type_enum::pt_enum:
 				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "mbbi" : "mbbo");
 				break;
-			case pt_int:
+			case process_type_enum::pt_int:
 				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "longin" : "longout");
 				break;
-			case pt_real:
+			case process_type_enum::pt_real:
 				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "ai" : "ao");
 				break;
-			case pt_string:
+			case process_type_enum::pt_string:
 				fprintf (fp, "fio%i=%s,\n", num, i.readonly ? "stringin" : "stringout");
 				break;
-			case pt_binary:
+			case process_type_enum::pt_binary:
 				fprintf (fp, "fio%i=%s,\n", num, "link");
 				break;
-			case pt_invalid:
+			case process_type_enum::pt_invalid:
 			default:
 				continue;
 			}
 			// set field name
-			if (i.ptype == pt_binary) {
+			if (i.ptype == process_type_enum::pt_binary) {
 				fprintf (fp, "fld%i=%s,\n", num, to_filename (i.name).c_str());
 			}
 			else {
@@ -1199,7 +1220,9 @@ epics_db_processing::epics_db_processing (
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  split_io_support (fname, argc, argv, argp),
-	  device_support (device_support_tc_name)
+	  device_support (device_support_type::tc_name),
+	  string_support(string_support_type::vary_string),
+	  int_support(int_support_type::int_auto)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -1231,12 +1254,36 @@ int epics_db_processing::mygetopt (int argc, const char* const argv[],
 		int oldnum = num;
 		// Uses OPC name in INPUT/OUTPUT field (default) 
 		if (arg == "-devopc" || arg == "/devopc") {
-			set_device_support (device_support_opc_name);
+			set_device_support (device_support_type::opc_name);
 			++num;
 		}
 		// Uses TwinCAT name in INPUT/OUTPUT fields instead of OPC
 		else if (arg == "-devtc" || arg == "/devtc" ) {
-			set_device_support (device_support_tc_name);
+			set_device_support (device_support_type::tc_name);
+			++num;
+		}
+		else if (arg == "-ss" || arg == "/ss") {
+			set_string_support(string_support_type::short_string);
+			++num;
+		}
+		else if (arg == "-sl" || arg == "/sl") {
+			set_string_support(string_support_type::long_string);
+			++num;
+		}
+		else if (arg == "-sd" || arg == "/sd") {
+			set_string_support(string_support_type::vary_string);
+			++num;
+		}
+		else if (arg == "-is" || arg == "/is") {
+			set_int_support(int_support_type::int_32);
+			++num;
+		}
+		else if (arg == "-il" || arg == "/il") {
+			set_int_support(int_support_type::int_64);
+			++num;
+		}
+		else if (arg == "-id" || arg == "/id") {
+			set_int_support(int_support_type::int_auto);
 			++num;
 		}
 		// now set flag to indicated a processed option
@@ -1269,19 +1316,37 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	// default process type conversion
 	stringcase tname;
 	switch (arg.get_process_type()) {
-	case pt_int:
-		tname = readonly ? "longin" : "longout";
+	case process_type_enum::pt_int:
+		if (((arg.get_size() == 8) &&
+			(get_int_support() == int_support_type::int_auto)) ||
+			(get_int_support() == int_support_type::int_64))	{
+#if EPICS_VERSION >= 7
+			tname = readonly ? "int64in" : "int64out";
+#else
+			tname = readonly ? "longin" : "longout";
+#endif
+		}
+		else {
+			tname = readonly ? "longin" : "longout";
+		}
 		break;
-	case pt_real:
+	case process_type_enum::pt_real:
 		tname = readonly ? "ai" : "ao";
 		break;
-	case pt_bool:
+	case process_type_enum::pt_bool:
 		tname = readonly ? "bi" : "bo";
 		break;
-	case pt_string:
-		tname = readonly ? "stringin" : "stringout";
+	case process_type_enum::pt_string:
+		if (((arg.get_size() >= MAX_EPICS_STRING) && 
+			 (get_string_support() == string_support_type::vary_string)) ||
+			(get_string_support() == string_support_type::long_string))	{
+			tname = readonly ? "lsi" : "lso";
+		}
+		else {
+			tname = readonly ? "stringin" : "stringout";
+		}
 		break;
-	case pt_enum:
+	case process_type_enum::pt_enum:
 		tname = readonly ? "mbbi" : "mbbo";
 		break;
 	default:
@@ -1305,6 +1370,13 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	// now print header
 	fprintf(get_file(), "record(%s,\"%s\") {\n", tname.c_str(), epicsname.c_str());
 
+	// string size for lsi/lso
+	if ((tname == "lsi") || (tname == "lso")) {
+		int len = arg.get_size() + 1;
+		if (len > MAX_EPICS_LONGSTRING) len = MAX_EPICS_LONGSTRING;
+		process_field_numeric(EPICS_DB_SIZV, len);
+	}
+
 	// check OPC_PROP_DESC
 	if (arg.get_opc().get_property (OPC_PROP_DESC, s)) {
 		if (s.size() > MAX_EPICS_DESC) {
@@ -1316,10 +1388,10 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	// add SCAN
 	process_field_string (EPICS_DB_SCAN, readonly ? "I/O Intr" : "Passive");
 	// check for DTYP
-	stringcase dtyp = device_support == device_support_tc_name ? "tcat" : "opc";
+	stringcase dtyp = device_support == device_support_type::tc_name ? "tcat" : "opc";
 	if (arg.get_opc().get_property (OPC_PROP_DTYP, s)) {
 		if (s.find ("raw") == stringcase::npos) {
-			dtyp = device_support == device_support_tc_name ? "tcat raw" : "opcRaw";
+			dtyp = device_support == device_support_type::tc_name ? "tcat raw" : "opcRaw";
 		}
 	}
 	process_field_string (EPICS_DB_DTYP, dtyp);
@@ -1327,7 +1399,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	stringcase inplink;
 	stringcase servername;
 	switch (device_support) {
-	case device_support_opc_name:
+	case device_support_type::opc_name:
 	default:
 		// check for server
 		servername = "opc";
@@ -1335,7 +1407,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		// input/output link
 		inplink = stringcase ("@") + servername + arg.get_name(); 
 		break;
-	case device_support_tc_name:
+	case device_support_type::tc_name:
 		// input/output link
 		inplink = stringcase ("@") + arg.get_full();
 		break;
@@ -1353,36 +1425,35 @@ bool epics_db_processing::operator() (const process_arg& arg)
 	process_field_numeric (EPICS_DB_PINI, pini);
 
 	// go through properties
-	for (property_map::const_iterator f = arg.get_opc().get_properties().begin();
-		f != arg.get_opc().get_properties().end(); ++f) 
+	for (const auto& f : arg.get_opc().get_properties()) 
 	{
-		switch (f->first) {
+		switch (f.first) {
 		case OPC_PROP_UNIT :
-			process_field_string (EPICS_DB_EGU, f->second);
+			process_field_string (EPICS_DB_EGU, f.second);
 			break;
 		case OPC_PROP_DESC :
 			// processed above
 			break;
 		case OPC_PROP_HIEU :
-			process_field_numeric (EPICS_DB_HOPR, f->second);
+			process_field_numeric (EPICS_DB_HOPR, f.second);
 			break;
 		case OPC_PROP_LOEU :
-			process_field_numeric (EPICS_DB_LOPR, f->second);
+			process_field_numeric (EPICS_DB_LOPR, f.second);
 			break;
 		case OPC_PROP_HIRANGE :
-			process_field_numeric (EPICS_DB_DRVH, f->second);
+			process_field_numeric (EPICS_DB_DRVH, f.second);
 			break;
 		case OPC_PROP_LORANGE :
-			process_field_numeric (EPICS_DB_DRVL, f->second);
+			process_field_numeric (EPICS_DB_DRVL, f.second);
 			break;
 		case OPC_PROP_CLOSE :
-			process_field_string (EPICS_DB_ONAM, f->second);
+			process_field_string (EPICS_DB_ONAM, f.second);
 			break;
 		case OPC_PROP_OPEN :
-			process_field_string (EPICS_DB_ZNAM, f->second);
+			process_field_string (EPICS_DB_ZNAM, f.second);
 			break;
 		case OPC_PROP_PREC :
-			process_field_numeric (EPICS_DB_PREC, f->second);
+			process_field_numeric (EPICS_DB_PREC, f.second);
 			break;
 		case OPC_PROP_ZRST :
 		case OPC_PROP_ZRST + 1 :
@@ -1401,8 +1472,8 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ZRST + 14 :
 		case OPC_PROP_FFST :
 			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_numeric (EPICS_DB_ZRVL[f->first-OPC_PROP_ZRST], f->first-OPC_PROP_ZRST);
-				process_field_string (EPICS_DB_ZRST[f->first-OPC_PROP_ZRST], f->second);
+				process_field_numeric (EPICS_DB_ZRVL[f.first-OPC_PROP_ZRST], f.first-OPC_PROP_ZRST);
+				process_field_string (EPICS_DB_ZRST[f.first-OPC_PROP_ZRST], f.second);
 			}
 			break;
 		case OPC_PROP_RECTYPE :
@@ -1418,22 +1489,22 @@ bool epics_db_processing::operator() (const process_arg& arg)
 			// alarm
 		case OPC_PROP_ALMOSV:
 			if ((tname == "bi") || (tname == "bo")) {
-				process_field_alarm (EPICS_DB_OSV, f->second);
+				process_field_alarm (EPICS_DB_OSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMZSV:
 			if ((tname == "bi") || (tname == "bo")) {
-				process_field_alarm (EPICS_DB_ZSV, f->second);
+				process_field_alarm (EPICS_DB_ZSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMCOSV:
 			if ((tname == "bi") || (tname == "bo") || (tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_COSV, f->second);
+				process_field_alarm (EPICS_DB_COSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMUNSV:
 			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_UNSV, f->second);
+				process_field_alarm (EPICS_DB_UNSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMZRSV:
@@ -1453,12 +1524,12 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		case OPC_PROP_ALMZRSV + 14:
 		case OPC_PROP_ALMFFSV:
 			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_ZRSV[f->first-OPC_PROP_ALMZRSV], f->second);
+				process_field_alarm (EPICS_DB_ZRSV[f.first-OPC_PROP_ALMZRSV], f.second);
 			}
 			break;
 		case OPC_PROP_ALMHH:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_numeric (EPICS_DB_HIHI, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_numeric (EPICS_DB_HIHI, f.second);
 				std::stringcase alarmsv;
 				if (!arg.get_opc().get_property (OPC_PROP_ALMHHSV, alarmsv)) {
 					process_field_alarm (EPICS_DB_HHSV, EPICS_DB_MAJOR);
@@ -1466,8 +1537,8 @@ bool epics_db_processing::operator() (const process_arg& arg)
 			}
 			break;
 		case OPC_PROP_ALMH:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_numeric (EPICS_DB_HIGH, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_numeric (EPICS_DB_HIGH, f.second);
 				std::stringcase alarmsv;
 				if (!arg.get_opc().get_property (OPC_PROP_ALMHSV, alarmsv)) {
 					process_field_alarm (EPICS_DB_HSV, EPICS_DB_MINOR);
@@ -1475,8 +1546,8 @@ bool epics_db_processing::operator() (const process_arg& arg)
 			}
 			break;
 		case OPC_PROP_ALML:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_numeric (EPICS_DB_LOW, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_numeric (EPICS_DB_LOW, f.second);
 				std::stringcase alarmsv;
 				if (!arg.get_opc().get_property (OPC_PROP_ALMLSV, alarmsv)) {
 					process_field_alarm (EPICS_DB_LSV, EPICS_DB_MINOR);
@@ -1484,8 +1555,8 @@ bool epics_db_processing::operator() (const process_arg& arg)
 			}
 			break;
 		case OPC_PROP_ALMLL:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_numeric (EPICS_DB_LOLO, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_numeric (EPICS_DB_LOLO, f.second);
 				std::stringcase alarmsv;
 				if (!arg.get_opc().get_property (OPC_PROP_ALMLLSV, alarmsv)) {
 					process_field_alarm (EPICS_DB_LLSV, EPICS_DB_MAJOR);
@@ -1493,34 +1564,49 @@ bool epics_db_processing::operator() (const process_arg& arg)
 			}
 			break;
 		case OPC_PROP_ALMHHSV:
-			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_alarm (EPICS_DB_HHSV, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_alarm (EPICS_DB_HHSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMHSV:
-			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_alarm (EPICS_DB_HSV, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_alarm (EPICS_DB_HSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMLSV:
-			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_alarm (EPICS_DB_LSV, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_alarm (EPICS_DB_LSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMLLSV:
-			if  ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_alarm (EPICS_DB_LLSV, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_alarm (EPICS_DB_LLSV, f.second);
 			}
 			break;
 		case OPC_PROP_ALMDB:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout")) {
-				process_field_numeric (EPICS_DB_HYST, f->second);
+			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+				process_field_numeric (EPICS_DB_HYST, f.second);
 			}
 			break;
 			// unknown
 		default:
-			if (f->first >= 1000) {
-				fprintf (stderr, "Unknown property %i for %s\n", f->first, arg.get_name().c_str());
+			// Process unchecked field,value pairs
+			if ((f.first >= OPC_PROP_FIELD_BEG) && (f.first < OPC_PROP_FIELD_END)) {
+				std::stringcase::size_type pos = f.second.find(',');
+				if (pos != std::stringcase::npos) {
+					std::stringcase field = f.second.substr (0, pos);
+					trim_space (field);
+					std::stringcase value = f.second.substr (pos + 1);
+					trim_space (value);
+					process_field_string (field, value);
+				}
+				else {
+					fprintf(stderr, "Property %s is not a field,value pair\n", arg.get_name().c_str());
+				}
+			}
+			// Error: Unknown property
+			else if (f.first >= 1000) {
+				fprintf (stderr, "Unknown property %i for %s\n", f.first, arg.get_name().c_str());
 			}
 			break;
 		}

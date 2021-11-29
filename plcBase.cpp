@@ -1,6 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "plcBase.h"
-#undef _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 
 /** @file plcBase.cpp
@@ -30,40 +28,40 @@ const BasePLC* Interface::get_parent() const
  ************************************************************************/
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_bool>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = dtBool; ///< Bool specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = data_type_enum::dtBool; ///< Bool specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = dtInt8; ///< Int8 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = data_type_enum::dtInt8; ///< Int8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = dtUInt8; ///< UInt8 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = data_type_enum::dtUInt8; ///< UInt8 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = dtInt16; ///< Int16 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = data_type_enum::dtInt16; ///< Int16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = dtInt16; ///< UInt16 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = data_type_enum::dtInt16; ///< UInt16 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_int32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = dtInt32; ///< Int32 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = data_type_enum::dtInt32; ///< Int32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_uint32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = dtInt32; ///< UInt32 specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = data_type_enum::dtInt32; ///< UInt32 specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_float>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_float>::data_enum = dtFloat; ///< Float specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_float>::data_enum = data_type_enum::dtFloat; ///< Float specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_double>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_double>::data_enum = dtDouble; ///< Double specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_double>::data_enum = data_type_enum::dtDouble; ///< Double specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_string>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_string>::data_enum = dtString; ///< String specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_string>::data_enum = data_type_enum::dtString; ///< String specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_wstring>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = dtWString; ///< WString specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = data_type_enum::dtWString; ///< WString specialization for DataValueTraits
 template<> const 
 	DataValueTraits<DataValueTypeDef::type_binary>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = dtBinary; ///< Binary specialization for DataValueTraits
+	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = data_type_enum::dtBinary; ///< Binary specialization for DataValueTraits
 
 
 /** Will read the value and reset the dirty flag (wstring from string).
@@ -110,13 +108,13 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
  ************************************************************************/
 DataValue::~DataValue()
 {
-	Init (dtInvalid);
+	Init (data_type_enum::dtInvalid);
 }
 
 /* DataValue copy constructor
  ************************************************************************/
 DataValue::DataValue (const DataValue& dval)
-: mydata (nullptr), mytype (dtInvalid), mysize (0), myvalid (false), 
+: mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0), myvalid (false),
 	myuserdirty (false), myplcdirty (false)
 {
 	*this = dval;
@@ -132,48 +130,48 @@ DataValue& DataValue::operator= (const DataValue& dval)
 	}
 	switch (mytype) 
 	{
-	case dtInvalid:
+	case data_type_enum::dtInvalid:
 		break;
-	case dtBool:
+	case data_type_enum::dtBool:
 		*(type_bool*) mydata = *(type_bool*)dval.mydata;
 		break;
-	case dtInt8:
+	case data_type_enum::dtInt8:
 		*(type_int8*) mydata = *(type_int8*)dval.mydata;
 		break;
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		*(type_uint8*) mydata = *(type_uint8*)dval.mydata;
 		break;
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		*(type_int16*) mydata = *(type_int16*)dval.mydata;
 		break;
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		*(type_uint16*) mydata = *(type_uint16*)dval.mydata;
 		break;
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		*(type_int32*) mydata = *(type_int32*)dval.mydata;
 		break;
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		*(type_uint32*) mydata = *(type_uint32*)dval.mydata;
 		break;
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		*(type_int64*) mydata = *(type_int64*)dval.mydata;
 		break;
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		*(type_uint64*) mydata = *(type_uint64*)dval.mydata;
 		break;
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		*(type_float*) mydata = *(type_float*)dval.mydata;
 		break;
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		*(type_double*) mydata = *(type_double*)dval.mydata;
 		break;
-	case dtString:
+	case data_type_enum::dtString:
 		*(type_string*) mydata = *(type_string*)dval.mydata;
 		break;
-	case dtWString:
+	case data_type_enum::dtWString:
 		*(type_wstring*) mydata = *(type_wstring*)dval.mydata;
 		break;
-	case dtBinary:
+	case data_type_enum::dtBinary:
 		memcpy (mydata, (const type_binary)mydata, mysize);
 		break;
 	}
@@ -189,11 +187,11 @@ DataValue& DataValue::operator= (const DataValue& dval)
 void DataValue::Init (data_type_enum rt, size_type len)
 {
 	if (rt == mytype) {
-		if ((mytype == dtInvalid) && !mydata) return;
-		if ((mytype != dtInvalid) && mydata) return;
+		if ((mytype == data_type_enum::dtInvalid) && !mydata) return;
+		if ((mytype != data_type_enum::dtInvalid) && mydata) return;
 	}
 	if (mydata) {
-		if (mytype == dtBinary) {
+		if (mytype == data_type_enum::dtBinary) {
 			delete [] mydata;
 		}
 		else {
@@ -204,78 +202,78 @@ void DataValue::Init (data_type_enum rt, size_type len)
 	mytype = rt;
 	switch (mytype) 
 	{
-	case dtInvalid:
+	case data_type_enum::dtInvalid:
 		break;
-	case dtBool:
+	case data_type_enum::dtBool:
 		mydata = (data_type) new (std::nothrow) atomic_bool;
 		*(atomic_bool*)mydata = false;
 		mysize = sizeof (bool);
 		break;
-	case dtInt8:
+	case data_type_enum::dtInt8:
 		mydata = (data_type) new (std::nothrow) atomic_int8;
 		*(atomic_int8*)mydata = 0;
 		mysize = 1;
 		break;
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		mydata = (data_type) new (std::nothrow) atomic_uint8;
 		*(atomic_uint8*)mydata = 0;
 		mysize = 1;
 		break;
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		mydata = (data_type) new (std::nothrow) atomic_int16;
 		*(atomic_int16*)mydata = 0;
 		mysize = 2;
 		break;
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		mydata = (data_type) new (std::nothrow) atomic_uint16;
 		*(atomic_uint16*)mydata = 0;
 		mysize = 2;
 		break;
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		mydata = (data_type) new (std::nothrow) atomic_int32;
 		*(atomic_int32*)mydata = 0;
 		mysize = 4;
 		break;
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		mydata = (data_type) new (std::nothrow) atomic_uint32;
 		*(atomic_uint32*)mydata = 0;
 		mysize = 4;
 		break;
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		mydata = (data_type) new (std::nothrow) atomic_int64;
 		*(atomic_int64*)mydata = 0;
 		mysize = 8;
 		break;
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		mydata = (data_type) new (std::nothrow) atomic_uint64;
 		*(atomic_uint64*)mydata = 0;
 		mysize = 8;
 		break;
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		mydata = (data_type) new (std::nothrow) atomic_float;
 		*(atomic_float*)mydata = 0;
 		mysize = 4;
 		break;
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		mydata = (data_type) new (std::nothrow) atomic_double;
 		*(atomic_double*)mydata = 0;
 		mysize = 8;
 		break;
-	case dtString:
+	case data_type_enum::dtString:
 		mydata = (data_type) new (std::nothrow) atomic_string;
 		mysize = sizeof (atomic_string);
 		break;
-	case dtWString:
+	case data_type_enum::dtWString:
 		mydata = (data_type) new (std::nothrow) atomic_wstring;
 		mysize = sizeof (atomic_wstring);
 		break;
-	case dtBinary:
+	case data_type_enum::dtBinary:
 		mydata = (data_type) new (std::nothrow) char[len];
 		mysize = len;
 		break;
 	}
 	if (!mydata) {
-		mytype = dtInvalid;
+		mytype = data_type_enum::dtInvalid;
 		mysize = 0;
 	}
 	myuserdirty.store (false);
@@ -287,7 +285,7 @@ void DataValue::Init (data_type_enum rt, size_type len)
 bool DataValue::Read (atomic_bool& dirty, type_string& data) const
 {
 	switch (mytype) {
-	case dtString:
+	case data_type_enum::dtString:
 		return reset_and_read (dirty, data, (atomic_string*)mydata);
 	default:
 		return false;
@@ -299,10 +297,10 @@ bool DataValue::Read (atomic_bool& dirty, type_string& data) const
 bool DataValue::Read (atomic_bool& dirty, type_wstring& data) const
 {
 	switch (mytype) {
-	case dtString:
+	case data_type_enum::dtString:
 		// conversion only works with simple acsii strings; not UTF-8
 		return reset_and_read (dirty, data, (atomic_string*)mydata);
-	case dtWString:
+	case data_type_enum::dtWString:
 		return reset_and_read (dirty, data, (atomic_wstring*)mydata);
 	default:
 		return false;
@@ -318,7 +316,9 @@ bool DataValue::Read (atomic_bool& dirty, type_string_value* data, size_type max
 	}
 	type_string d;
 	if (!Read (dirty, d)) return false;
+	#pragma warning (disable : 4996)
 	strncpy (data, d.c_str(), max);
+	#pragma warning (default : 4996)
 	data[max-1] = 0;
 	return true;
 }
@@ -332,7 +332,9 @@ bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, size_type ma
 	}
 	type_wstring d;
 	if (!Read (dirty, d)) return false;
+	#pragma warning (disable : 4996)
 	wcsncpy (data, d.c_str(), max);
+	#pragma warning (default : 4996)
 	data[max-1] = 0;
 	return true;
 }
@@ -343,9 +345,9 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 					   const type_string& data)
 {
 	switch (mytype) {
-	case dtString:
+	case data_type_enum::dtString:
 		return write_and_test (dirty, pend, myvalid, (atomic_string*)mydata, data);
-	case dtWString:
+	case data_type_enum::dtWString:
 		// conversion only works with simple acsii strings; not UTF-8
 		return write_and_test (dirty, pend, myvalid, (atomic_wstring*)mydata, data);
 	default:
@@ -359,7 +361,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 					   const type_wstring& data)
 {
 	switch (mytype) {
-	case dtWString:
+	case data_type_enum::dtWString:
 		return write_and_test (dirty, pend, myvalid, (atomic_wstring*)mydata, data);
 	default:
 		return false;
@@ -397,38 +399,38 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 DataValue::size_type 
 DataValue::ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const
 {
-	if ((mytype == dtInvalid) || !mydata || !p) {
+	if ((mytype == data_type_enum::dtInvalid) || !mydata || !p) {
 		return 0;
 	}
 	switch (mytype) 
 	{
-	case dtBool: 
+	case data_type_enum::dtBool:
 		return ((len == mysize) && Read (dirty, *(type_bool*)p)) ? mysize : 0;
-	case dtInt8: 
+	case data_type_enum::dtInt8:
 		return ((len == mysize) && Read (dirty, *(type_int8*)p)) ? mysize : 0;
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		return ((len == mysize) && Read (dirty, *(type_uint8*)p)) ? mysize : 0;
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		return ((len == mysize) && Read (dirty, *(type_int16*)p)) ? mysize : 0;
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		return ((len == mysize) && Read (dirty, *(type_uint16*)p)) ? mysize : 0;
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		return ((len == mysize) && Read (dirty, *(type_int32*)p)) ? mysize : 0;
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		return ((len == mysize) && Read (dirty, *(type_uint32*)p)) ? mysize : 0;
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		return ((len == mysize) && Read (dirty, *(type_int64*)p)) ? mysize : 0;
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		return ((len == mysize) && Read (dirty, *(type_uint64*)p)) ? mysize : 0;
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		return ((len == mysize) && Read (dirty, *(type_float*)p)) ? mysize : 0;
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		return ((len == mysize) && Read (dirty, *(type_double*)p)) ? mysize : 0;
-	case dtString:
+	case data_type_enum::dtString:
 		return Read (dirty, (type_string_value*) p, len) ? len : 0;
-	case dtWString:
+	case data_type_enum::dtWString:
 		return Read (dirty, (type_wstring_value*) p, len / 2) ? 2 * int (len / 2)  : 0;
-	case dtBinary:
+	case data_type_enum::dtBinary:
 		if (len != mysize) {
 			return 0;
 		}
@@ -446,38 +448,38 @@ DataValue::size_type
 DataValue::WriteBinary (atomic_bool& dirty, const atomic_bool& pend, 
 						const data_type p, size_type len)
 {
-	if ((mytype == dtInvalid) || !mydata || !p) {
+	if ((mytype == data_type_enum::dtInvalid) || !mydata || !p) {
 		return 0;
 	}
 	switch (mytype) 
 	{
-	case dtBool: 
+	case data_type_enum::dtBool:
 		return ((len == mysize) && Write (dirty, pend, *(const type_bool*)p)) ? mysize : 0;
-	case dtInt8: 
+	case data_type_enum::dtInt8:
 		return ((len == mysize) && Write (dirty, pend, *(const type_int8*)p)) ? mysize : 0;
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		return ((len == mysize) && Write (dirty, pend, *(const type_uint8*)p)) ? mysize : 0;
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		return ((len == mysize) && Write (dirty, pend, *(const type_int16*)p)) ? mysize : 0;
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		return ((len == mysize) && Write (dirty, pend, *(const type_uint16*)p)) ? mysize : 0;
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		return ((len == mysize) && Write (dirty, pend, *(const type_int32*)p)) ? mysize : 0;
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		return ((len == mysize) && Write (dirty, pend, *(const type_uint32*)p)) ? mysize : 0;
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		return ((len == mysize) && Write (dirty, pend, *(const type_int64*)p)) ? mysize : 0;
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		return ((len == mysize) && Write (dirty, pend, *(const type_uint64*)p)) ? mysize : 0;
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		return ((len == mysize) && Write (dirty, pend, *(const type_float*)p)) ? mysize : 0;
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		return ((len == mysize) && Write (dirty, pend, *(const type_double*)p)) ? mysize : 0;
-	case dtString:
+	case data_type_enum::dtString:
 		return Write (dirty, pend, (const type_string_value*) p, len) ? len : 0;
-	case dtWString:
+	case data_type_enum::dtWString:
 		return Write (dirty, pend, (const type_wstring_value*) p, len / 2) ? 2 * int (len / 2)  : 0;
-	case dtBinary:
+	case data_type_enum::dtBinary:
 		if (len != mysize) {
 			return 0;
 		}
@@ -801,7 +803,7 @@ void System::printVals()
 {
 	guard lock (mux);
 
-	for (auto const& it : PLCs)	{
+	for (const auto& it : PLCs)	{
 		if (it.second.get()) it.second.get()->printAllRecords();
 	}
 }
@@ -812,7 +814,7 @@ void System::printVal(const std::string& var)
 {
 	guard lock(mux);
 
-	for (auto const& it : PLCs) {
+	for (const auto& it : PLCs) {
 		if (it.second.get()) it.second.get()->printRecord (var);
 	}
 }
