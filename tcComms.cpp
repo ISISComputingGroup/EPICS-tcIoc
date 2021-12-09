@@ -17,8 +17,8 @@ using namespace std;
 using namespace std::filesystem;
 using namespace plc;
 
-static bool debug = false;
-static bool tcdebug = false;
+static bool debug = true;
+static bool tcdebug = true;
 
 
 
@@ -472,6 +472,8 @@ bool TcPLC::optimizeRequests()
 		}
 	}
 	if (debug) printf("Number of info records %i\n", (int)nonTcRecords.size());
+	if (debug) printf("Number of tc records %i\n", (int)recordList.size());
+
 
 	// Sort record list by group and offset
 	recordList.sort(compByOffset);
@@ -558,7 +560,6 @@ bool TcPLC::optimizeRequests()
 		recOffs = rec->get_indexOffset();
 		reqOffs = adsGroupReadRequestVector[reqNum].indexOffset;
 		rec->set_requestOffs (recOffs - reqOffs);
-
 		if (tcdebug) printf("Record %s linked to ADS response buffer.\n",rec->get_tCatName().c_str());
 	}
 
@@ -741,7 +742,7 @@ void TcPLC::remove_ads_notification()
 	if (nNotificationPort) closePort (nNotificationPort);
 }
 
-/* TcPLC::read_scanner
+/* TcPLC::read_scanner - write to epics from ads ( i think?) 
  ************************************************************************/
 void TcPLC::read_scanner()
 {	
@@ -784,7 +785,7 @@ void TcPLC::read_scanner()
 	read_active = read_success;
 
 	// Check if it's time to do an EPICS read for the slow (read only) records
-	bool readAll = false;
+	bool readAll = false; 
 	if (cyclesLeft <= 0) readAll = true;
 	// Reset countdown until EPICS read
 	if (readAll) cyclesLeft = scanRateMultiple;
@@ -795,13 +796,15 @@ void TcPLC::read_scanner()
 		if (!pRecord) continue;
 		TCatInterface* tcat = dynamic_cast<TCatInterface*>(pRecord->get_plcInterface());
 		if (!tcat) continue;
-		bool isReadOnly = (pRecord->get_access_rights() == access_rights_enum::read_only);
+		bool isReadOnly = (pRecord->get_access_rights() == access_rights_enum::read_only); // this is never true if records are read-write 
+		// printf("%s isReadOnly = %d", pRecord->get_name().c_str(), isReadOnly);
 		buffer_type* buffer = adsResponseBufferVector[tcat->get_requestNum()].get();
-		if (readAll || !isReadOnly) {
+		if (readAll || !isReadOnly) { // so this should always get called
 			if (read_success) {
 				pRecord->PlcWriteBinary(buffer + tcat->get_requestOffs(), tcat->get_size());
 			}
 			else {
+				printf("got here");
 				pRecord->UserSetValid (false);
 			}
 		}
@@ -820,7 +823,7 @@ void TcPLC::read_scanner()
 	--cyclesLeft;
 }
 
-/* TcPLC::write_scanner()
+/* TcPLC::write_scanner() - write to ADS
  ************************************************************************/
 void TcPLC::write_scanner()
 {
@@ -839,22 +842,27 @@ void TcPLC::write_scanner()
 	}
 }
 
-/* TcPLC::update_scanner()
+/* TcPLC::update_scanner()  - on ads callback set a dirty flag on the base record pointer
  ************************************************************************/
 void TcPLC::update_scanner()
 {
 	static time_t last_restart = 0;
 	// Set the dirty flag on a few records to make sure they won't go 
 	// stale, i.e., EPICS and TwinCAT data values are diverging.
-	if (!update_last.get()) return;
+	if (!update_last.get()) {
+		printf("no update_last");
+		return;
+	};
 	BaseRecordPtr next;
-	for (int i = 0; i < update_workload; ++i) {
+	// update workload is set at start to (int)((double)records.size() / ticks + 1)
+	for (int i = 0; i < records.size(); ++i) {
 		if (get_next (next, update_last) && next.get()) {
 			next->UserSetDirty();
 			update_last = next;
 		}
 		else {
 			/// what!?
+			printf("got here");
 			guard lock (mux);
 			update_last = records.begin()->second;
 		}

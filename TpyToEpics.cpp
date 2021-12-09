@@ -1386,7 +1386,7 @@ bool epics_db_processing::operator() (const process_arg& arg)
 		process_field_string (EPICS_DB_DESC, s);
 	}
 	// add SCAN
-	process_field_string (EPICS_DB_SCAN, readonly ? "I/O Intr" : "Passive");
+	process_field_string (EPICS_DB_SCAN, readonly ? ".1 second" : "Passive");
 	// check for DTYP
 	stringcase dtyp = device_support == device_support_type::tc_name ? "tcat" : "opc";
 	if (arg.get_opc().get_property (OPC_PROP_DTYP, s)) {
