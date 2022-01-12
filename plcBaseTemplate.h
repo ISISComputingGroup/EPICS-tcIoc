@@ -53,10 +53,8 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
 	auto old = dest->exchange (source, DataValueTypeDef::memory_order);
 	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	//if (old != (decltype(old)) source || !oldvalid) {
-		// must be after modifying the value
-		dirty.store (true, DataValueTypeDef::memory_order); 
-	//}
+	// must be after modifying the value
+	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
 	return true;
 }
 
@@ -74,10 +72,8 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
 	T old = dest->exchange (source, DataValueTypeDef::memory_order);
 	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	//if (old != source || !oldvalid) {
-		// must be after modifying the value
-		dirty.store (true, DataValueTypeDef::memory_order); 
-	//}
+	// must be after modifying the value
+	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
 	return true;
 }
 
