@@ -34,7 +34,6 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
     printf("Axis %i created\n", axisNo);
 	pvPrefix = pC_->pvPrefix + "ASTAXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
-	setIntegerParam(pC_->motorStatusHasEncoder_, 1);
 }
 
 /** 
@@ -193,20 +192,6 @@ asynStatus devMotorAxis::stop(double acceleration) {
 }
 
 /**
-  * Gets the motor resolution inside the motor record.
-  * 
-  * \return The motor resolution or 1.0 if no resolution can be found.
-  */
-double devMotorAxis::getMotorResolution() {
-    double mres = 1.0;
-    if (pC_->getDoubleParam(axisNo_, pC_->motorResolution_, &mres) == asynSuccess) {
-        return mres;
-    } else {
-        return 1.0;
-    }
-}
-
-/**
   * Scales the value coming from the motor record towards the PLC.
   *
   * The PLC works in real world units the scaling will need to be but
@@ -215,7 +200,7 @@ double devMotorAxis::getMotorResolution() {
   * \param[out] value A pointer to the value that you wish to scale.
   */
 void devMotorAxis::scaleValueFromMotorRecord(double* value) {
-    *value *= getMotorResolution();
+    *value *= MOTOR_SCALING_FACTOR;
 }
 
 /**
@@ -227,7 +212,7 @@ void devMotorAxis::scaleValueFromMotorRecord(double* value) {
   * \param[out] value A pointer to the value that you wish to scale.
   */
 void devMotorAxis::scaleValueToMotorRecord(double* value) {
-    *value /= getMotorResolution();
+    *value /= MOTOR_SCALING_FACTOR;
 }
 
 void twincatMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) { 

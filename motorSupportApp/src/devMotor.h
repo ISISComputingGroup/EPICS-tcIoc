@@ -6,6 +6,7 @@
 #define NUM_VIRTUAL_MOTOR_PARAMS 0  
 
 #define PV_BUFFER_LEN 100
+#define MOTOR_SCALING_FACTOR 0.0001
 
 extern "C" {
 	int devMotorCreateAxis(const char *devMotorName, int axisNo, int versionNumber);
@@ -53,7 +54,6 @@ private:
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
 	void getDirection(int* direction);
-	double getMotorResolution();
 	void scaleValueFromMotorRecord(double* value);
 	void scaleValueToMotorRecord(double* value);
 	
