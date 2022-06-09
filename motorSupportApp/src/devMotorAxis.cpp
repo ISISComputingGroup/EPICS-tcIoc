@@ -34,6 +34,9 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
     printf("Axis %i created\n", axisNo);
 	pvPrefix = pC_->pvPrefix + "ASTAXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
+    // We use a fake scaling factor for motor res and we aren't told if we have an encoder by the beckhoff so explicitly set to 0
+    setIntegerParam(pC_->motorStatusHasEncoder_, 0);
+
 }
 
 /** 
