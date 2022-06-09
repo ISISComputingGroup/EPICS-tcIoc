@@ -34,7 +34,6 @@ devMotorAxis::devMotorAxis(devMotorController *pC, int axisNo)
     printf("Axis %i created\n", axisNo);
 	pvPrefix = pC_->pvPrefix + "ASTAXES_" + std::to_string(axisNo + 1) + ":";
     pC_->wakeupPoller();
-	setIntegerParam(pC_->motorStatusHasEncoder_, 1);
 }
 
 /** 
