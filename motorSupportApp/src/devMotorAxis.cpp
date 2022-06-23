@@ -399,23 +399,20 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
   * \return The status code from doing the poll.
   */
 asynStatus devMotorAxis::poll(bool *moving) {
-    asynStatus comStatus = asynSuccess;
-    int nowMoving = 0;
 	st_axis_status_type st_axis_status;
 	memset(&st_axis_status, 0, sizeof(st_axis_status));
-	
-	// The comms error neeeds to be set to 0 to start to force the new error on init
-	setIntegerParam(pC_->motorStatusCommsError_, 0);
 
 	try {		
 		// Go and get all the values from the device
 		pollAll(&st_axis_status);
-
+    // The comms error neeeds to be set to 0 to start to force the new error on init
+	  setIntegerParam(pC_->motorStatusCommsError_, 0);
 	} catch (const std::runtime_error& e) {
 		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
 		previousError = e.what();
-		comStatus = asynError;
+		setIntegerParam(pC_->motorStatusCommsError_, 1);
+		return asynError;
     }
 
 	// Set the MSTA bits
@@ -430,17 +427,13 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	// Get the actual position
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
-	setDoubleParam(pC_->motorEncoderPosition_, st_axis_status.fActPosition);
 
-	// Calculate if moving and set appropriate bits
-	nowMoving = st_axis_status.bMoving;
-	setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-	setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-	*moving = nowMoving ? true : false;
+    // Calculate if moving and set appropriate bits
+    int nowMoving = st_axis_status.bMoving;
+    setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+    setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+    *moving = st_axis_status.bMoving ? true : false;
 
-	setIntegerParam(pC_->motorStatusCommsError_, comStatus ? 1 : 0);
-	
     callParamCallbacks();
-    
     return asynSuccess;
 }
