@@ -250,7 +250,7 @@ typedef std::list<item_record> item_list;
 /** This structure describes a type record
      @brief Type enum
 ************************************************************************/
-enum type_enum 
+enum class type_enum 
 {
 	/// Unknown type
 	unknown, 
@@ -273,7 +273,7 @@ class type_record : public base_record, public ParseUtil::bit_location
 {
 public:
 	/// Default constructor
-	type_record() : type_desc (unknown), name_decoration (0) {}
+	type_record() : type_desc (type_enum::unknown), name_decoration (0) {}
 
 	/// get the data type
 	type_enum get_type_description() const { return type_desc; }
@@ -467,7 +467,7 @@ protected:
 	@brief Process the type tree of a type
 	*/
 	template <class Function>
-	int process_array (const type_record& typ, dimensions dim, 
+	int process_array (const ParseTpy::type_record& typ, ParseTpy::dimensions dim,
 		const ParseUtil::opc_list& defopc, const ParseUtil::memory_location& loc, 
 		Function& process, const ParseUtil::variable_name& varname, int level) const;
 };

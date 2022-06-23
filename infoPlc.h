@@ -117,6 +117,8 @@ protected:
 	bool info_update_statestr();
 	/// info update: PLC time stamp
 	bool info_update_timestamp_str();
+	/// info update: PLC time stamp (local time)
+	bool info_update_timestamp_local();
 	/// info update: Year of PLC time stamp
 	bool info_update_timestamp_year();
 	/// info update: Month of PLC time stamp
@@ -187,26 +189,38 @@ protected:
 	bool info_update_callback_queue0_size();
 	/// info update: Used entries in low priority callback queue
 	bool info_update_callback_queue0_used();
+	/// info update: Maximum used entries in low priority callback queue
+	bool info_update_callback_queue0_max();
 	/// info update: Free entries low priority callback queue
 	bool info_update_callback_queue0_free();
 	/// info update: Usage percentage of low priority callback queue
 	bool info_update_callback_queue0_percent();
+	/// info update: Maximum percentage of low priority callback queue
+	bool info_update_callback_queue0_mprcnt();
 	/// info update: Size of medium priority callback queue
 	bool info_update_callback_queue1_size();
 	/// info update: Used entries in medium priority callback queue
 	bool info_update_callback_queue1_used();
+	/// info update: Maximum used entries in medium priority callback queue
+	bool info_update_callback_queue1_max();
 	/// info update: Free entries medium priority callback queue
 	bool info_update_callback_queue1_free();
 	/// info update: Usage percentage of medium priority callback queue
 	bool info_update_callback_queue1_percent();
+	/// info update: Maximum percentage of medium priority callback queue
+	bool info_update_callback_queue1_mprcnt();
 	/// info update: Size of high priority callback queue
 	bool info_update_callback_queue2_size();
 	/// info update: Used entries in high priority callback queue
 	bool info_update_callback_queue2_used();
+	/// info update: Maximum used entries in high priority callback queue
+	bool info_update_callback_queue2_max();
 	/// info update: Free entries high priority callback queue
 	bool info_update_callback_queue2_free();
 	/// info update: Usage percentage of high priority callback queue
 	bool info_update_callback_queue2_percent();
+	/// info update: Maximum percentage of high priority callback queue
+	bool info_update_callback_queue2_mprcnt();
 
 	/// List of db info records
 	static const info_dbrecord_list dbinfo_list;

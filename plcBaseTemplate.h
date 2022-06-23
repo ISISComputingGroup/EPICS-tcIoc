@@ -1,7 +1,7 @@
 namespace plc {
 
 #pragma warning(push)
-#pragma warning(disable:4800 4244)
+#pragma warning(disable: 4244)
 
 /** @file plcBaseTemplate.h
 	Header which includes templated methods for abstract record class and 
@@ -12,7 +12,7 @@ namespace plc {
  ************************************************************************/
 template <typename T> 
 	const typename DataValueTraits<T>::data_type_enum 
-	DataValueTraits<T>::data_enum = dtInvalid;
+	DataValueTraits<T>::data_enum = data_type_enum::dtInvalid;
 
 /** Will read the value and reset the dirty flag.
    @brief Reset and read
@@ -53,10 +53,8 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
 	auto old = dest->exchange (source, DataValueTypeDef::memory_order);
 	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	if (old != (decltype(old)) source || !oldvalid) {
-		// must be after modifying the value
-		dirty.store (true, DataValueTypeDef::memory_order); 
-	}
+	// must be after modifying the value
+	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
 	return true;
 }
 
@@ -74,10 +72,8 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
 	T old = dest->exchange (source, DataValueTypeDef::memory_order);
 	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	if (old != source || !oldvalid) {
-		// must be after modifying the value
-		dirty.store (true, DataValueTypeDef::memory_order); 
-	}
+	// must be after modifying the value
+	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
 	return true;
 }
 
@@ -87,60 +83,60 @@ template <typename T>
 bool DataValue::Read (atomic_bool& dirty, T& data) const
 {
 	switch (mytype) {
-	case dtBool:
+	case data_type_enum::dtBool:
 		return reset_and_read (dirty, data, (atomic_bool*)mydata);
-	case dtInt8:
+	case data_type_enum::dtInt8:
 		return reset_and_read (dirty, data, (atomic_int8*)mydata);
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		return reset_and_read (dirty, data, (atomic_uint8*)mydata);
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		return reset_and_read (dirty, data, (atomic_int16*)mydata);
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		return reset_and_read (dirty, data, (atomic_uint16*)mydata);
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		return reset_and_read (dirty, data, (atomic_int32*)mydata);
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		return reset_and_read (dirty, data, (atomic_uint32*)mydata);
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		return reset_and_read (dirty, data, (atomic_int64*)mydata);
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		return reset_and_read (dirty, data, (atomic_uint64*)mydata);
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		return reset_and_read (dirty, data, (atomic_float*)mydata);
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		return reset_and_read (dirty, data, (atomic_double*)mydata);
 	default:
 		return false;
 	}
 }
 
-/** DataValue::UserWrite (bool, Inegral and floating point types)
+/** DataValue::UserWrite (bool, Integral and floating point types)
  ************************************************************************/
 template<typename T> 
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& data)
 {
 	switch (mytype) {
-	case dtBool:
+	case data_type_enum::dtBool:
 		return write_and_test (dirty, pend, myvalid, (atomic_bool*)mydata, data);
-	case dtInt8:
+	case data_type_enum::dtInt8:
 		return write_and_test (dirty, pend, myvalid, (atomic_int8*)mydata, data);
-	case dtUInt8:
+	case data_type_enum::dtUInt8:
 		return write_and_test (dirty, pend, myvalid, (atomic_uint8*)mydata, data);
-	case dtInt16:
+	case data_type_enum::dtInt16:
 		return write_and_test (dirty, pend, myvalid, (atomic_int16*)mydata, data);
-	case dtUInt16:
+	case data_type_enum::dtUInt16:
 		return write_and_test (dirty, pend, myvalid, (atomic_uint16*)mydata, data);
-	case dtInt32:
+	case data_type_enum::dtInt32:
 		return write_and_test (dirty, pend, myvalid, (atomic_int32*)mydata, data);
-	case dtUInt32:
+	case data_type_enum::dtUInt32:
 		return write_and_test (dirty, pend, myvalid, (atomic_uint32*)mydata, data);
-	case dtInt64:
+	case data_type_enum::dtInt64:
 		return write_and_test (dirty, pend, myvalid, (atomic_int64*)mydata, data);
-	case dtUInt64:
+	case data_type_enum::dtUInt64:
 		return write_and_test (dirty, pend, myvalid, (atomic_uint64*)mydata, data);
-	case dtFloat:
+	case data_type_enum::dtFloat:
 		return write_and_test (dirty, pend, myvalid, (atomic_float*)mydata, data);
-	case dtDouble:
+	case data_type_enum::dtDouble:
 		return write_and_test (dirty, pend, myvalid, (atomic_double*)mydata, data);
 	default:
 		return false;
@@ -205,8 +201,19 @@ template <typename func>
 void BasePLC::for_each (func& f) 
 {
 	guard lock (mux);
-	for (auto i: records) {
+	for (auto& i: records) {
 		f (i.second.get()); 
+	}
+}
+
+/* BasePLC::for_each
+ ************************************************************************/
+template <typename func>
+void BasePLC::for_each(const func& f)
+{
+	guard lock(mux);
+	for (auto& i : records) {
+		f(i.second.get());
 	}
 }
 
@@ -216,8 +223,19 @@ template <typename func>
 void System::for_each (func& f) 
 {
 	guard lock (mux);
-	for (auto i: PLCs) {
+	for (auto& i: PLCs) {
 		f (i.second.get()); 
+	}
+}
+
+/* System::for_each
+ ************************************************************************/
+template <typename func>
+void System::for_each(const func& f)
+{
+	guard lock(mux);
+	for (auto& i : PLCs) {
+		f(i.second.get());
 	}
 }
 

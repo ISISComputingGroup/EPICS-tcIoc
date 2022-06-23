@@ -18,6 +18,7 @@ namespace EpicsTpy {
 const int MAX_EPICS_CHANNEL=	54;	/**< maximum length of EPICS channel name */
 const int MAX_EPICS_DESC=		40;	/**< maximum length of EPICS channel description */
 const int MAX_EPICS_STRING=		40;	/**< maximum length of EPICS strings */
+const int MAX_EPICS_LONGSTRING= 65535;	/**< maximum length of EPICS long strings */
 const int MAX_EPICS_UNIT=		15;	/**< maximum length of EPICS channel unit string */
 
 const char* const EPICS_DB_EGU=     "EGU";	/**< unit string */
@@ -41,6 +42,7 @@ const char* const EPICS_DB_OUT=		"OUT";	/**< output link */
 const char* const EPICS_DB_TSE=		"TSE";	/**< time stamp */
 const char* const EPICS_DB_PINI=	"PINI";	/**< initialization */
 const char* const EPICS_DB_DTYP=	"DTYP";	/**< data type */
+const char* const EPICS_DB_SIZV=    "SIZV";	/**< string size for long strings */
 
 const char* const EPICS_DB_OSV=		"OSV";	/**< one severity */
 const char* const EPICS_DB_ZSV=		"ZSV";	/**< zero severity */

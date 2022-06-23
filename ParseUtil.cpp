@@ -128,12 +128,11 @@ void optarg::setup (int size)
  ************************************************************************/
  void opc_list::add (const opc_list& o) 
  {
-	 if (o.opc != no_change) {
+	 if (o.opc != opc_enum::no_change) {
 		 opc = o.opc;
 	 }
-	 for (property_map::const_iterator i = o.opc_prop.begin();
-		 i != o.opc_prop.end(); ++i) {
-			 opc_prop[i->first] = i->second;
+	 for (const auto& i : o.opc_prop) {
+		 opc_prop[i.first] = i.second;
 	 }
  }
  
@@ -141,7 +140,7 @@ void optarg::setup (int size)
  ************************************************************************/
  bool opc_list::is_published () const
  {
-	 return (opc == publish);
+	 return (opc == opc_enum::publish);
  }
 
 /* OPC list members: is_readonly
@@ -300,25 +299,52 @@ bool memory_location::set (const std::stringcase& s)
 std::stringcase process_arg::get_process_string () const
 {
 	switch (ptype) {
-	case pt_int :
+	case process_type_enum::pt_int :
 		return "int";
-	case pt_real:
+	case process_type_enum::pt_real:
 		return "real";
-	case pt_bool:
+	case process_type_enum::pt_bool:
 		return "bool";
-	case pt_string:
+	case process_type_enum::pt_string:
 		return "string";
-	case pt_enum:
+	case process_type_enum::pt_enum:
 		return "enum";
-	case pt_binary:
+	case process_type_enum::pt_binary:
 		return "binary";
-	case pt_invalid:
+	case process_type_enum::pt_invalid:
 	default:
 		return "invalid";
 	}
 }
 
-/* process_arg::get
+/* process_arg_tc::get
+ ************************************************************************/
+void process_arg::deduce_size()
+{
+	if (ptype == process_type_enum::pt_string) {
+		std::stringcase s(type_n);
+		while ((s.length() > 0) && !isdigit(s[0])) s.erase(0, 1);
+		int len = strtol(s.c_str(), nullptr, 10);
+		size = len;
+	}
+	else if (ptype == process_type_enum::pt_int) {
+		if (get_type_name() == "SINT" || get_type_name() == "USINT" || get_type_name() == "BYTE")
+			size = 1;
+		else if (get_type_name() == "INT" || get_type_name() == "UINT" || get_type_name() == "WORD")
+			size = 2;
+		else if (get_type_name() == "DINT" || get_type_name() == "UDINT" || get_type_name() == "DWORD")
+			size = 4;
+		else if (get_type_name() == "LINT" || get_type_name() == "ULINT" || get_type_name() == "LWORD")
+			size = 4;
+		else
+			size = 0;
+	}
+	else {
+		size = 0;
+	}
+}
+
+/* process_arg_tc::get
  ************************************************************************/
 std::stringcase process_arg_tc::get_full () const
 {
@@ -369,17 +395,17 @@ int tag_processing::getopt (int argc, const char* const argv[], bool argp[])
 		}
 		// Call process for all types (default)
 		else if (arg == "-pa" || arg == "/pa") {
-			set_process_tags (process_all);
+			set_process_tags (process_tag_enum::all);
 			++num;
 		}
 		// Call process for simple types only
 		else if (arg == "-ps" || arg == "/ps") {
-			set_process_tags (process_atomic);
+			set_process_tags (process_tag_enum::atomic);
 			++num;
 		}
 		// Call process for complex types only
 		else if (arg == "-pc" || arg == "/pc") {
-			set_process_tags (process_structured);
+			set_process_tags (process_tag_enum::structured);
 			++num;
 		}
 		// no set flag to indicated a processed option

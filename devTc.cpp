@@ -1,7 +1,10 @@
-#define _CRT_SECURE_NO_WARNINGS
 #include "devTc.h"
 #include "ParseTpy.h"
 #include "InfoPlc.h"
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning (disable : 26812)
+#pragma warning (disable : 26495)
+#pragma warning (disable : 4996)
 #include "errlog.h"
 #undef va_start
 #undef va_end
@@ -11,11 +14,16 @@
 #include "recGbl.h"
 #include "recSup.h"
 #include "epicsExport.h"
-#include "aitConvert.h"
 #include "epicsRingPointer.h"
-#include <iostream>
+#pragma warning (default : 4996)
+#pragma warning (default : 26495)
+#pragma warning (default : 26812)
 #undef _CRT_SECURE_NO_WARNINGS
-
+#include <iostream>
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#include <windows.h>
+#endif
 //int nProcessed = 0;
 //clock_t epicsbegin;
 //clock_t epicsend;
@@ -112,7 +120,7 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 	}
 
 	std::smatch match;
-	for (auto i : the_register_devsup.tp_list) {
+	for (const auto& i : the_register_devsup.tp_list) {
 		if (std::regex_search (inpout, match, i.first)) {
 			// Get PLC name from EPICS name string
 			BasePLCPtr plcMatch = plc::System::get().find (match[1].str().c_str());
@@ -158,7 +166,7 @@ bool EpicsInterface::get_callbackRequestPending() const
 
 /* Callback complete_io_scan
  ************************************************************************/
-static void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
 {
 	epics->ioscan_reset(prio);
 }
@@ -233,10 +241,11 @@ static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
  ************************************************************************/
 static bool load_callback_queue_func()
 {
+	bool RunTimeLinkSuccess = false;
+#ifdef _MSC_VER
 	// Use dynamic DLL linking in case of unpatched EPICS base
 	HINSTANCE hinstLib;
 	callback_queue_func func;
-	bool RunTimeLinkSuccess = false;
 	// Get a handle to the DLL module.
 	hinstLib = LoadLibrary (callback_queue_library);
 	// If the handle is valid, try to get the function address.
@@ -256,6 +265,7 @@ static bool load_callback_queue_func()
 	if (!RunTimeLinkSuccess) {
 		printf("Unable to load callback queue information\n");
 	}
+#endif
 	return RunTimeLinkSuccess;
 }
 
@@ -337,6 +347,11 @@ static devTcDefIn<birval> birval_record_tc_dset;
 // longin record
 static devTcDefIn<longinval> longinval_record_tc_dset;
 
+// int64int record
+#if EPICS_VERSION >= 7
+static devTcDefIn<int64inval> int64inval_record_tc_dset;
+#endif
+
 // mbbi record
 static devTcDefIn<mbbival> mbbival_record_tc_dset;
 static devTcDefIn<mbbirval> mbbirval_record_tc_dset;
@@ -347,6 +362,7 @@ static devTcDefIn<mbbiDirectrval> mbbiDirectrval_record_tc_dset;
 
 // stringin record
 static devTcDefIn<stringinval> stringinval_record_tc_dset;
+static devTcDefIn<lsival> lsival_record_tc_dset;
 
 // waveform record
 static devTcDefWaveformIn<waveformval> waveformval_record_tc_dset;
@@ -366,6 +382,10 @@ static devTcDefOut<borval> borval_record_tc_dset;
 // longout record
 static devTcDefOut<longoutval> longoutval_record_tc_dset;
 
+// int64out record
+#if EPICS_VERSION >= 7
+static devTcDefOut<int64outval> int64outval_record_tc_dset;
+#endif
 // mbbo record
 static devTcDefOut<mbboval> mbboval_record_tc_dset;
 static devTcDefOut<mbborval> mbborval_record_tc_dset;
@@ -376,6 +396,7 @@ static devTcDefOut<mbboDirectrval> mbboDirectrval_record_tc_dset;
 
 // stringout record
 static devTcDefOut<stringoutval> stringoutval_record_tc_dset;
+static devTcDefOut<lsoval> lsoval_record_tc_dset;
 
 }
 
@@ -396,6 +417,11 @@ epicsExportAddress(dset, birval_record_tc_dset);  ///< Record processing entry f
 // longin record
 epicsExportAddress(dset, longinval_record_tc_dset);  ///< Record processing entry for longin
 
+// int64in record
+#if EPICS_VERSION >= 7
+epicsExportAddress(dset, int64inval_record_tc_dset);  ///< Record processing entry for int64in
+#endif
+
 // mbbi record
 epicsExportAddress(dset, mbbival_record_tc_dset); ///< Record processing entry for mbbi
 epicsExportAddress(dset, mbbirval_record_tc_dset); ///< Record processing entry for raw mbbi
@@ -406,6 +432,7 @@ epicsExportAddress(dset, mbbiDirectrval_record_tc_dset); ///< Record processing 
 
 // stringin record
 epicsExportAddress(dset, stringinval_record_tc_dset); ///< Record processing entry for stringin
+epicsExportAddress(dset, lsival_record_tc_dset); ///< Record processing entry for lsi (long string)
 
 // waveform record
 epicsExportAddress(dset, waveformval_record_tc_dset); ///< Record processing entry for waveform
@@ -425,6 +452,11 @@ epicsExportAddress(dset, borval_record_tc_dset); ///< Record processing entry fo
 // longout record
 epicsExportAddress(dset, longoutval_record_tc_dset); ///< Record processing entry for longout
 
+// int64out record
+#if EPICS_VERSION >= 7
+epicsExportAddress(dset, int64outval_record_tc_dset);  ///< Record processing entry for int64out
+#endif
+
 // mbbo record
 epicsExportAddress(dset, mbboval_record_tc_dset); ///< Record processing entry for mbbo
 epicsExportAddress(dset, mbborval_record_tc_dset); ///< Record processing entry for raw mbbo
@@ -435,5 +467,6 @@ epicsExportAddress(dset, mbboDirectrval_record_tc_dset); ///< Record processing 
 
 // stringout record
 epicsExportAddress(dset, stringoutval_record_tc_dset); ///< Record processing entry for stringout
+epicsExportAddress(dset, lsoval_record_tc_dset); ///< Record processing entry for lso (long string)
 
 }

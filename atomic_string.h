@@ -55,7 +55,7 @@ protected:
 	/// flag for spin lock
 	mutable atomic_flag	flag;
 	/// data string
-	stringT					data;
+	stringT				data;
 
 private:
 	/// Copy constructor not defined
