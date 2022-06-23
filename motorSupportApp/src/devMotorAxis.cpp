@@ -405,15 +405,15 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	try {		
 		// Go and get all the values from the device
 		pollAll(&st_axis_status);
-        // The comms error neeeds to be set to 0 to start to force the new error on init
-	    setIntegerParam(pC_->motorStatusCommsError_, 0);
+    // The comms error neeeds to be set to 0 to start to force the new error on init
+	  setIntegerParam(pC_->motorStatusCommsError_, 0);
 	} catch (const std::runtime_error& e) {
 		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
 		previousError = e.what();
 		setIntegerParam(pC_->motorStatusCommsError_, 1);
 		return asynError;
-    }
+  }
 
 	// Set the MSTA bits
 	setIntegerParam(pC_->motorStatusHomed_, st_axis_status.bHomed);
@@ -428,12 +428,12 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
 
-    // Calculate if moving and set appropriate bits
-    int nowMoving = st_axis_status.bMoving;
-    setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-    setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-    *moving = st_axis_status.bMoving ? true : false;
+  // Calculate if moving and set appropriate bits
+  int nowMoving = st_axis_status.bMoving;
+  setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+  setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+  *moving = st_axis_status.bMoving ? true : false;
 
-    callParamCallbacks();
-    return asynSuccess;
+  callParamCallbacks();
+  return asynSuccess;
 }
