@@ -412,6 +412,7 @@ asynStatus devMotorAxis::poll(bool *moving) {
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
 		previousError = e.what();
 		setIntegerParam(pC_->motorStatusCommsError_, 1);
+    callParamCallbacks();
 		return asynError;
   }
 
@@ -432,7 +433,7 @@ asynStatus devMotorAxis::poll(bool *moving) {
   int nowMoving = st_axis_status.bMoving;
   setIntegerParam(pC_->motorStatusMoving_, nowMoving);
   setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-  *moving = st_axis_status.bMoving ? true : false;
+  *moving = nowMoving ? true : false;
 
   callParamCallbacks();
   return asynSuccess;
