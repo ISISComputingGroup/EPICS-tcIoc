@@ -405,7 +405,6 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	try {		
 		// Go and get all the values from the device
 		pollAll(&st_axis_status);
-    // The comms error neeeds to be set to 0 to start to force the new error on init
 	  setIntegerParam(pC_->motorStatusCommsError_, 0);
 	} catch (const std::runtime_error& e) {
 		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
