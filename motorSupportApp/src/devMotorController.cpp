@@ -31,7 +31,13 @@ devMotorController::devMotorController(const char *portName, const char *MotorPo
 	pvPrefix(pvPrefix)
 {
 	printf("Created Controller\n");
-	startPoller(1/5.0, 1/5.0, 2);
+	startPoller(1/5.0, 1/5.0, 100);
+}
+
+asynStatus devMotorController::wakeupPoller()
+{
+  // epicsEventSignal(pollEventId_);
+  return asynSuccess;
 }
 
 

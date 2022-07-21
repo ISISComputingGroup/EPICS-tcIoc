@@ -63,6 +63,8 @@ private:
 	std::string previousError = "";
 	bool errorToggle = false;
 
+	double last_pos=0;
+	int last_bmoving=0;
     virtual std::string ENABLE_STATUS() = 0;
 	virtual std::string EXECUTE() = 0;
 	virtual std::string VELOCITY_SP() = 0;
@@ -140,7 +142,6 @@ private:
 	epicsInt32 MOVE_ABS_COMMAND() { return 17; };
 	epicsInt32 MOVE_RELATIVE_COMMAND() { return 18; };
 	epicsInt32 MOVE_VELO_COMMAND() { return 21; };
-
     void populateLimitStatus(st_axis_status_type *axis_status);
 	asynStatus sendStop();
 };
@@ -151,6 +152,7 @@ public:
 
 	void report(FILE *fp, int level);
 
+	asynStatus devMotorController::wakeupPoller();
 	friend class devMotorAxis;
 	std::string pvPrefix;
 };

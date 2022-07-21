@@ -407,7 +407,7 @@ asynStatus devMotorAxis::poll(bool *moving) {
 		pollAll(&st_axis_status);
 	  setIntegerParam(pC_->motorStatusCommsError_, 0);
 	} catch (const std::runtime_error& e) {
-		int mask = previousError == e.what() ? ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
+		int mask = previousError == e.what() ? ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER : ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER;
 		asynPrint(pC_->pasynUserSelf, mask, "Failed to poll axis %i: %s\n", axisNo, e.what());
 		previousError = e.what();
 		setIntegerParam(pC_->motorStatusCommsError_, 1);
@@ -428,12 +428,22 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	scaleValueToMotorRecord(&st_axis_status.fActPosition);
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
 
-  // Calculate if moving and set appropriate bits
-  int nowMoving = st_axis_status.bMoving;
-  setIntegerParam(pC_->motorStatusMoving_, nowMoving);
-  setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-  *moving = nowMoving ? true : false;
 
+
+  // Calculate if moving and set appropriate bits
+  //int nowMoving = st_axis_status.bMoving != last_bmoving ? 1: 0;
+  int last_bmoving = getWasMovingFlag();
+  int nowMoving = (st_axis_status.bMoving == last_bmoving && st_axis_status.bMoving == 1 && st_axis_status.fActPosition != last_pos) ? 1: 0;
+  if (axisNo == 0){
+	asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR | ASYN_TRACEIO_DRIVER, "axis %i: bmoving: %i factposition: %i last_bmoving: %i last_pos: %i so motor is moving: %i \n", axisNo, st_axis_status.bMoving, st_axis_status.fActPosition, last_bmoving, last_pos, nowMoving);
+  }
+  //setIntegerParam(pC_->motorStatusMoving_, nowMoving);
+  setIntegerParam(pC_->motorStatusDone_, !nowMoving);
+  *moving = nowMoving == 1 ? true : false;
+
+  last_pos = st_axis_status.fActPosition;
+  setWasMovingFlag(st_axis_status.bMoving);
+  //last_bmoving = st_axis_status.bMoving;
   callParamCallbacks();
   return asynSuccess;
 }
