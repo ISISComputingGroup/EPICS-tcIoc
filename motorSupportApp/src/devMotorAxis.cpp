@@ -287,6 +287,7 @@ asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
 	getDouble(VELOCITY_RBV(), &axis_status->fActVelocity);
 	getInteger(HOMED(), &axis_status->bHomed);
 	getInteger(MOVING(), &axis_status->bMoving);
+  printf("in pollAll bmoving is %d\n", axis_status->bMoving);
 	getDirection(&axis_status->bDirection);
 	populateLimitStatus(axis_status);
     return asynSuccess;
@@ -340,6 +341,43 @@ void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer
     epicsEnum16 status = addr->precord->stat;
     epicsEnum16 severity = addr->precord->sevr;
 	
+	if (status) {
+		std::ostringstream os;
+		os << "PV " + fullPV + " in alarm with status " << status << " and severity " << severity;
+		throw std::runtime_error(os.str());
+	}
+}
+
+/**
+  * Get a value from a PV.
+  *
+  * \param[in] pvSuffix The name of the PV to get from (without the PV prefix)
+  * \param[out] addr The DBADDR structure to store metadata about the PV
+  * \param[out] pbuffer The buffer to store the value retrieved from the PV
+  * \param[in] prefix The prefix to use for the PV, if not specified then will default to the one setup in the constructor
+  * \param[in] field The field ie. RVAL to get for the specified PV
+  */
+void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string& field, const std::string* prefix) {
+	long options = 0;
+	long no_elements;
+
+	if (!prefix) {
+		prefix = &pvPrefix;
+	}
+
+	std::string fullPV = *prefix + pvSuffix;
+	if (dbNameToAddr(fullPV.c_str(), addr)) {
+		throw std::runtime_error("PV not found: " + fullPV);
+	}
+
+	no_elements = MIN(addr->no_elements, PV_BUFFER_LEN / addr->field_size);
+	if (dbGetField(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
+		throw std::runtime_error("Could not get value from PV: " + fullPV);
+	}
+
+	epicsEnum16 status = addr->precord->stat;
+	epicsEnum16 severity = addr->precord->sevr;
+
 	if (status) {
 		std::ostringstream os;
 		os << "PV " + fullPV + " in alarm with status " << status << " and severity " << severity;
@@ -429,10 +467,12 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	setDoubleParam(pC_->motorPosition_, st_axis_status.fActPosition);
 
   // Calculate if moving and set appropriate bits
-  int nowMoving = st_axis_status.bMoving;
+  printf("st axis bmoving is %d\n", st_axis_status.bMoving);
+  epicsInt32 nowMoving = st_axis_status.bMoving;
   setIntegerParam(pC_->motorStatusMoving_, nowMoving);
   setIntegerParam(pC_->motorStatusDone_, !nowMoving);
-  *moving = nowMoving ? true : false;
+  printf("nowMoving is %d and result of terniary is %d\n", nowMoving, nowMoving ? 1 : 0);
+  *moving = nowMoving ? 1 : 0;
 
   callParamCallbacks();
   return asynSuccess;

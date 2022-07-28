@@ -12,18 +12,18 @@ extern "C" {
 }
 
 typedef struct {
-    int bEnable;                      
-    int bExecute;                   
-    double fVelocity;      
-    double fPosition;         
-    int bLimitFwd;         
-    int bLimitBwd;                           
-    int bError;                     
-    double fActVelocity;   
-    double fActPosition;   
-    int bHomed;            
-    int bMoving;
-    int bDirection;
+    epicsInt32 bEnable;                      
+    epicsInt32 bExecute;                   
+    epicsFloat64 fVelocity;      
+    epicsFloat64 fPosition;         
+    epicsInt32 bLimitFwd;         
+    epicsInt32 bLimitBwd;                           
+    epicsInt32 bError;                     
+    epicsFloat64 fActVelocity;   
+    epicsFloat64 fActPosition;   
+    epicsInt32 bHomed;            
+    epicsInt32 bMoving;
+    epicsInt32 bDirection;
 } st_axis_status_type;
 
 class epicsShareClass devMotorAxis : public asynMotorAxis
@@ -51,6 +51,7 @@ protected:
 	
 private:
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
+	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string& field, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
 	void getDirection(int* direction);
 	double getMotorResolution();
@@ -100,7 +101,7 @@ private:
 	std::string POSITION_RBV() { return "STSTATUS-FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "STSTATUS-FACTVELOCITY"; };
 	std::string HOMED() { return "STSTATUS-BHOMED"; };
-	std::string MOVING() { return "STSTATUS-BMOVING"; };
+	std::string MOVING() { return "STSTATUS-BMOVINGMON"; };
 	std::string COMMAND() { return "STCONTROL-ECOMMAND"; };
 	std::string POSITIVE_DIR() { return "STSTATUS-BMOVINGFORWARD"; };
 	std::string NEGATIVE_DIR() { return "STSTATUS-BMOVINGBACKWARD"; };
