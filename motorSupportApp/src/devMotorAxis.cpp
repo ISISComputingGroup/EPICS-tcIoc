@@ -332,52 +332,37 @@ void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer
     if (dbNameToAddr(fullPV.c_str(), addr)) {
         throw std::runtime_error("PV not found: " + fullPV);
     }
+
+    int should_print = (strncmp(pvSuffix.c_str(), "STSTATUS-BMOVING", 17) == 0);
       
     no_elements = MIN(addr->no_elements, PV_BUFFER_LEN/addr->field_size);
     if (dbGet(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
         throw std::runtime_error("Could not get value from PV: " + fullPV);
     }
 
+    if (addr->dbr_field_type != DBR_ENUM) {
+        printf("really bad things happened - type was %d\n", addr->dbr_field_type);
+        throw std::runtime_error("Could not get value from PV: " + fullPV);
+    }
+
+    if (should_print) {
+      printf("Called with prexix=%s pvsuffix=%s\n", prefix->c_str(), pvSuffix.c_str());
+      printf("in 1 getPVValue %d\n", *pbuffer);
+
+      long precord2, precord3;
+      DBADDR a2;
+      DBADDR a3;
+      dbNameToAddr((fullPV + ".VAL").c_str(), &a2);
+      dbNameToAddr((fullPV + ".RVAL").c_str(), &a3);
+      dbGet(&a2, a2.dbr_field_type, &precord2, &options, &no_elements, NULL);
+      dbGet(&a3, a3.dbr_field_type, &precord3, &options, &no_elements, NULL);
+      printf("in 2 getPVValue %d\n", precord2);
+      printf("in 3 getPVValue %d\n", precord3);
+    }
+
     epicsEnum16 status = addr->precord->stat;
     epicsEnum16 severity = addr->precord->sevr;
 	
-	if (status) {
-		std::ostringstream os;
-		os << "PV " + fullPV + " in alarm with status " << status << " and severity " << severity;
-		throw std::runtime_error(os.str());
-	}
-}
-
-/**
-  * Get a value from a PV.
-  *
-  * \param[in] pvSuffix The name of the PV to get from (without the PV prefix)
-  * \param[out] addr The DBADDR structure to store metadata about the PV
-  * \param[out] pbuffer The buffer to store the value retrieved from the PV
-  * \param[in] prefix The prefix to use for the PV, if not specified then will default to the one setup in the constructor
-  * \param[in] field The field ie. RVAL to get for the specified PV
-  */
-void devMotorAxis::getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string& field, const std::string* prefix) {
-	long options = 0;
-	long no_elements;
-
-	if (!prefix) {
-		prefix = &pvPrefix;
-	}
-
-	std::string fullPV = *prefix + pvSuffix;
-	if (dbNameToAddr(fullPV.c_str(), addr)) {
-		throw std::runtime_error("PV not found: " + fullPV);
-	}
-
-	no_elements = MIN(addr->no_elements, PV_BUFFER_LEN / addr->field_size);
-	if (dbGetField(addr, addr->dbr_field_type, pbuffer, &options, &no_elements, NULL) != 0) {
-		throw std::runtime_error("Could not get value from PV: " + fullPV);
-	}
-
-	epicsEnum16 status = addr->precord->stat;
-	epicsEnum16 severity = addr->precord->sevr;
-
 	if (status) {
 		std::ostringstream os;
 		os << "PV " + fullPV + " in alarm with status " << status << " and severity " << severity;

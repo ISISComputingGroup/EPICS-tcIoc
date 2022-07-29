@@ -51,7 +51,6 @@ protected:
 	
 private:
 	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string* prefix = 0);
-	void getPVValue(std::string& pvSuffix, DBADDR* addr, long* pbuffer, const std::string& field, const std::string* prefix = 0);
 	void getDouble(std::string pvSuffix, epicsFloat64* pvalue);
 	void getDirection(int* direction);
 	double getMotorResolution();
@@ -101,7 +100,7 @@ private:
 	std::string POSITION_RBV() { return "STSTATUS-FACTPOSITION"; };
 	std::string VELOCITY_RBV() { return "STSTATUS-FACTVELOCITY"; };
 	std::string HOMED() { return "STSTATUS-BHOMED"; };
-	std::string MOVING() { return "STSTATUS-BMOVINGMON"; };
+	std::string MOVING() { return "STSTATUS-BMOVING"; };
 	std::string COMMAND() { return "STCONTROL-ECOMMAND"; };
 	std::string POSITIVE_DIR() { return "STSTATUS-BMOVINGFORWARD"; };
 	std::string NEGATIVE_DIR() { return "STSTATUS-BMOVINGBACKWARD"; };
