@@ -115,8 +115,8 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
 		int movingCheckPolls = 10;
 		double movingCheckDelay = 0.05;
 		do {
-			pollAll(&st_axis_status);
 			epicsThreadSleep(movingCheckDelay);
+			pollAll(&st_axis_status);
 		} while (st_axis_status.bMoving == 0 && --movingCheckPolls > 0);
 		return (asynStatus)status;
 	}  catch (const std::runtime_error& e) {
