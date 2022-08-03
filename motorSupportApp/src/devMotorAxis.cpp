@@ -106,11 +106,19 @@ asynStatus devMotorAxis::move(double position, int relative, double minVelocity,
 		
 		if (relative == 0) {
 			status |= putDb(POSITION_SP(), &position);
-			return (asynStatus)sendCommand(MOVE_ABS_COMMAND());
+			status |= sendCommand(MOVE_ABS_COMMAND());
 		} else {
 			status |= putDb(DISTANCE_SP(), &position);
-			return (asynStatus)sendCommand(MOVE_RELATIVE_COMMAND());
+			status |= sendCommand(MOVE_RELATIVE_COMMAND());
 		}
+		st_axis_status_type st_axis_status;
+		int movingCheckPolls = 10;
+		double movingCheckDelay = 0.05;
+		do {
+			epicsThreadSleep(movingCheckDelay);
+			pollAll(&st_axis_status);
+		} while (st_axis_status.bMoving == 0 && --movingCheckPolls > 0);
+		return (asynStatus)status;
 	}  catch (const std::runtime_error& e) {
 		asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
 					"Failed to move to %f axis %i: %s\n", position, axisNo, e.what());
@@ -278,6 +286,7 @@ void devMotorAxis::getDirection(int* direction) {
   * \return The status code for the polling.
   */
 asynStatus devMotorAxis::pollAll(st_axis_status_type *axis_status) {
+	memset(axis_status, 0, sizeof(st_axis_status_type));
 	getInteger(ENABLE_STATUS(), &axis_status->bEnable);
 	getInteger(EXECUTE(), &axis_status->bExecute);
 	getDouble(VELOCITY_SP(), &axis_status->fVelocity);
@@ -400,7 +409,6 @@ void devMotorAxis::getInteger(std::string pvSuffix, epicsInt32* pvalue, const st
   */
 asynStatus devMotorAxis::poll(bool *moving) {
 	st_axis_status_type st_axis_status;
-	memset(&st_axis_status, 0, sizeof(st_axis_status));
 
 	try {		
 		// Go and get all the values from the device
