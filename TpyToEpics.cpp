@@ -6,6 +6,8 @@
 #include "TpyToEpics.h"
 #include <filesystem>
 
+#pragma warning (disable : 4996)
+
 using namespace std;
 using namespace std::filesystem;
 using namespace ParseTpy;
@@ -31,7 +33,7 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 			continue;
 		}
 		std::stringcase arg (argv[i]);
-		int oldnum = num;
+		const int oldnum = num;
 		// Does not apply any special conversion rules
 		if (arg == "-rn" || arg == "/rn" ) {
 			set_conversion_rule (tc_epics_conv::no_conversion);
@@ -94,6 +96,36 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 			i += 1;
 			num += 2;
 		}
+		// Check if a replacement list has been specified
+		else if ((arg == "-fa" || arg == "-fi" || arg == "-fs" || 
+			      arg == "/fa" || arg == "/fi" || arg == "/fs") &&
+				 (i + 1 < argc) && argv[i + 1] && (strlen (argv[i + 1]) > 0)) {
+			switch (arg[2]) {
+			case 'a':
+				set_processing(process_substitution_enum::all);
+				break;
+			case 'i':
+				set_processing(process_substitution_enum::ignore);
+				break;
+			default:
+				set_processing(process_substitution_enum::standard);
+				break;
+			}
+			// Open input  file for replacement list
+			FILE* fin = nullptr;
+			errno_t err = fopen_s(&fin, argv[i + 1], "r");
+			if (!err) {
+				if (!parse(fin)) {
+					fprintf(stderr, "Failed to parse substitution list file %s.\n", argv[i + 1]);
+				}
+			}
+			else {
+				fprintf(stderr, "Failed to open input file for substitution list %s.\n", argv[i + 1]);
+			}
+			if (argp) argp[i] = true;
+			i += 1;
+			num += 2;
+		}
 		// now set flag to indicated a processed option
 		if (argp && (num > oldnum)) {
 			argp[i] = true;
@@ -104,10 +136,20 @@ int epics_conversion::getopt (int argc, const char* const argv[], bool argp[])
 
 /* Obtain EPICS name from OPC name
  ************************************************************************/
-string epics_conversion::to_epics (const stringcase& name) const
+string epics_conversion::to_epics (const stringcase& name, bool published,
+	const ParseUtil::substitution** subst) const
 {
 	stringcase n (name);
-	stringcase::size_type pos;
+	stringcase::size_type pos = 0;
+
+	if (subst != nullptr) *subst = nullptr;
+	
+	// apply replacement list if required
+	if (!query_substitution(n, published, subst)) {
+		// ignore this name
+		n.clear();
+		return string(n.c_str());
+	}
 
 	// apply replacement rules
 	if (HasRules()) {
@@ -116,13 +158,13 @@ string epics_conversion::to_epics (const stringcase& name) const
 
 	// eliminate leading dot
 	if (no_leading_dot || (conv_rule == tc_epics_conv::ligo_std) || (conv_rule == tc_epics_conv::ligo_vac)) {
-		std::stringcase::size_type pos;
+		std::stringcase::size_type pos2 = 0;
 		if (!n.empty() && (n[0] == '.')) {
 			n.erase (0, 1);
 		}
 		// TwinCAT 3 doesn't use an empty name for globals
-		else if ((pos = n.find ('.')) != std::stringcase::npos) {
-			n.erase (0, pos + 1);
+		else if ((pos2 = n.find ('.')) != std::stringcase::npos) {
+			n.erase (0, pos2 + 1);
 		}
 	}
 
@@ -188,7 +230,8 @@ string epics_conversion::to_epics (const stringcase& name) const
 			n.erase (pos, 1);
 		}
 	}
-	// add prefix
+	
+	// add prefix after replacement list
 	n = get_prefix() + n;
 
 	return string (n.c_str());
@@ -254,7 +297,7 @@ int split_io_support::getopt (int argc, const char* const argv[], bool argp[])
 			continue;
 		}
 		std::stringcase arg (argv[i]);
-		int oldnum = num;
+		const int oldnum = num;
 		// Splits database into input only and input/ouput recrods 
 		if (arg == "-sio" || arg == "/sio" ||
 			arg == "-ysio" || arg == "/ysio") {
@@ -269,7 +312,7 @@ int split_io_support::getopt (int argc, const char* const argv[], bool argp[])
 		// Splits database into files with no more than num records
 		else if (arg == "-sn" || arg == "/sn" ) {
 			if  (i + 1 < argc && argv[i+1][0] != '/' && argv[i+1][0] != '-') {
-				int n = atoi (argv[i+1]);
+				const int n = atoi (argv[i+1]);
 				set_max (n);
 				if (argp) argp[i] = true;
 				i += 1;
@@ -312,10 +355,7 @@ void split_io_support::set_filename (const stringcase& fn)
 				file_io_s = ".io";
 			}
 			stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
-			#pragma warning (disable: 4996)
-			outf_io = fopen (fname.c_str(), "w");
-			#pragma warning (default: 4996)
-			if (!outf_io) {
+			if (fopen_s(&outf_io, fname.c_str(), "w")) {
 				fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 				error = true;
 				return;
@@ -323,10 +363,7 @@ void split_io_support::set_filename (const stringcase& fn)
 			outf = outf_io;
 			if (split_io) {
 				fname = outfilename + file_in_s + file_num_in_s + ".db";
-				#pragma warning (disable: 4996)
-				outf_in = fopen (fname.c_str(), "w");
-				#pragma warning (default: 4996)
-				if (!outf_io) {
+				if (fopen_s(&outf_in, fname.c_str(), "w")) {
 					fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 					error = true;
 					return;
@@ -334,10 +371,7 @@ void split_io_support::set_filename (const stringcase& fn)
 			}
 		}
 		else {
-			#pragma warning (disable: 4996)
-			outf_io = fopen (outfilename.c_str(), "w");
-			#pragma warning (default: 4996)
-			if (!outf_io) {
+			if (fopen_s(&outf_io, outfilename.c_str(), "w")) {
 				fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 				error = true;
 				return;
@@ -360,7 +394,7 @@ void split_io_support::set_filename (const stringcase& fn)
 /* Flush file content
    split_io_support::flush
 ************************************************************************/
-void split_io_support::flush()
+void split_io_support::flush() noexcept
 {
 	if (outf_io) fflush (outf_io);
 	if (outf_in) fflush (outf_in);
@@ -369,7 +403,7 @@ void split_io_support::flush()
 /* Closes files
    split_io_support::close
 ************************************************************************/
-void split_io_support::close()
+void split_io_support::close() noexcept
 {
 	if (outf_io) fclose (outf_io);
 	outf_io = nullptr;
@@ -393,10 +427,7 @@ bool split_io_support::increment (bool readonly)
 					file_num_in_s = buf;
 					fclose (outf_in);
 					stringcase fname = outfilename + file_in_s + file_num_in_s + ".db";
-					#pragma warning (disable: 4996)
-					outf_in = fopen (fname.c_str(), "w");
-					#pragma warning (default: 4996)
-					if (!outf_in) {
+					if (fopen_s(&outf_in, fname.c_str(), "w")) {
 						fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 						error = true;
 					}
@@ -410,10 +441,7 @@ bool split_io_support::increment (bool readonly)
 					file_num_io_s = buf;
 					fclose (outf_io);
 					stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
-					#pragma warning (disable: 4996)
-					outf_io = fopen (fname.c_str(), "w");
-					#pragma warning (default: 4996)
-					if (!outf_io) {
+					if (fopen_s(&outf_io, fname.c_str(), "w")) {
 						fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 						error = true;
 					}
@@ -429,10 +457,7 @@ bool split_io_support::increment (bool readonly)
 				file_num_io_s = buf;
 				fclose (outf_io);
 				stringcase fname (outfilename + file_io_s + file_num_io_s + ".db");
-				#pragma warning (disable: 4996)
-				outf_io = fopen (fname.c_str(), "w");
-				#pragma warning (default: 4996)
-				if (!outf_io) {
+				if (fopen_s(&outf_io, fname.c_str(), "w")) {
 					fprintf (stderr, "Failed to open output %s.\n", fname.c_str());
 					error = true;
 				}
@@ -482,10 +507,8 @@ bool multi_io_support::open (const std::stringcase& fname,
 	}
 	path newfile ((filestat == io_filestat::read ? indirname : outdirname).c_str());
 	newfile /= fname.c_str();
-	#pragma warning (disable: 4996)
-	FILE* fio = fopen (newfile.string().c_str(), io.c_str());
-	#pragma warning (default: 4996)
-	if (!fio) {
+	FILE* fio = nullptr;
+	if (fopen_s(&fio, newfile.string().c_str(), io.c_str())) {
 		filestat = io_filestat::closed;
 		if (!superrmsg) {
 			fprintf (stderr, "Failed to open %s.\n", newfile.string().c_str());
@@ -509,7 +532,7 @@ bool multi_io_support::open (const std::stringcase& fname,
 /* Closes file
    multi_io_support::close
 ************************************************************************/
-void multi_io_support::close()
+void multi_io_support::close() noexcept
 {
 	if (filehandle) fclose (filehandle);
 	filehandle = 0;
@@ -581,7 +604,7 @@ int epics_list_processing::mygetopt (int argc, const char* const argv[],
 			continue;
 		}
 		std::stringcase arg (argv[i]);
-		int oldnum = num;
+		const int oldnum = num;
 		// generate a standard listing
 		if (arg == "-l" || arg == "/l") {
 			set_listing (listing_type::standard);
@@ -624,12 +647,21 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		return false;
 	}
 
-	increment (arg.get_opc().is_readonly());
 	// write record information to output file
 	// produce a listing
-	string epicsname = to_epics (arg.get_alias());
+	const ParseUtil::substitution* subst = nullptr;
+	string epicsname = to_epics (arg.get_alias(), arg.get_opc().is_published(), &subst);
+	if (epicsname.empty()) {
+		return false;
+	}
+	// Determine OPC list
+	const ParseUtil::opc_list* opc = ((subst != nullptr) && subst->has_valid_opc()) ? 
+		&subst->get_opc() : &arg.get_opc();
+	increment(opc->is_readonly());
+
+	// autoburt
 	if (listing == listing_type::autoburt) {
-		stringcase ro = arg.get_opc().is_readonly() ? "RO " : "";
+		stringcase ro = opc->is_readonly() ? "RO " : "";
 		fprintf (get_file(), "%s%s", ro.c_str(), epicsname.c_str());
 	}
 	// LIGO DAQ ini listing
@@ -640,7 +672,7 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		std::stringcase sep;
 		std::stringcase unit;
 		int datatype = LIGODAQ_DATATYPE_FLOAT;
-		arg.get_opc().get_property(OPC_PROP_UNIT, unit);
+		opc->get_property(OPC_PROP_UNIT, unit);
 		trim_space(unit);
 		switch (arg.get_process_type()) {
 		case process_type_enum::pt_int:
@@ -648,12 +680,12 @@ bool epics_list_processing::operator() (const process_arg& arg)
 			break;
 		case process_type_enum::pt_bool:
 			datatype = LIGODAQ_DATATYPE_INT32;
-			if (arg.get_opc().get_property(OPC_PROP_OPEN, s)) {
+			if (opc->get_property(OPC_PROP_OPEN, s)) {
 				trim_space(s);
 				unit = s;
 			}
 			unit += '|';
-			if (arg.get_opc().get_property(OPC_PROP_CLOSE, s)) {
+			if (opc->get_property(OPC_PROP_CLOSE, s)) {
 				trim_space(s);
 				unit += s;
 			}
@@ -663,13 +695,15 @@ bool epics_list_processing::operator() (const process_arg& arg)
 			unit = "";
 			sep = "";
 			for (int opcidx = OPC_PROP_ZRST; opcidx <= OPC_PROP_FFST; opcidx++) {
-				if (arg.get_opc().get_property(opcidx, s)) {
+				if (opc->get_property(opcidx, s)) {
 					trim_space(s);
 					unit += sep + s;
 					sep = "";
 				}
 				sep += '|';
 			}
+			break;
+		default:
 			break;
 		}
 		if (unit == "") {
@@ -688,7 +722,7 @@ bool epics_list_processing::operator() (const process_arg& arg)
 		s = unit;
 		unit = "";
 		for (const auto& c : s) {
-			unsigned char uc = c;
+			const unsigned char uc = c;
 			if (isprint(uc)) {
 				unit += isspace(uc) ? '_' : uc;
 			}
@@ -705,8 +739,8 @@ bool epics_list_processing::operator() (const process_arg& arg)
 	// long listing?
 	if (verbose && (listing != listing_type::autoburt) && (listing != listing_type::daqini)) {
 		fprintf (get_file(), " (%s", arg.get_process_string().c_str());
-		fprintf (get_file(), ", opc %c", arg.get_opc().is_published() ? '1' : '0');
-		for (const auto& i : arg.get_opc().get_properties()) {
+		fprintf (get_file(), ", opc %c", opc->is_published() ? '1' : '0');
+		for (const auto& i : opc->get_properties()) {
 				stringcase s = i.second;
 				trim_space (s);
 				fprintf (get_file(), ", prop[%i]=\"%s\"", i.first, s.c_str());
@@ -726,7 +760,7 @@ epics_macrofiles_processing::epics_macrofiles_processing (
 		int argc, const char* const argv[], bool argp[])
 	: epics_conversion (argc, argv, argp), 
 	  multi_io_support (dname, argc, argv, argp),
-	   plcname (pname), macros (macrofile_type::all), isTwinCAT3 (tcat3), rec_num (0)
+	   macros (macrofile_type::all), plcname(pname), isTwinCAT3 (tcat3), rec_num (0)
 {
 	mygetopt (argc, argv, argp); 
 }
@@ -734,13 +768,18 @@ epics_macrofiles_processing::epics_macrofiles_processing (
 
 /* epics_macrofiles_processing::flush
 ************************************************************************/
-void epics_macrofiles_processing::flush()
+void epics_macrofiles_processing::flush() noexcept
 {
-	while (!procstack.empty()) {
-		process_record (procstack.top());
-		procstack.pop();
+	try {
+		while (!procstack.empty()) {
+			process_record(procstack.top());
+			procstack.pop();
+		}
+		fflush(stderr);
 	}
-	fflush (stderr);
+	catch (...) {
+		;
+	}
 }
 
 /* Option processing
@@ -767,7 +806,7 @@ int epics_macrofiles_processing::mygetopt (
 			continue;
 		}
 		std::stringcase arg (argv[i]);
-		int oldnum = num;
+		const int oldnum = num;
 		// macro file for each structure describing all fields 
 		if (arg == "-mf" || arg == "/mf") {
 			set_macrofile_type (macrofile_type::fields);
@@ -814,30 +853,38 @@ bool epics_macrofiles_processing::operator() (const ParseUtil::process_arg& arg)
 	// Get info
 	macro_info minfo;
 	minfo.ptype = arg.get_process_type();
-	minfo.name = to_epics (arg.get_alias()).c_str();
+	const ParseUtil::substitution* subst = nullptr;
+	minfo.name = to_epics (arg.get_alias(), arg.get_opc().is_published(), &subst).c_str();
+	if (minfo.name.empty()) {
+		return false;
+	}
+	// Determine OPC list
+	const ParseUtil::opc_list* opc = ((subst != nullptr) && subst->has_valid_opc()) ?
+		&subst->get_opc() : &arg.get_opc();
+
 	minfo.type_n = arg.get_type_name();
-	minfo.readonly = arg.get_opc().is_readonly();
+	minfo.readonly = opc->is_readonly();
 
 	// check if we need to process the top
 	while ((procstack.size() > 1) && 
 		   (minfo.name.compare (0, procstack.top().record.name.length(), 
 		                        procstack.top().record.name) != 0)) {
-		process_record (procstack.top(), static_cast<int>(procstack.size()) - 1);
+		process_record (procstack.top(), (int)std::ssize(procstack) - 1);
 		procstack.pop();
 	}
 
 	// Add the new field
-	if (arg.get_opc().is_published() || !arg.is_atomic()) {
+	if (opc->is_published() || !arg.is_atomic()) {
 		procstack.top().fields.push_back(minfo);
 	}
 	// Check if this is an error structure
-	int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
-	bool iserror = (minfo.type_n == errorstruct) ||
+	const int pos = static_cast<int>(minfo.type_n.length() - errorstruct.length());
+	const bool iserror = (minfo.type_n == errorstruct) ||
 		((pos > 0) && (minfo.type_n[(stringcase::size_type)pos-1] == '.') && 
 		 (minfo.type_n.compare (pos, std::stringcase::npos, errorstruct) == 0));
 	if (iserror) {
 		procstack.top().haserror = true;
-		procstack.top().erroridx = static_cast<int>(procstack.top().fields.size()-1);
+		procstack.top().erroridx = (int)std::ssize(procstack.top().fields) - 1;
 	}
 
 	// check, if this is a structure
@@ -864,9 +911,9 @@ std::stringcase epics_macrofiles_processing::to_filename (
 	const std::stringcase& epicsname)
 {
 	std::stringcase ret(epicsname);
-	std::stringcase::size_type pos;
+	std::stringcase::size_type pos = 0;
 	if (isTwinCAT3) {
-		if ((pos = ret.find ('.')) == 0) ret.erase (0, 1);
+		if (ret.find ('.') == 0) ret.erase (0, 1);
 		bool top = true;
 		if ((pos = ret.find(':')) != stringcase::npos) {
 			top = false;
@@ -936,7 +983,6 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 
 	// Check if we need to read a _Errors.exp file containing a list of 
 	// error messages
-	bool havelist = false;
 	std::vector<std::stringcase> errlist;
 	if (mrec.haserror && 
 		((get_macrofile_type() == macrofile_type::all) ||
@@ -945,7 +991,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 		std::stringcase fname;
 		if (isTwinCAT3) {
 			fname = "";
-			std::stringcase::size_type pos = mrec.record.type_n.find('.');
+			const std::stringcase::size_type pos = mrec.record.type_n.find('.');
 			if (pos == std::stringcase::npos) {
 				fname += mrec.record.type_n + errorlistext31;
 			}
@@ -957,9 +1003,9 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			if (!succ && !get_plcname().empty() &&
 				mrec.record.name.rfind (get_plcname()) == 
 				mrec.record.name.length() - get_plcname().length()) {
-				std::stringcase::size_type pos = fname.rfind ("Struct");
-				if (pos != stringcase::npos) {
-					fname.insert (pos, get_plcname(), 0, 1);
+				const std::stringcase::size_type pos2 = fname.rfind ("Struct");
+				if (pos2 != stringcase::npos) {
+					fname.insert (pos2, get_plcname(), 0, 1);
 				}
 				succ = open (fname, "r", true);
 			}
@@ -971,9 +1017,9 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			if (!succ && !get_plcname().empty() &&
 				mrec.record.name.rfind (get_plcname()) == 
 					mrec.record.name.length() - get_plcname().length()) {
-				std::stringcase::size_type pos = fname.rfind ("Struct");
-				if (pos != stringcase::npos) {
-					fname.insert (pos, get_plcname(), 0, 1);
+				const std::stringcase::size_type pos2 = fname.rfind ("Struct");
+				if (pos2 != stringcase::npos) {
+					fname.insert (pos2, get_plcname(), 0, 1);
 				}
 				succ = open (fname, "r", true);
 			}
@@ -985,22 +1031,21 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 			}
 		}
 		else {
-			havelist = true;
 			// read file with list of error messages
 			FILE* fp = get_file();
 			fseek (fp, 0L, SEEK_END);
 			size_t sz = ftell (fp);
 			fseek (fp, 0L, SEEK_SET);
 			if (sz > 1000000) sz = 1000000; // let's not get too crazy
-			unsigned char* buf = new unsigned char [sz+1];
-			sz = fread (buf, sizeof (char), sz, fp);
+			std::unique_ptr<unsigned char[]> buf = std::make_unique<unsigned char[]>(sz + 1);
+			sz = fread (buf.get(), sizeof (char), sz, fp);
 			buf[sz] = 0;
 			for (size_t i = 0; i < sz; ++i) {
 				if (isspace (buf[i])) buf[i] = ' '; // get rid of LF/CR
 			}
 			// check if it is formatted correctly
 			std::cmatch match;
-			if (std::regex_match ((const char*)buf, (const char*)buf+sz, match, 
+			if (std::regex_match ((const char*)buf.get(), (const char*)buf.get()+sz, match, 
 				isTwinCAT3 ? errormatchregex31 : errormatchregex2)) {
 				for (auto i = ++match.begin(); i != match.end(); ++i) {
 					std::string found = i->str();
@@ -1026,7 +1071,6 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 					}
 				}
 			}
-			delete [] buf;
 			close();
 		}
 	}
@@ -1048,8 +1092,8 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	fprintf (fp, "CHN=%s,\n", mrec.record.name.c_str());
 
 	// get ifo
-	auto colon = mrec.record.name.find (':');
-	auto dash = mrec.record.name.find ('-');
+	const auto colon = mrec.record.name.find (':');
+	const auto dash = mrec.record.name.find ('-');
 	std::stringcase ifo;
 	if (colon != stringcase::npos) {
 		ifo = mrec.record.name.substr (0, colon);
@@ -1097,7 +1141,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 	fprintf (fp, "back=%s,\n", to_filename (mrec.back.name).c_str());
 	// write has errors
 	fprintf (fp, "haserrors=%i,\n", mrec.haserror ? 1 : 0);
-	if (mrec.haserror && (mrec.erroridx >= 0) && (mrec.erroridx < (int)mrec.fields.size())) {
+	if (mrec.haserror && (mrec.erroridx >= 0) && (mrec.erroridx < std::ssize(mrec.fields))) {
 		fprintf (fp, "errfld=%s,\n", mrec.fields[mrec.erroridx].name.c_str());
 	}
 	else {
@@ -1134,7 +1178,7 @@ bool epics_macrofiles_processing::process_record (const macro_record& mrec,
 				// search among sub fields only
 				const macro_info* pinfo = nullptr;
 				//std::stringcase suberr = mrec.record.name + "_" + *i;
-				auto mlen =  mrec.record.name.length();
+				const auto mlen =  mrec.record.name.length();
 				for (const auto& j : mrec.fields) {
 					if ((j.ptype == process_type_enum::pt_binary) &&
 						(mlen + i->length() + 1 == j.name.length()) &&
@@ -1218,7 +1262,7 @@ epics_db_processing::epics_db_processing (
 	  string_support(string_support_type::vary_string),
 	  int_support(int_support_type::int_auto)
 {
-	mygetopt (argc, argv, argp); 
+	getopt (argc, argv, argp); 
 }
 
 /* Option processing
@@ -1245,7 +1289,7 @@ int epics_db_processing::mygetopt (int argc, const char* const argv[],
 			continue;
 		}
 		std::stringcase arg (argv[i]);
-		int oldnum = num;
+		const int oldnum = num;
 		// Uses OPC name in INPUT/OUTPUT field (default) 
 		if (arg == "-devopc" || arg == "/devopc") {
 			set_device_support (device_support_type::opc_name);
@@ -1291,339 +1335,368 @@ int epics_db_processing::mygetopt (int argc, const char* const argv[],
 /* Process a channel
    epics_db_processing::operator()
 ************************************************************************/
-bool epics_db_processing::operator() (const process_arg& arg)
+bool epics_db_processing::operator() (const process_arg& arg) noexcept
 {
 	// quit if not atomic
 	if (!arg.is_atomic()) {
 		return false;
 	}
 
-	// published?
-	if (!arg.get_opc().is_published()) {
-		return false;
-	}
+	try {
+		// check record header
+		const ParseUtil::substitution* subst = nullptr;
+		string epicsname = to_epics(arg.get_alias(), arg.get_opc().is_published(), &subst);
+		if (epicsname.empty()) {
+			return false;
+		}
+		if (epicsname.size() > MAX_EPICS_CHANNEL) {
+			fprintf(stderr, "Warning: channel name %s too long by %i\n",
+				epicsname.c_str(), (int)std::ssize(epicsname) - MAX_EPICS_CHANNEL);
+			return false;
+		}
+		// Determine OPC list
+		const ParseUtil::opc_list* opc = ((subst != nullptr) && subst->has_valid_opc()) ?
+			&subst->get_opc() : &arg.get_opc();
+		// now print header
 
-	// readonly?
-	bool readonly = arg.get_opc().is_readonly();
-	increment (readonly);
+		// published?
+		if (!opc->is_published()) {
+			return false;
+		}
 
-	// default process type conversion
-	stringcase tname;
-	switch (arg.get_process_type()) {
-	case process_type_enum::pt_int:
-		if (((arg.get_size() == 8) &&
-			(get_int_support() == int_support_type::int_auto)) ||
-			(get_int_support() == int_support_type::int_64))	{
+		// readonly?
+		const bool readonly = opc->is_readonly();
+		increment(readonly);
+
+		// default process type conversion
+		stringcase tname;
+		switch (arg.get_process_type()) {
+		case process_type_enum::pt_int:
+			if (((arg.get_size() == 8) &&
+				(get_int_support() == int_support_type::int_auto)) ||
+				(get_int_support() == int_support_type::int_64)) {
 #if EPICS_VERSION >= 7
-			tname = readonly ? "int64in" : "int64out";
+				tname = readonly ? "int64in" : "int64out";
 #else
-			tname = readonly ? "longin" : "longout";
+				tname = readonly ? "longin" : "longout";
 #endif
-		}
-		else {
-			tname = readonly ? "longin" : "longout";
-		}
-		break;
-	case process_type_enum::pt_real:
-		tname = readonly ? "ai" : "ao";
-		break;
-	case process_type_enum::pt_bool:
-		tname = readonly ? "bi" : "bo";
-		break;
-	case process_type_enum::pt_string:
-		if (((arg.get_size() >= MAX_EPICS_STRING) && 
-			 (get_string_support() == string_support_type::vary_string)) ||
-			(get_string_support() == string_support_type::long_string))	{
-			tname = readonly ? "lsi" : "lso";
-		}
-		else {
-			tname = readonly ? "stringin" : "stringout";
-		}
-		break;
-	case process_type_enum::pt_enum:
-		tname = readonly ? "mbbi" : "mbbo";
-		break;
-	default:
-		fprintf (stderr, "Unknown type %s for %s\n", 
-			arg.get_type_name().c_str(), arg.get_name().c_str());
-		return false;
-	}
-	// check OPC_PROP_RECTYPE
-	stringcase s;
-	if (arg.get_opc().get_property (OPC_PROP_RECTYPE, s)) {
-		tname = s;
-	}
-
-	// check record header
-	string epicsname = to_epics (arg.get_alias());
-	if (epicsname.size() > MAX_EPICS_CHANNEL) {
-		fprintf (stderr, "Warning: channel name %s too long by %i\n", 
-			epicsname.c_str(), static_cast<int>(epicsname.size() - MAX_EPICS_CHANNEL));
-		return false;
-	}
-	// now print header
-	fprintf(get_file(), "record(%s,\"%s\") {\n", tname.c_str(), epicsname.c_str());
-
-	// string size for lsi/lso
-	if ((tname == "lsi") || (tname == "lso")) {
-		int len = arg.get_size() + 1;
-		if (len > MAX_EPICS_LONGSTRING) len = MAX_EPICS_LONGSTRING;
-		process_field_numeric(EPICS_DB_SIZV, len);
-	}
-
-	// check OPC_PROP_DESC
-	if (arg.get_opc().get_property (OPC_PROP_DESC, s)) {
-		if (s.size() > MAX_EPICS_DESC) {
-			fprintf (stderr, "Warning: DESC for %s too long by %i\n", 
-				arg.get_name().c_str(), static_cast<int>(s.size() - MAX_EPICS_DESC));
-		}
-		process_field_string (EPICS_DB_DESC, s);
-	}
-	// add SCAN
-	process_field_string (EPICS_DB_SCAN, readonly ? "I/O Intr" : "Passive");
-	// check for DTYP
-	stringcase dtyp = device_support == device_support_type::tc_name ? "tcat" : "opc";
-	if (arg.get_opc().get_property (OPC_PROP_DTYP, s)) {
-		if (s.find ("raw") == stringcase::npos) {
-			dtyp = device_support == device_support_type::tc_name ? "tcat raw" : "opcRaw";
-		}
-	}
-	process_field_string (EPICS_DB_DTYP, dtyp);
-	// INPUT/OUTPUT field
-	stringcase inplink;
-	stringcase servername;
-	switch (device_support) {
-	case device_support_type::opc_name:
-	default:
-		// check for server
-		servername = "opc";
-		arg.get_opc().get_property (OPC_PROP_SERVER, servername);
-		// input/output link
-		inplink = stringcase ("@") + servername + arg.get_name(); 
-		break;
-	case device_support_type::tc_name:
-		// input/output link
-		inplink = stringcase ("@") + arg.get_full();
-		break;
-	}
-	process_field_string (readonly ? EPICS_DB_INP : EPICS_DB_OUT, inplink);
-
-	// check for TSE
-	int tse = -2;
-	arg.get_opc().get_property (OPC_PROP_TSE, tse);
-	process_field_numeric (EPICS_DB_TSE, tse);
-	// check for PINI
-	//int pini = readonly ? 1 : 0;
-	int pini = 0;
-	arg.get_opc().get_property (OPC_PROP_PINI, tse);
-	process_field_numeric (EPICS_DB_PINI, pini);
-
-	// go through properties
-	for (const auto& f : arg.get_opc().get_properties()) 
-	{
-		switch (f.first) {
-		case OPC_PROP_UNIT :
-			process_field_string (EPICS_DB_EGU, f.second);
-			break;
-		case OPC_PROP_DESC :
-			// processed above
-			break;
-		case OPC_PROP_HIEU :
-			process_field_numeric (EPICS_DB_HOPR, f.second);
-			break;
-		case OPC_PROP_LOEU :
-			process_field_numeric (EPICS_DB_LOPR, f.second);
-			break;
-		case OPC_PROP_HIRANGE :
-			process_field_numeric (EPICS_DB_DRVH, f.second);
-			break;
-		case OPC_PROP_LORANGE :
-			process_field_numeric (EPICS_DB_DRVL, f.second);
-			break;
-		case OPC_PROP_CLOSE :
-			process_field_string (EPICS_DB_ONAM, f.second);
-			break;
-		case OPC_PROP_OPEN :
-			process_field_string (EPICS_DB_ZNAM, f.second);
-			break;
-		case OPC_PROP_PREC :
-			process_field_numeric (EPICS_DB_PREC, f.second);
-			break;
-		case OPC_PROP_ZRST :
-		case OPC_PROP_ZRST + 1 :
-		case OPC_PROP_ZRST + 2 :
-		case OPC_PROP_ZRST + 3 :
-		case OPC_PROP_ZRST + 4 :
-		case OPC_PROP_ZRST + 5 :
-		case OPC_PROP_ZRST + 6 :
-		case OPC_PROP_ZRST + 7 :
-		case OPC_PROP_ZRST + 8 :
-		case OPC_PROP_ZRST + 9 :
-		case OPC_PROP_ZRST + 10 :
-		case OPC_PROP_ZRST + 11 :
-		case OPC_PROP_ZRST + 12 :
-		case OPC_PROP_ZRST + 13 :
-		case OPC_PROP_ZRST + 14 :
-		case OPC_PROP_FFST :
-			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_numeric (EPICS_DB_ZRVL[f.first-OPC_PROP_ZRST], f.first-OPC_PROP_ZRST);
-				process_field_string (EPICS_DB_ZRST[f.first-OPC_PROP_ZRST], f.second);
+			}
+			else {
+				tname = readonly ? "longin" : "longout";
 			}
 			break;
-		case OPC_PROP_RECTYPE :
-		case OPC_PROP_INOUT :
-		case OPC_PROP_TSE :
-		case OPC_PROP_PINI :
-		case OPC_PROP_DTYP :
-		case OPC_PROP_SERVER :
-		case OPC_PROP_PLCNAME :
-		case OPC_PROP_ALIAS :
-			// processed above
+		case process_type_enum::pt_real:
+			tname = readonly ? "ai" : "ao";
 			break;
-			// alarm
-		case OPC_PROP_ALMOSV:
-			if ((tname == "bi") || (tname == "bo")) {
-				process_field_alarm (EPICS_DB_OSV, f.second);
+		case process_type_enum::pt_bool:
+			tname = readonly ? "bi" : "bo";
+			break;
+		case process_type_enum::pt_string:
+			if (((arg.get_size() >= MAX_EPICS_STRING) &&
+				(get_string_support() == string_support_type::vary_string)) ||
+				(get_string_support() == string_support_type::long_string)) {
+				tname = readonly ? "lsi" : "lso";
+			}
+			else {
+				tname = readonly ? "stringin" : "stringout";
 			}
 			break;
-		case OPC_PROP_ALMZSV:
-			if ((tname == "bi") || (tname == "bo")) {
-				process_field_alarm (EPICS_DB_ZSV, f.second);
-			}
+		case process_type_enum::pt_enum:
+			tname = readonly ? "mbbi" : "mbbo";
 			break;
-		case OPC_PROP_ALMCOSV:
-			if ((tname == "bi") || (tname == "bo") || (tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_COSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMUNSV:
-			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_UNSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMZRSV:
-		case OPC_PROP_ALMZRSV + 1:
-		case OPC_PROP_ALMZRSV + 2:
-		case OPC_PROP_ALMZRSV + 3:
-		case OPC_PROP_ALMZRSV + 4:
-		case OPC_PROP_ALMZRSV + 5:
-		case OPC_PROP_ALMZRSV + 6:
-		case OPC_PROP_ALMZRSV + 7:
-		case OPC_PROP_ALMZRSV + 8:
-		case OPC_PROP_ALMZRSV + 9:
-		case OPC_PROP_ALMZRSV + 10:
-		case OPC_PROP_ALMZRSV + 11:
-		case OPC_PROP_ALMZRSV + 12:
-		case OPC_PROP_ALMZRSV + 13:
-		case OPC_PROP_ALMZRSV + 14:
-		case OPC_PROP_ALMFFSV:
-			if ((tname == "mbbi") || (tname == "mbbo")) {
-				process_field_alarm (EPICS_DB_ZRSV[f.first-OPC_PROP_ALMZRSV], f.second);
-			}
-			break;
-		case OPC_PROP_ALMHH:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_numeric (EPICS_DB_HIHI, f.second);
-				std::stringcase alarmsv;
-				if (!arg.get_opc().get_property (OPC_PROP_ALMHHSV, alarmsv)) {
-					process_field_alarm (EPICS_DB_HHSV, EPICS_DB_MAJOR);
-				}
-			}
-			break;
-		case OPC_PROP_ALMH:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_numeric (EPICS_DB_HIGH, f.second);
-				std::stringcase alarmsv;
-				if (!arg.get_opc().get_property (OPC_PROP_ALMHSV, alarmsv)) {
-					process_field_alarm (EPICS_DB_HSV, EPICS_DB_MINOR);
-				}
-			}
-			break;
-		case OPC_PROP_ALML:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_numeric (EPICS_DB_LOW, f.second);
-				std::stringcase alarmsv;
-				if (!arg.get_opc().get_property (OPC_PROP_ALMLSV, alarmsv)) {
-					process_field_alarm (EPICS_DB_LSV, EPICS_DB_MINOR);
-				}
-			}
-			break;
-		case OPC_PROP_ALMLL:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_numeric (EPICS_DB_LOLO, f.second);
-				std::stringcase alarmsv;
-				if (!arg.get_opc().get_property (OPC_PROP_ALMLLSV, alarmsv)) {
-					process_field_alarm (EPICS_DB_LLSV, EPICS_DB_MAJOR);
-				}
-			}
-			break;
-		case OPC_PROP_ALMHHSV:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_alarm (EPICS_DB_HHSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMHSV:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_alarm (EPICS_DB_HSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMLSV:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_alarm (EPICS_DB_LSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMLLSV:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_alarm (EPICS_DB_LLSV, f.second);
-			}
-			break;
-		case OPC_PROP_ALMDB:
-			if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
-				process_field_numeric (EPICS_DB_HYST, f.second);
-			}
-			break;
-			// unknown
 		default:
-			// Process unchecked field,value pairs
-			if ((f.first >= OPC_PROP_FIELD_BEG) && (f.first < OPC_PROP_FIELD_END)) {
-				std::stringcase::size_type pos = f.second.find(',');
-				if (pos != std::stringcase::npos) {
-					std::stringcase field = f.second.substr (0, pos);
-					trim_space (field);
-					std::stringcase value = f.second.substr (pos + 1);
-					trim_space (value);
-					process_field_string (field, value);
-				}
-				else {
-					fprintf(stderr, "Property %s is not a field,value pair\n", arg.get_name().c_str());
-				}
+			fprintf(stderr, "Unknown type %s for %s\n",
+				arg.get_type_name().c_str(), arg.get_name().c_str());
+			return false;
+		}
+		// check OPC_PROP_RECTYPE
+		stringcase s;
+		if (opc->get_property(OPC_PROP_RECTYPE, s)) {
+			tname = s;
+		}
+
+		fprintf(get_file(), "record(%s,\"%s\") {\n", tname.c_str(), epicsname.c_str());
+
+		// string size for lsi/lso
+		if ((tname == "lsi") || (tname == "lso")) {
+			int len = arg.get_size() + 1;
+			if (len > MAX_EPICS_LONGSTRING) len = MAX_EPICS_LONGSTRING;
+			process_field_numeric(EPICS_DB_SIZV, len);
+		}
+
+		// check OPC_PROP_DESC
+		if (opc->get_property(OPC_PROP_DESC, s)) {
+			if (std::ssize(s) > MAX_EPICS_DESC) {
+				fprintf(stderr, "Warning: field DESC for %s too long by %i\n",
+					arg.get_name().c_str(), (int)std::ssize(s) - MAX_EPICS_DESC);
 			}
-			// Error: Unknown property
-			else if (f.first >= 1000) {
-				fprintf (stderr, "Unknown property %i for %s\n", f.first, arg.get_name().c_str());
+			process_field_string(EPICS_DB_DESC, s, MAX_EPICS_DESC);
+		}
+		// add SCAN
+		process_field_string(EPICS_DB_SCAN, readonly ? "I/O Intr" : "Passive");
+		// check for DTYP
+		stringcase dtyp = device_support == device_support_type::tc_name ? "tcat" : "opc";
+		if (opc->get_property(OPC_PROP_DTYP, s)) {
+			if (s.find("raw") == stringcase::npos) {
+				dtyp = device_support == device_support_type::tc_name ? "tcat raw" : "opcRaw";
 			}
+		}
+		process_field_string(EPICS_DB_DTYP, dtyp);
+		// INPUT/OUTPUT field
+		stringcase inplink;
+		stringcase servername;
+		switch (device_support) {
+		case device_support_type::opc_name:
+		default:
+			// check for server
+			servername = "opc";
+			opc->get_property(OPC_PROP_SERVER, servername);
+			// input/output link
+			inplink = stringcase("@") + servername + arg.get_name();
+			break;
+		case device_support_type::tc_name:
+			// input/output link
+			inplink = stringcase("@") + arg.get_full();
 			break;
 		}
+		process_field_string(readonly ? EPICS_DB_INP : EPICS_DB_OUT, inplink);
+
+		// check for TSE
+		int tse = -2;
+		opc->get_property(OPC_PROP_TSE, tse);
+		process_field_numeric(EPICS_DB_TSE, tse);
+		// check for PINI
+		//int pini = readonly ? 1 : 0;
+		constexpr int pini = 0;
+		opc->get_property(OPC_PROP_PINI, tse);
+		process_field_numeric(EPICS_DB_PINI, pini);
+
+		// go through properties
+		for (const auto& f : opc->get_properties())
+		{
+			switch (f.first) {
+			case OPC_PROP_UNIT:
+				if (std::ssize(f.second) > MAX_EPICS_UNIT) {
+					fprintf(stderr, "Warning: field EGU for %s too long by %i\n",
+						arg.get_name().c_str(), (int)std::ssize(f.second) - MAX_EPICS_UNIT);
+				}
+				process_field_string(EPICS_DB_EGU, f.second, MAX_EPICS_UNIT);
+				break;
+			case OPC_PROP_DESC:
+				// processed above
+				break;
+			case OPC_PROP_HIEU:
+				process_field_numeric(EPICS_DB_HOPR, f.second);
+				break;
+			case OPC_PROP_LOEU:
+				process_field_numeric(EPICS_DB_LOPR, f.second);
+				break;
+			case OPC_PROP_HIRANGE:
+				process_field_numeric(EPICS_DB_DRVH, f.second);
+				break;
+			case OPC_PROP_LORANGE:
+				process_field_numeric(EPICS_DB_DRVL, f.second);
+				break;
+			case OPC_PROP_CLOSE:
+				if (std::ssize(f.second) > MAX_EPICS_ENUM) {
+					fprintf(stderr, "Warning: field ONAM for %s too long by %i\n",
+						arg.get_name().c_str(), (int)std::ssize(f.second) - MAX_EPICS_ENUM);
+				}
+				process_field_string(EPICS_DB_ONAM, f.second, MAX_EPICS_ENUM);
+				break;
+			case OPC_PROP_OPEN:
+				if (std::ssize(f.second) > MAX_EPICS_ENUM) {
+					fprintf(stderr, "Warning: field ZNAM for %s too long by %i\n",
+						arg.get_name().c_str(), (int)std::ssize(f.second) - MAX_EPICS_ENUM);
+				}
+				process_field_string(EPICS_DB_ZNAM, f.second, MAX_EPICS_ENUM);
+				break;
+			case OPC_PROP_PREC:
+				process_field_numeric(EPICS_DB_PREC, f.second);
+				break;
+			case OPC_PROP_ZRST:
+			case OPC_PROP_ZRST + 1:
+			case OPC_PROP_ZRST + 2:
+			case OPC_PROP_ZRST + 3:
+			case OPC_PROP_ZRST + 4:
+			case OPC_PROP_ZRST + 5:
+			case OPC_PROP_ZRST + 6:
+			case OPC_PROP_ZRST + 7:
+			case OPC_PROP_ZRST + 8:
+			case OPC_PROP_ZRST + 9:
+			case OPC_PROP_ZRST + 10:
+			case OPC_PROP_ZRST + 11:
+			case OPC_PROP_ZRST + 12:
+			case OPC_PROP_ZRST + 13:
+			case OPC_PROP_ZRST + 14:
+			case OPC_PROP_FFST:
+				if ((tname == "mbbi") || (tname == "mbbo")) {
+					process_field_numeric(EPICS_DB_ZRVL[f.first - OPC_PROP_ZRST], f.first - OPC_PROP_ZRST);
+					if (std::ssize(f.second) > MAX_EPICS_ENUM) {
+						fprintf(stderr, "Warning: field %s for %s too long by %i\n", EPICS_DB_ZRVL[f.first - OPC_PROP_ZRST],
+							arg.get_name().c_str(), (int)std::ssize(f.second) - MAX_EPICS_ENUM);
+					}
+					process_field_string(EPICS_DB_ZRST[f.first - OPC_PROP_ZRST], f.second, MAX_EPICS_ENUM);
+				}
+				break;
+			case OPC_PROP_RECTYPE:
+			case OPC_PROP_INOUT:
+			case OPC_PROP_TSE:
+			case OPC_PROP_PINI:
+			case OPC_PROP_DTYP:
+			case OPC_PROP_SERVER:
+			case OPC_PROP_PLCNAME:
+			case OPC_PROP_ALIAS:
+				// processed above
+				break;
+				// alarm
+			case OPC_PROP_ALMOSV:
+				if ((tname == "bi") || (tname == "bo")) {
+					process_field_alarm(EPICS_DB_OSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMZSV:
+				if ((tname == "bi") || (tname == "bo")) {
+					process_field_alarm(EPICS_DB_ZSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMCOSV:
+				if ((tname == "bi") || (tname == "bo") || (tname == "mbbi") || (tname == "mbbo")) {
+					process_field_alarm(EPICS_DB_COSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMUNSV:
+				if ((tname == "mbbi") || (tname == "mbbo")) {
+					process_field_alarm(EPICS_DB_UNSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMZRSV:
+			case OPC_PROP_ALMZRSV + 1:
+			case OPC_PROP_ALMZRSV + 2:
+			case OPC_PROP_ALMZRSV + 3:
+			case OPC_PROP_ALMZRSV + 4:
+			case OPC_PROP_ALMZRSV + 5:
+			case OPC_PROP_ALMZRSV + 6:
+			case OPC_PROP_ALMZRSV + 7:
+			case OPC_PROP_ALMZRSV + 8:
+			case OPC_PROP_ALMZRSV + 9:
+			case OPC_PROP_ALMZRSV + 10:
+			case OPC_PROP_ALMZRSV + 11:
+			case OPC_PROP_ALMZRSV + 12:
+			case OPC_PROP_ALMZRSV + 13:
+			case OPC_PROP_ALMZRSV + 14:
+			case OPC_PROP_ALMFFSV:
+				if ((tname == "mbbi") || (tname == "mbbo")) {
+					process_field_alarm(EPICS_DB_ZRSV[f.first - OPC_PROP_ALMZRSV], f.second);
+				}
+				break;
+			case OPC_PROP_ALMHH:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_numeric(EPICS_DB_HIHI, f.second);
+					std::stringcase alarmsv;
+					if (!opc->get_property(OPC_PROP_ALMHHSV, alarmsv)) {
+						process_field_alarm(EPICS_DB_HHSV, EPICS_DB_MAJOR);
+					}
+				}
+				break;
+			case OPC_PROP_ALMH:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_numeric(EPICS_DB_HIGH, f.second);
+					std::stringcase alarmsv;
+					if (!opc->get_property(OPC_PROP_ALMHSV, alarmsv)) {
+						process_field_alarm(EPICS_DB_HSV, EPICS_DB_MINOR);
+					}
+				}
+				break;
+			case OPC_PROP_ALML:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_numeric(EPICS_DB_LOW, f.second);
+					std::stringcase alarmsv;
+					if (!opc->get_property(OPC_PROP_ALMLSV, alarmsv)) {
+						process_field_alarm(EPICS_DB_LSV, EPICS_DB_MINOR);
+					}
+				}
+				break;
+			case OPC_PROP_ALMLL:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_numeric(EPICS_DB_LOLO, f.second);
+					std::stringcase alarmsv;
+					if (!opc->get_property(OPC_PROP_ALMLLSV, alarmsv)) {
+						process_field_alarm(EPICS_DB_LLSV, EPICS_DB_MAJOR);
+					}
+				}
+				break;
+			case OPC_PROP_ALMHHSV:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_alarm(EPICS_DB_HHSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMHSV:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_alarm(EPICS_DB_HSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMLSV:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_alarm(EPICS_DB_LSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMLLSV:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_alarm(EPICS_DB_LLSV, f.second);
+				}
+				break;
+			case OPC_PROP_ALMDB:
+				if ((tname == "ai") || (tname == "ao") || (tname == "longin") || (tname == "longout") || (tname == "int64in") || (tname == "int64out")) {
+					process_field_numeric(EPICS_DB_HYST, f.second);
+				}
+				break;
+				// unknown
+			default:
+				// Process unchecked field,value pairs
+				if ((f.first >= OPC_PROP_FIELD_BEG) && (f.first < OPC_PROP_FIELD_END)) {
+					const std::stringcase::size_type pos = f.second.find(',');
+					if (pos != std::stringcase::npos) {
+						std::stringcase field = f.second.substr(0, pos);
+						trim_space(field);
+						std::stringcase value = f.second.substr(pos + 1);
+						trim_space(value);
+						process_field_string(field, value);
+					}
+					else {
+						fprintf(stderr, "Property %s is not a field,value pair\n", arg.get_name().c_str());
+					}
+				}
+				// Error: Unknown property
+				else if (f.first >= 1000) {
+					fprintf(stderr, "Unknown property %i for %s\n", f.first, arg.get_name().c_str());
+				}
+				break;
+			}
+		}
+		// end with closing bracket
+		fprintf(get_file(), "}\n");
+		return true;
 	}
-	// end with closing bracket
-	fprintf(get_file(), "}\n");
-	return true;
+	catch (...) {
+		return false;
+	}
 }
 
 /* Process a field
 epics_db_processing::process_field_string
 ************************************************************************/
 bool epics_db_processing::process_field_string (stringcase name, 
-												stringcase val)
+	stringcase val, int maxlen) noexcept
 {
-	fprintf (get_file(), "\tfield(%s,\"%s\")\n", name.c_str(), val.c_str());
+	fprintf (get_file(), "\tfield(%s,\"%.*s\")\n", name.c_str(), maxlen, val.c_str());
 	return true;
 }
 
 /* Process a field
 epics_db_processing::process_field_numeric
 ************************************************************************/
-bool epics_db_processing::process_field_numeric (stringcase name, int val)
+bool epics_db_processing::process_field_numeric (stringcase name, int val) noexcept
 {
 	char buf[40];
 	sprintf_s (buf, sizeof(buf), "%i", val);
@@ -1633,7 +1706,7 @@ bool epics_db_processing::process_field_numeric (stringcase name, int val)
 /* Process a field
 epics_db_processing::process_field_numeric
 ************************************************************************/
-bool epics_db_processing::process_field_numeric (stringcase name, double val)
+bool epics_db_processing::process_field_numeric (stringcase name, double val) noexcept
 {
 	char buf[40];
 	sprintf_s (buf, sizeof(buf), "%g", val);
@@ -1644,14 +1717,14 @@ bool epics_db_processing::process_field_numeric (stringcase name, double val)
 epics_db_processing::process_field_numeric
 ************************************************************************/
 bool epics_db_processing::process_field_numeric (stringcase name, 
-												 stringcase val)
+												 stringcase val) noexcept
 {
 	if (val.find_first_of (".Ee") != stringcase::npos) {
-		double v = strtod (val.c_str(), NULL);
+		const double v = strtod (val.c_str(), NULL);
 		return process_field_numeric (name, v);
 	}
 	else {
-		int v = strtol (val.c_str(), NULL, 10);
+		const int v = strtol (val.c_str(), NULL, 10);
 		return process_field_numeric (name, v);
 	}
 }
@@ -1660,7 +1733,7 @@ bool epics_db_processing::process_field_numeric (stringcase name,
 epics_db_processing::process_field_alarm
 ************************************************************************/
 bool epics_db_processing::process_field_alarm (stringcase name, 
-											   stringcase severity)
+											   stringcase severity) noexcept
 {
 	if ((severity == EPICS_DB_NOALARM) || (severity == EPICS_DB_MINOR) || 
 		(severity == EPICS_DB_MAJOR)) {

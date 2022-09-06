@@ -23,7 +23,7 @@ class BasePLC;
 /** This is a smart pointer to a PLC 
     @brief Smart pointer to PLC
 ************************************************************************/
-typedef std::shared_ptr<BasePLC> BasePLCPtr;
+using BasePLCPtr = std::shared_ptr<BasePLC>;
 
 
 /** This is a base class for an abstract interface to access the PLC 
@@ -35,29 +35,29 @@ class Interface
 public:
 	/// Constructor
 	/// @param dval Reference to a tag/channel record
-	explicit Interface (BaseRecord& dval) : record (dval) {}
+	explicit Interface (BaseRecord& dval) noexcept : record (dval) {}
 	/// Desctructor
-	virtual ~Interface() {};
+	virtual ~Interface() = default;
 
 	/// Return a pointer to the tag/channel record
-	BaseRecord& get_record() { return record; };
+	virtual BaseRecord& get_record() noexcept { return record; };
 	/// Return a pointer to the tag/channel record
-	const BaseRecord& get_record() const { return record; };
+	virtual const BaseRecord& get_record() const noexcept { return record; };
 
 	/// Pure virtual method indicating that the value needs to be pushed
-	virtual bool push() = 0;
+	virtual bool push() noexcept = 0;
 	/// Pure virtual method indicating that the value needs to be pulled
-	virtual bool pull() = 0;
+	virtual bool pull() noexcept = 0;
 
 	/// Get parent PLC that owns this record
-	BasePLC* get_parent();
+	BasePLC* get_parent() noexcept;
 	/// Get parent PLC that owns this record
-	const BasePLC* get_parent() const;
+	const BasePLC* get_parent() const noexcept;
 	/// Print values to file
 	/// @param fp File pointer
 	virtual void printVal (FILE* fp) {}
 	/// Get symbol name
-	virtual const char* get_symbol_name() const { return nullptr; }
+	virtual const char* get_symbol_name() const noexcept { return nullptr; }
 protected:
 	/// Pointer to tag/channel record associated with this interface
 	BaseRecord&			record;
@@ -66,7 +66,7 @@ protected:
 /** This is a smart pointer for Interface
     @brief Smart pointer to interface
  ************************************************************************/
-typedef std::unique_ptr<Interface> InterfacePtr;
+using InterfacePtr = std::unique_ptr<Interface>;
 
 /** This is an enumerated type listing all the available data types
     @brief Data type enumeration
@@ -112,15 +112,13 @@ template <typename T>
 struct DataValueTraits
 {
 	/// size type
-	typedef size_t size_type;
+	using size_type = size_t;
 	/// enumerated type for data type
-	typedef plc::data_type_enum data_type_enum;
+	using data_type_enum = plc::data_type_enum;
 	/// traits type
-	typedef typename T traits_type;
+	using traits_type = T;
 	/// atomic variable type
-	typedef typename std::atomic<T> traits_atomic;
-	/// data type enumertaion value
-	static const data_type_enum data_enum;
+	using traits_atomic = typename std::atomic<T>;
 };
 
 /** Type definitions for data value
@@ -129,76 +127,76 @@ struct DataValueTraits
 struct DataValueTypeDef
 {
 	/// size type
-	typedef size_t size_type;
+	using size_type = size_t;
 	/// enumerated type for data type
-	typedef plc::data_type_enum data_type_enum;
+	using data_type_enum = plc::data_type_enum;
 
 	/// bool type
-	typedef bool type_bool;
+	using type_bool = bool;
 	/// 1-byte integer type
-	typedef signed char type_int8;
+	using type_int8 = signed char;
 	/// 1-byte unsigned integer type
-	typedef unsigned char type_uint8;
+	using type_uint8 = unsigned char;
 	/// 3-byte integer type
-	typedef short type_int16;
+	using type_int16 = short;
 	/// 3-byte unsigned integer type
-	typedef unsigned short type_uint16;
+	using type_uint16 = unsigned short;
 	/// 4-byte integer type
-	typedef int type_int32;
+	using type_int32 = int;
 	/// 4-byte unsigned integer type
-	typedef unsigned int type_uint32;
+	using type_uint32 = unsigned int;
 	/// 8-byte integer type
-	typedef long long type_int64;
+	using type_int64 = long long;
 	/// 8-byte unsigned integer type
-	typedef unsigned long long type_uint64;
+	using type_uint64 = unsigned long long;
 	/// 4-byte single precision floating point type
-	typedef float type_float;
+	using type_float = float;
 	/// 4-byte double precision floating point type
-	typedef double type_double;
+	using type_double = double;
 	/// string type
-	typedef std::string type_string;
+	using type_string = std::string;
 	/// wstring type
-	typedef std::wstring type_wstring;
+	using type_wstring = std::wstring;
 	/// binary type
-	typedef void* type_binary;
+	using type_binary = void*;
 	/// string character type
-	typedef std::string::value_type type_string_value;
+	using type_string_value = std::string::value_type;
 	/// wstring character type
-	typedef std::wstring::value_type type_wstring_value;
+	using type_wstring_value = std::wstring::value_type;
 
 	/// memory order used for atomic access
 	static const std::memory_order memory_order = std::memory_order_seq_cst;
 	/// atomic bool type
-	typedef DataValueTraits<type_bool>::traits_atomic atomic_bool;
+	using atomic_bool = DataValueTraits<type_bool>::traits_atomic;
 	/// atomic 1-byte integer type
-	typedef DataValueTraits<type_int8>::traits_atomic atomic_int8;
+	using atomic_int8 = DataValueTraits<type_int8>::traits_atomic;
 	/// atomic 1-byte unsigned integer type
-	typedef DataValueTraits<type_uint8>::traits_atomic atomic_uint8;
+	using atomic_uint8 = DataValueTraits<type_uint8>::traits_atomic;
 	/// atomic 2-byte integer type
-	typedef DataValueTraits<type_int16>::traits_atomic atomic_int16;
+	using atomic_int16 = DataValueTraits<type_int16>::traits_atomic;
 	/// atomic 2-byte unsigned integer type
-	typedef DataValueTraits<type_uint16>::traits_atomic atomic_uint16;
+	using atomic_uint16 = DataValueTraits<type_uint16>::traits_atomic;
 	/// atomic 4-byte integer type
-	typedef DataValueTraits<type_int32>::traits_atomic atomic_int32;
+	using atomic_int32 = DataValueTraits<type_int32>::traits_atomic;
 	/// atomic 4-byte unsigned integer type
-	typedef DataValueTraits<type_uint32>::traits_atomic atomic_uint32;
+	using atomic_uint32 = DataValueTraits<type_uint32>::traits_atomic;
 	/// atomic 8-byte integer type
-	typedef DataValueTraits<type_int64>::traits_atomic atomic_int64;
+	using atomic_int64 = DataValueTraits<type_int64>::traits_atomic;
 	/// atomic 8-byte unsigned integer type
-	typedef DataValueTraits<type_uint64>::traits_atomic atomic_uint64;
+	using atomic_uint64 = DataValueTraits<type_uint64>::traits_atomic;
 	/// atomic 4-byte single precision floating point type
-	typedef DataValueTraits<type_float>::traits_atomic atomic_float;
+	using atomic_float = DataValueTraits<type_float>::traits_atomic;
 	/// atomic 8-byte double precision floating point type
-	typedef DataValueTraits<type_double>::traits_atomic atomic_double;
+	using atomic_double = DataValueTraits<type_double>::traits_atomic;
 	/// atomic string type
-	typedef DataValueTraits<type_string>::traits_atomic atomic_string;
+	using atomic_string = DataValueTraits<type_string>::traits_atomic;
 	/// atomic wstring type
-	typedef DataValueTraits<type_wstring>::traits_atomic atomic_wstring;
+	using atomic_wstring = DataValueTraits<type_wstring>::traits_atomic;
 	/// atomic binary type
-	typedef DataValueTraits<type_binary>::traits_atomic atomic_binary;
+	using atomic_binary = DataValueTraits<type_binary>::traits_atomic;
 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	using time_type = DataValueTypeDef::type_uint64;
 };
 
 /** Class for data value
@@ -208,15 +206,18 @@ struct DataValueTypeDef
 	Then, when the user reads this data, it resets the dirty flag.
 	The same logic applies for writes by the user and reads by the plc.
 
-	Data access is guaranteed to be atomic and MT safe. Construction,
-	initialization and destruction is not MT safe and all data access
-	has to be stopped during these operations. 
+	Data access is guaranteed to be atomic and MT safe for the simple
+	data types. For strings a mutex is used. If binary data is used, it 
+	is not atomic and no mutex is used. Construction, initialization 
+	and destruction is not MT safe and all data access has to be 
+	stopped during these operations. 
 
 	Type conversion is provided between all simple data types. However,
 	the loss of information is not checked upon a down cast. Strings have
 	to be read as strings. Binary data needs to be acessed with the 
 	binary read/write operations. However, all data can be accessed 
-	through binary access.
+	through binary access. In the later case and for simple data types, 
+	the access is atomic. 
 
     @brief Data value
  ************************************************************************/
@@ -224,239 +225,239 @@ class DataValue : public DataValueTypeDef
 {
 public:
 	/// Internally used storage pointer type
-	typedef void* data_type;
+	using data_type = void*;
 
 	/// Default constructor
-	DataValue() : mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0),
+	DataValue() noexcept : mydata (nullptr), mysize(0), mytype (data_type_enum::dtInvalid),
 		myvalid (false), myuserdirty (false), myplcdirty (false) {}
 	/// Constructor
 	/// @param rt Data type enumeration value
 	/// @param len Length of data
-	explicit DataValue (data_type_enum rt, size_type len = 0) 
-		: mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0),
+	explicit DataValue (data_type_enum rt, size_type len = 0) noexcept
+		: mydata (nullptr), mysize(0), mytype (data_type_enum::dtInvalid),
 		myvalid (false), myuserdirty (false), myplcdirty (false) { 
 		Init(rt, len); }
 	/// Desctructor
 	~DataValue();
 	/// Copy constructor
-	DataValue (const DataValue&);
+	DataValue (const DataValue&) noexcept;
 	/// Assignment operator
-	DataValue& operator= (const DataValue&);
+	DataValue& operator= (const DataValue&) noexcept;
 
 	/// Initializes data value
 	/// @param rt Data type enumeration value
 	/// @param len Length of data (use only for binary)
-	void Init (data_type_enum rt, size_type len = 0);
+	void Init (data_type_enum rt, size_type len = 0) noexcept;
 	/// is valid
-	bool IsValid () const { 
+	bool IsValid () const  noexcept {
 		return (mydata && (mytype != data_type_enum::dtInvalid) && (mysize > 0) && myvalid); };
 	/// get type
-	data_type_enum get_data_type() const { return mytype; }
+	data_type_enum get_data_type() const  noexcept { return mytype; }
 	/// get size
-	size_type get_size() const { return mysize; }
+	size_type get_size() const  noexcept { return mysize; }
 
 	/// Read data by the user
 	/// @param data Data value reference (return)
-	template <typename T> bool UserRead (T& data) const {
+	template <typename T> bool UserRead (T& data) const noexcept {
 		return Read (myuserdirty, data); }
 	/// Read fixed length character array data by the user
 	/// @param data Data value reference for a fixed length character array (return)
-	template <size_type N> bool UserRead (type_string_value (& data)[N]) const {
+	template <size_type N> bool UserRead (type_string_value (& data)[N]) const noexcept {
 		return ReadBinary (myuserdirty, &data, N) > 0; }
 	/// Read character array (pchar) by the user
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool UserRead (type_string_value* data, size_type max) const {
+	bool UserRead (type_string_value* data, size_type max) const noexcept {
 		return Read (myuserdirty, data, max); }
 	/// Read character array (pwchar) by the user
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool UserRead (type_wstring_value* data, size_type max) const {
+	bool UserRead (type_wstring_value* data, size_type max) const noexcept {
 		return Read (myuserdirty, data, max); }
 	/// Write data by the user
 	/// @param data Data value reference
-	template <typename T> bool UserWrite (const T& data) {
+	template <typename T> bool UserWrite (const T& data) noexcept {
 		return Write (myplcdirty, myuserdirty, data); }
 	/// Write fixed length character array data by the user
 	/// @param data Data value reference
-	template <size_type N> bool UserWrite (const type_string_value (& data)[N]) {
+	template <size_type N> bool UserWrite (const type_string_value (& data)[N]) noexcept {
 		return WriteBinary (myplcdirty, myuserdirty, &data, N) > 0; }
 
 	/// Write character array (pchar) by the user
 	/// @param data Source buffer
 	/// @param max Maximum length
-	bool UserWrite (const type_string_value* data, size_type max) {
+	bool UserWrite (const type_string_value* data, size_type max) noexcept {
 		return Write (myplcdirty, myuserdirty, data, max); }
 	/// Write character array (wpchar) by the user
 	/// @param data Source buffer
 	/// @param max Maximum length
-	bool UserWrite (const type_wstring_value* data, size_type max) {
+	bool UserWrite (const type_wstring_value* data, size_type max) noexcept {
 		return Write (myplcdirty, myuserdirty, data, max); }
 
 	/// Read data as binary by the user
 	/// @param p value pointer (destination buffer)
 	/// @param len Length in bytes
-	size_type UserReadBinary (type_binary p, size_type len) const {
+	size_type UserReadBinary (type_binary p, size_type len) const noexcept {
 		return ReadBinary (myuserdirty, p, len); }
 	/// Write data as binary by the user
 	/// @param p value pointer (source buffer)
 	/// @param len Length in bytes
-	size_type UserWriteBinary (const type_binary p, size_type len) {
+	size_type UserWriteBinary (const type_binary p, size_type len) noexcept {
 		return WriteBinary (myplcdirty, myuserdirty, p, len); }
 	/// New data for user
-	bool UserIsDirty() const { return myuserdirty; }
+	bool UserIsDirty() const noexcept { return myuserdirty; }
 	/// Set dirty flag for user
-	void UserSetDirty() { myuserdirty.store (true); }
+	void UserSetDirty() noexcept { myuserdirty.store (true, DataValueTypeDef::memory_order); }
 
 	/// Set the valid flag and set the dirty flag when flag changes
 	/// @param valid True for valid data, False for invalid
-	void UserSetValid (bool valid) { SetValid (myuserdirty, valid); }
+	void UserSetValid (bool valid) noexcept { SetValid (myuserdirty, valid); }
 	/// Get the valid flag and reset the dirty flag
 	/// @return valid True for valid data, False for invalid
-	bool UserGetValid() const { return GetValid (myplcdirty); }
+	bool UserGetValid() const noexcept { return GetValid (myplcdirty); }
 
 	/// Read data by the plc
 	/// @param data Data value reference (return)
-	template <typename T> bool PlcRead (T& data) const {
+	template <typename T> bool PlcRead (T& data) const noexcept {
 		return Read (myplcdirty, data); }
 	/// Read fixed length character array data by the plc
 	/// @param data Data value reference for a fixed length character array (return)
-	template <size_type N> bool PlcRead (type_string_value (& data)[N]) const {
+	template <size_type N> bool PlcRead (type_string_value (& data)[N]) const noexcept {
 		return ReadBinary (myplcdirty, &data, N) > 0; }
 	/// Read character array (pchar) by the plc
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool PlcRead (type_string_value* data, size_type max) const {
+	bool PlcRead (type_string_value* data, size_type max) const noexcept {
 		return Read (myplcdirty, data, max); }
 	/// Read character array (pwchar) by the plc
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool PlcRead (type_wstring_value* data, size_type max) const {
+	bool PlcRead (type_wstring_value* data, size_type max) const noexcept {
 		return Read (myplcdirty, data, max); }
 	/// Write data by the plc
 	/// @param data Data value reference
-	template <typename T> bool PlcWrite (const T& data) {
+	template <typename T> bool PlcWrite (const T& data) noexcept {
 		return Write (myuserdirty, myplcdirty, data); }
 	/// Write fixed length character array data by the plc
 	/// @param data Data value reference
-	template <size_type N> bool PlcWrite (const type_string_value (& data)[N]) {
+	template <size_type N> bool PlcWrite (const type_string_value (& data)[N]) noexcept {
 		return WriteBinary (myuserdirty, myplcdirty, &data, N) > 0; }
 	/// Write character array (pchar) by the plc
 	/// @param data Source buffer
 	/// @param max Maximum length
-	bool PlcWrite (const type_string_value* data, size_type max) {
+	bool PlcWrite (const type_string_value* data, size_type max) noexcept {
 		return Write (myuserdirty, myplcdirty, data, max); }
 	/// Write character array (wpchar) by the plc
 	/// @param data Source buffer
 	/// @param max Maximum length
-	bool PlcWrite (const type_wstring_value* data, size_type max) {
+	bool PlcWrite (const type_wstring_value* data, size_type max) noexcept {
 		return Write (myuserdirty, myplcdirty, data, max); }
 
 	/// Read data as binary by the plc
 	/// @param p value pointer (destination buffer)
 	/// @param len Length in bytes
-	size_type PlcReadBinary (type_binary p, size_type len) const {
+	size_type PlcReadBinary (type_binary p, size_type len) const noexcept {
 		return ReadBinary (myplcdirty, p, len); }
 	/// Write data as binary by the plc
 	/// @param p value pointer (source buffer)
 	/// @param len Length in bytes
-	size_type PlcWriteBinary (const type_binary p, size_type len) {
+	size_type PlcWriteBinary (const type_binary p, size_type len) noexcept {
 		return WriteBinary (myuserdirty, myplcdirty, p, len); }
 	/// New data for plc
-	bool PlcIsDirty() const {return myplcdirty; }
+	bool PlcIsDirty() const noexcept {return myplcdirty; }
 	/// Set dirty flag for plc
-	void PlcSetDirty() { myplcdirty.store (true); }
+	void PlcSetDirty() noexcept { myplcdirty.store (true, DataValueTypeDef::memory_order); }
 
 	/// Set the valid flag and set the dirty flag when flag changes
 	/// @param valid True for valid data, False for invalid
-	void PlcSetValid (bool valid) { SetValid (myplcdirty, valid); }
+	void PlcSetValid (bool valid) noexcept { SetValid (myplcdirty, valid); }
 	/// Get the valid flag and reset the dirty flag
 	/// @return valid True for valid data, False for invalid
-	bool PlcGetValid() const { return GetValid (myuserdirty); }
+	bool PlcGetValid() const noexcept { return GetValid (myuserdirty); }
 
 protected:
-	/// Constructor (hidden)
-	DataValue (const DataValue&&);
-	/// Assignment operator
-	DataValue& operator= (const DataValue&&);
+	/// Move constructor (hidden)
+	DataValue (DataValue&&) = delete;
+	/// Move assignment operator
+	DataValue& operator= (DataValue&&) = delete;
 
 	/// Read data
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param data Data value reference (return)
-	template <typename T> bool Read (atomic_bool& dirty, T& data) const;
+	template <typename T> bool Read (atomic_bool& dirty, T& data) const noexcept;
 	/// Read string (template specialization)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param data Data value reference (return)
-	bool Read (atomic_bool& dirty, type_string& data) const;
+	bool Read (atomic_bool& dirty, type_string& data) const noexcept;
 	/// Read wstring (template specialization)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param data Data value reference (return)
-	bool Read (atomic_bool& dirty, type_wstring& data) const;
+	bool Read (atomic_bool& dirty, type_wstring& data) const noexcept;
 	/// Read character array (pchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_string_value* data, size_type max) const;
+	bool Read (atomic_bool& dirty, type_string_value* data, size_type max) const noexcept;
 	/// Read character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param data Destination buffer
 	/// @param max Maximum length
-	bool Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const;
+	bool Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const noexcept;
 
 	/// Write data
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param data Data value reference (return)
 	template <typename T> bool Write (atomic_bool& dirty, 
-		const atomic_bool& pend, const T& data);
+		const atomic_bool& pend, const T& data) noexcept;
 	/// Write string (template specialization)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param data Data value reference
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_string& data);
+		const type_string& data) noexcept;
 	/// Write wstring (template specialization)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param data Data value reference
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_wstring& data);
+		const type_wstring& data) noexcept;
 	/// Write character array (pchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param data Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_string_value* data, size_type max);
+		const type_string_value* data, size_type max) noexcept;
 	/// Write character array (pwchar)
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param data Source buffer
 	/// @param max Maximum length
 	bool Write (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_wstring_value* data, size_type max);
+		const type_wstring_value* data, size_type max) noexcept;
 
 	/// Read data as binary
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param p value pointer (destination buffer)
 	/// @param len Length in bytes
-	size_type ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const;
+	size_type ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const noexcept;
 	/// Write data as binary
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param pend Reference to pending read flag (plc or user)
 	/// @param p value pointer (source buffer)
 	/// @param len Length in bytes
 	size_type WriteBinary (atomic_bool& dirty, const atomic_bool& pend, 
-		const type_binary p, size_type len);
+		const type_binary p, size_type len) noexcept;
 
 	/// Set the valid flag and set the dirty flag when flag changes
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @param valid True for valid data, False for invalid
-	void SetValid (atomic_bool& dirty, bool valid);
+	void SetValid (atomic_bool& dirty, bool valid) noexcept;
 	/// Get the valid flag and reset the dirty flag
 	/// @param dirty Reference to dirty flag (user or plc)
 	/// @return valid True for valid data, False for invalid
-	bool GetValid (atomic_bool& dirty) const;
+	bool GetValid (atomic_bool& dirty) const noexcept;
 
 	/// Data pointer
 	data_type				mydata;
@@ -496,10 +497,10 @@ class BaseRecord : public DataValueTypeDef
 {
 public:
 	/// Default constructor
-	BaseRecord() : access (access_rights_enum::read_write), process (false), parent (nullptr) {}
+	BaseRecord() noexcept : access (access_rights_enum::read_write), process (false), parent (nullptr) {}
 	/// Constructor
 	/// @param tag Name of tag/channel
-	explicit BaseRecord (const std::stringcase& tag)
+	explicit BaseRecord (const std::stringcase& tag) noexcept
 		: name (tag), access (access_rights_enum::read_write), process (true), parent (nullptr) {}
 	/// Constructor
 	/// @param recordName Name of tag/channel
@@ -507,179 +508,179 @@ public:
 	/// @param puser Pointer to user interface object (will be adopted!)
 	/// @param pplc Pointer to plc interface object (will be adopted!)
 	BaseRecord (const std::stringcase& recordName, 
-		data_type_enum rt, Interface* puser = nullptr, Interface* pplc = nullptr)
+		data_type_enum rt, Interface* puser = nullptr, Interface* pplc = nullptr) noexcept
 		: name (recordName), access (access_rights_enum::read_write), process (true), value (rt), 
-		user (puser), plc (pplc), parent (nullptr) {}
+		plc (pplc), user(puser), parent (nullptr) {}
 	/// Desctructor
 	virtual ~BaseRecord() {};
 
 	/// Get name
-	const std::stringcase& get_name() const { return name; };
+	const std::stringcase& get_name() const noexcept { return name; };
 	/// Set name
-	void set_name (const std::stringcase& recordName) { name = recordName; };
+	void set_name (const std::stringcase& recordName) noexcept { name = recordName; };
 	/// Get process flag: false = disabled, true = enabled
-	bool get_process() const { return process.load(); };
+	bool get_process() const noexcept { return process.load(); };
 	/// Set process flag
-	void set_process (bool isEnabled) { process = isEnabled; };
+	void set_process (bool isEnabled) noexcept { process = isEnabled; };
 	/// Get access rights
-	access_rights_enum get_access_rights() { return access; };
+	access_rights_enum get_access_rights() noexcept { return access; };
 	/// Set access rights
-	void set_access_rights(access_rights_enum rights) { access = rights; };
+	void set_access_rights(access_rights_enum rights) noexcept { access = rights; };
 	/// Get time stamp
-	time_type get_timestamp() const;
+	time_type get_timestamp() const noexcept;
 
 	/// Get pointer to user interface (no ownership transfer)
-	virtual Interface* get_userInterface() const { return user.get(); };
+	virtual Interface* get_userInterface() const noexcept { return user.get(); };
 	/// Get pointer to plc interface (no ownership transfer)
-	virtual Interface* get_plcInterface() const { return plc.get(); };
+	virtual Interface* get_plcInterface() const noexcept { return plc.get(); };
 	/// Set user interface (object will be adopted!)
-	void set_userInterface (Interface* puser) { user.reset (puser); };
+	void set_userInterface (Interface* puser) noexcept { user.reset (puser); };
 	/// Set plc interface (object will be adopted!)
-	void set_plcInterface (Interface* pplc) { plc.reset (pplc); };
+	void set_plcInterface (Interface* pplc) noexcept { plc.reset (pplc); };
 	/// Get parent plc
-	virtual BasePLC* get_parent() const { return parent; };
+	virtual BasePLC* get_parent() const noexcept { return parent; };
 	/// Set parent plc
-	virtual void set_parent(BasePLC* pPLC) { parent = pPLC; }
+	virtual void set_parent(BasePLC* pPLC) noexcept { parent = pPLC; }
 
 	/// Get a const reference to the data object
-	const DataValue& get_data() const { return value; }
+	const DataValue& get_data() const noexcept { return value; }
 	/// Get a reference to the data object
-	DataValue& get_data() { return value; }
+	DataValue& get_data() noexcept { return value; }
 	/// Returns true, if the data is valid
-	bool DataIsValid() {
+	bool DataIsValid() noexcept {
 		return process && value.IsValid(); }
 
 	/// Execute a user read, but pull plc first
 	/// @param data Reference to data (return)
 	/// @return true if successfull
-	template <typename T> bool UserRead (T& data) {
+	template <typename T> bool UserRead (T& data) noexcept {
 		PlcPull(); return value.UserRead (data); }
 	/// Execute a user read, but pull plc first
 	/// @param data character pointer, pchar (return)
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool UserRead (type_string_value* data, size_type max) {
+	bool UserRead (type_string_value* data, size_type max) noexcept {
 		PlcPull(); return value.UserRead (data, max); }
 	/// Execute a user read, but pull plc first
 	/// @param data character pointer, pwchar (return)
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool UserRead (DataValue::type_wstring_value* data, size_type max) {
+	bool UserRead (DataValue::type_wstring_value* data, size_type max) noexcept {
 		PlcPull(); return value.UserRead (data, max); }
 	/// Execute a user write and push plc
 	/// @param data Reference to data
 	/// @return true if successfull
-	template <typename T> bool UserWrite (const T& data) {
-		bool ret = value.UserWrite (data); if (ret) PlcPush(); return ret; }
+	template <typename T> bool UserWrite (const T& data) noexcept {
+		const bool ret = value.UserWrite (data); if (ret) PlcPush(); return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool UserWrite (const type_string_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+	bool UserWrite (const type_string_value* data, size_type max) noexcept {
+		const bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
 	/// Execute a user write and push plc
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool UserWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
+	bool UserWrite (const type_wstring_value* data, size_type max) noexcept {
+		const bool ret = value.UserWrite (data, max); if (ret) PlcPush(); return ret; }
 
 	/// Execute a user read, but pull plc first
 	/// @param p Pointer to data (destination buffer)
 	/// @param len Length in bytes (must be the same as data length)
 	/// @return Number of bytes read (0 on error)
-	size_type UserReadBinary (type_binary p, size_type len) {
+	size_type UserReadBinary (type_binary p, size_type len) noexcept {
 		PlcPull(); return value.UserReadBinary (p, len); }
 	/// Execute a user write and push plc
 	/// @param p Pointer to data (source buffer)
 	/// @param len Length in bytes (must be the same as data length)
 	/// @return Number of bytes written (0 on error)
-	size_type UserWriteBinary (const type_binary p, size_type len) {
-		size_type ret = value.UserWriteBinary (p, len); 
+	size_type UserWriteBinary (const type_binary p, size_type len) noexcept {
+		const size_type ret = value.UserWriteBinary (p, len); 
 		if (ret > 0) PlcPush(); return ret; }
 	/// Ckecks if the user needs to read an updated value
-	bool UserIsDirty() const {return value.UserIsDirty(); }
+	bool UserIsDirty() const noexcept {return value.UserIsDirty(); }
 	/// Set dirty flag for user
-	void UserSetDirty() { value.UserSetDirty(); UserPush(); }
+	void UserSetDirty() noexcept { value.UserSetDirty(); UserPush(); }
 	/// Initiated a user pull, if the data needs an update
 	/// @param force Forces a user update even when not needed
-	inline bool UserPush (bool force = false);
+	inline bool UserPush (bool force = false) noexcept;
 	/// Pulls the user for new data
-	inline bool UserPull();
+	inline bool UserPull() noexcept;
 
 	/// Set the user valid flag and set the dirty flag when flag changes
 	/// @param valid True for valid data, False for invalid
-	void UserSetValid (bool valid) { value.UserSetValid (valid); UserPush(); }
+	void UserSetValid (bool valid) noexcept { value.UserSetValid (valid); UserPush(); }
 	/// Get the user valid flag and reset the dirty flag
 	/// @return valid True for valid data, False for invalid
-	bool UserGetValid() { UserPull(); 
+	bool UserGetValid() noexcept { UserPull();
 		return value.UserGetValid() && process.load(); }
 
 	/// Execute a plc read, but pull user first
 	/// @param data Reference to data (return)
 	/// @return true if successfull
-	template <typename T> bool PlcRead (T& data) {
+	template <typename T> bool PlcRead (T& data) noexcept {
 		UserPull(); return value.PlcRead (data); }
 	/// Execute a plc read, but pull user first
 	/// @param data character pointer, pchar (return)
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool PlcRead (type_string_value* data, size_type max) {
+	bool PlcRead (type_string_value* data, size_type max) noexcept {
 		UserPull(); return value.PlcRead (data, max); }
 	/// Execute a plc read, but pull user first
 	/// @param data character pointer, pwchar (return)
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool PlcRead (type_wstring_value* data, size_type max) {
+	bool PlcRead (type_wstring_value* data, size_type max) noexcept {
 		UserPull(); return value.PlcRead (data, max); }
 
 	/// Execute a plc write and push user
 	/// @param data Reference to data
 	/// @return true if successfull
-	template <typename T> bool PlcWrite (const T& data) {
-		bool ret = value.PlcWrite (data); if (ret) UserPush(); return ret; }
+	template <typename T> bool PlcWrite (const T& data) noexcept {
+		const bool ret = value.PlcWrite (data); if (ret) UserPush(); return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool PlcWrite (const type_string_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+	bool PlcWrite (const type_string_value* data, size_type max) noexcept {
+		const bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
 	/// Execute a plc write and push user
 	/// @param data character pointer, pwchar
 	/// @param max Maximum number of characters
 	/// @return true if successfull
-	bool PlcWrite (const type_wstring_value* data, size_type max) {
-		bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
+	bool PlcWrite (const type_wstring_value* data, size_type max) noexcept {
+		const bool ret = value.PlcWrite (data, max); if (ret) UserPush(); return ret; }
 
 	/// Execute a plc read, but pull user first
 	/// @param p Pointer to data (destination buffer)
 	/// @param len Length in bytes (must be the same as data length)
 	/// @return Number of bytes read (0 on error)
-	size_type PlcReadBinary (type_binary p, size_type len) {
+	size_type PlcReadBinary (type_binary p, size_type len) noexcept {
 		UserPull(); return value.PlcReadBinary (p, len); }
 	/// Execute a plc write and push user
 	/// @param p Pointer to data (source buffer)
 	/// @param len Length in bytes (must be the same as data length)
 	/// @return Number of bytes written (0 on error)
-	size_type PlcWriteBinary (const type_binary p, size_type len) {
-		size_type ret = value.PlcWriteBinary (p, len); 
+	size_type PlcWriteBinary (const type_binary p, size_type len) noexcept {
+		const size_type ret = value.PlcWriteBinary (p, len); 
 		if (ret > 0) UserPush(); return ret; }
 	/// Checks if the plc needs to read an updated value
-	bool PlcIsDirty() const {return value.PlcIsDirty(); }
+	bool PlcIsDirty() const noexcept {return value.PlcIsDirty(); }
 	/// Set dirty flag for plc
-	void PlcSetDirty() { value.PlcSetDirty(); PlcPush(); }
+	void PlcSetDirty() noexcept { value.PlcSetDirty(); PlcPush(); }
 	/// Initiated a plc pull, if the data needs an update
 	/// @param force Forces a plc update even when not needed
-	inline bool PlcPush (bool force = false);
+	inline bool PlcPush (bool force = false) noexcept;
 	/// Pulls the plc for new data
-	inline bool PlcPull();
+	inline bool PlcPull() noexcept;
 
 	/// Set the plc valid flag and set the dirty flag when flag changes
 	/// @param valid True for valid data, False for invalid
-	void PlcSetValid (bool valid) { value.PlcSetValid (valid); PlcPush(); }
+	void PlcSetValid (bool valid) noexcept { value.PlcSetValid (valid); PlcPush(); }
 	/// Get the plc valid flag and reset the dirty flag
 	/// @return valid True for valid data, False for invalid
-	bool PlcGetValid() { PlcPull(); 
+	bool PlcGetValid() noexcept { PlcPull();
 		return value.PlcGetValid() && process.load(); }
 
 protected:
@@ -702,12 +703,12 @@ protected:
 /** This is a smart pointer to a tag/channel record 
     @brief smart pointer to record
 ************************************************************************/
-typedef std::shared_ptr<BaseRecord> BaseRecordPtr;
+using BaseRecordPtr = std::shared_ptr<BaseRecord>;
 
 /** This is a list of tag/channel records organized as a hash map
     @brief list of record
 ************************************************************************/
-typedef std::unordered_map<std::stringcase, BaseRecordPtr> BaseRecordList;
+using BaseRecordList = std::unordered_map<std::stringcase, BaseRecordPtr>;
 
 /** This is a base class for interfacing a programmable logic controller.
     It contains and manages a list of tag/channel records. This is a base
@@ -721,56 +722,50 @@ class BasePLC
 {
 public:
 	/// Defines the mutex type
-	typedef std::recursive_mutex mutex_type;
+	using mutex_type = std::recursive_mutex;
 	/// Defined the mutex guard type
-	typedef std::lock_guard<mutex_type> guard; 
+	using guard = std::lock_guard<mutex_type>; 
 	/// Define timestamp type
-	typedef DataValueTypeDef::type_uint64 time_type;
+	using time_type = DataValueTypeDef::type_uint64;
 	/// Function pointer to scanner
-	typedef void (BasePLC::*scanner_func) ();
+	using scanner_func = void (BasePLC::*) ();
 
 	/// Default constructor
-	BasePLC();
+	BasePLC() noexcept;
 	/// Destructor
-	virtual ~BasePLC();
+	virtual ~BasePLC() = default;
 
 	/// Get read scannner period in ms
-	int get_read_scanner_period () const { 
+	int get_read_scanner_period () const noexcept {
 		return read_scanner_period; }
 	/// Set read scannner period in ms
-	void set_read_scanner_period (int period) {
+	void set_read_scanner_period (int period) noexcept {
 		read_scanner_period = period; }
 	/// Start read scannner
-	bool start_read_scanner();
-	/// Terminate read scannner
-	bool terminate_read_scanner();
+	bool start_read_scanner() noexcept;
 
 	/// Get write scannner period in ms
-	int get_write_scanner_period () const { 
+	int get_write_scanner_period () const noexcept {
 		return write_scanner_period; }
 	/// Set write scannner period in ms
-	void set_write_scanner_period (int period) {
+	void set_write_scanner_period (int period) noexcept {
 		write_scanner_period = period; }
 	/// Start write scannner
-	bool start_write_scanner();
-	/// Terminate write scannner
-	bool terminate_write_scanner();
+	bool start_write_scanner() noexcept;
 
 	/// Get update scannner period in ms
-	int get_update_scanner_period () const { 
+	int get_update_scanner_period () const noexcept {
 		return update_scanner_period; }
 	/// Set update scannner period in ms
-	void set_update_scanner_period (int period) {
+	void set_update_scanner_period (int period) noexcept {
 		update_scanner_period = period; }
 	/// Start update scannner
-	bool start_update_scanner();
-	/// Terminate update scannner
-	bool terminate_update_scanner();
+	bool start_update_scanner() noexcept;
 
 	/// is scanner active?
-	bool is_scanner_active() const { return scanners_active; }
+	bool is_scanner_active() const noexcept { return scanners_active; }
 	/// set scanner active state
-	void set_scanners_active (bool active) { scanners_active = active; }
+	void set_scanners_active (bool active) noexcept { scanners_active = active; }
 
 	/// Reserves the given number of elements in the tag/channel list.
 	/// Use this function when you know many elements are added beforehand
@@ -803,7 +798,7 @@ public:
 	/// @param next Next tag/channel record (return)
 	/// @param prev tag/channel record 
 	/// @return true if successful
-	bool get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const;
+	bool get_next (BaseRecordPtr& next, const plc::BaseRecord* prev) const;
 	/// Iterate over all list elements
 	/// This will yield good performance, but will lock the PLC 
 	/// for the entire processing time
@@ -815,7 +810,7 @@ public:
 	/// @param f Function which takes BaseRecord* as the argument
 	template <typename func> void for_each(const func& f);
 	/// Count the number of records
-	int count() const;
+	int count() const noexcept;
 
 	/// Print all records and vals to stdout. (override for action)
 	virtual void printAllRecords() {};
@@ -824,19 +819,19 @@ public:
 	virtual void printRecord (const std::string& var) {};
 
 	/// Get time stamp
-	virtual time_type get_timestamp() const { return timestamp; }
+	virtual time_type get_timestamp() const noexcept { return timestamp; }
 	/// Get time stamp as unix time (seconds since 1970-01-01 00:00:00)
 	/// Does not include leap seconds
-	virtual time_t get_timestamp_unix() const;
+	virtual time_t get_timestamp_unix() const noexcept;
 	/// Set time stamp
-	virtual void set_timestamp (time_type tstamp) { timestamp = tstamp; }
+	virtual void set_timestamp (time_type tstamp) noexcept { timestamp = tstamp; }
 	/// Set time stamp to current time
-	virtual void update_timestamp();
+	virtual void update_timestamp() noexcept;
 
 	/// Get name
-	const std::stringcase& get_name() const { return name; }
+	const std::stringcase& get_name() const noexcept { return name; }
 	/// Get nick name/alias
-	const std::stringcase& get_alias () const { return alias; }
+	const std::stringcase& get_alias () const noexcept { return alias; }
 	/// Set nick name/alias
 	void set_alias (const std::stringcase& nickname) { alias = nickname; }
 
@@ -849,10 +844,10 @@ public:
 
 	/// Set the valid flag for all data values by the user
 	/// @param valid Valid flag, true for valid, false for invalid
-	virtual void user_data_set_valid (bool valid);
+	virtual void user_data_set_valid (bool valid) noexcept;
 	/// Set the valid flag for all data values by the plc
 	/// @param valid Valid flag, true for valid, false for invalid
-	virtual void plc_data_set_valid (bool valid);
+	virtual void plc_data_set_valid (bool valid) noexcept;
 
 protected:
 	/// Set name (careful! This is used for indexing in the PLCList of System)
@@ -895,7 +890,7 @@ protected:
 /** This is list of BasePLC, ordered by their name.
     @brief BasePLC map
 ************************************************************************/
-typedef std::map<std::stringcase, BasePLCPtr> BasePLCList;
+using BasePLCList = std::map<std::stringcase, BasePLCPtr>;
 
 
 /** This is a class for managing multiple PLCs.
@@ -905,12 +900,12 @@ class System
 {
 public:
 	/// Defines the mutex type
-	typedef std::recursive_mutex mutex_type;
+	using mutex_type = std::recursive_mutex;
 	/// Defined the mutex guard type
-	typedef std::lock_guard<mutex_type> guard; 
+	using guard = std::lock_guard<mutex_type>; 
 
 	/// Return a reference to the gloabl System variable
-	static System& get() { return tCat; }
+	static System& get() noexcept { return tCat; }
 	/// Add a new PLC, PLC will be adopted
 	/// @param plc Pointer to plc
 	/// @return true if successful
@@ -940,14 +935,14 @@ public:
 	void printVal (const std::string& var);
 
 	/// Start scanning after ioc is running
-	void start();
+	void start() noexcept;
 	/// Stop scanning when ioc is paused
-	void stop();
+	void stop() noexcept;
 
 	/// get Ioc run state
-	bool is_ioc_running () const { return IocRun; }
+	bool is_ioc_running () const noexcept { return IocRun; }
 	/// set Ioc run state
-	void set_ioc_state (bool run) { 
+	void set_ioc_state (bool run) noexcept {
 		IocRun = run; run ? start() : stop(); }
 protected:
 	/// Mutex to synchronize access to this class
@@ -958,11 +953,15 @@ protected:
 	bool				IocRun;
 private:
 	/// Constructor
-	System();
-	/// Copy operator
-	System(const System& tc);
+	System() noexcept;
+	/// Copy constructor
+	System(const System& tc) = delete;
+	/// Move constructor
+	System(System&& tc) = delete;
 	/// Assignment operator
-	System& operator= (const System& tc);
+	System& operator= (const System& tc) = delete;
+	/// Move assignment operator
+	System& operator= (System&& tc) = delete;
 	/// Deconstructor
 	~System();
 	/// A single instance of System

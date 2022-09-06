@@ -59,61 +59,61 @@ void trim_space (wstringcase& s)
 
 #ifdef _WIN64
 // FNV prime for 64 bits
-static const size_t FNV_64_PRIME = (size_t)0x100000001B3;
+static constexpr size_t FNV_64_PRIME = 0x100000001B3ULL;
 // FNV start value for 64 bits
-static const size_t FNV1_64_INIT = (size_t)14695981039346656037;
+static constexpr size_t FNV1_64_INIT = 14695981039346656037ULL;
 #else 
 // FNV prime for 32 bits
-static const size_t FNV_32_PRIME = (size_t)0x01000193;
+static constexpr size_t FNV_32_PRIME = 0x01000193U;
 // FNV start value for 32 bits
-static const size_t FNV1_32_INIT = (size_t)1099511628211;
+static constexpr size_t FNV1_32_INIT = 0x811C9DC5U;
 #endif
 
 // Perform a 32 or 64 bit Fowler/Noll/Vo hash on a case insensitive string
-std::size_t std::hash<stringcase>::operator()(const stringcase& str) const 
+std::size_t std::hash<stringcase>::operator()(const stringcase& str) const noexcept
 {
-	const unsigned char* s = (unsigned char*)str.c_str();
+	const unsigned char* s = (const unsigned char*)str.c_str();
 #ifdef _WIN64
 	size_t hval = FNV1_64_INIT;
 	while (*s) {
 		hval *= FNV_64_PRIME;
-		hval ^= (size_t)tolower(*s++);
+		hval ^= static_cast<size_t>(tolower(*s++));
 	}
 #else 
 	size_t hval = FNV1_32_INIT;
 	while (*s) {
 		hval *= FNV_32_PRIME;
-		hval ^= (size_t)tolower(*s++);
+		hval ^= static_cast<size_t>(tolower(*s++));
 	}
-#endif;
+#endif
 	return hval;
 }
 
 // Perform a 32/64 bit Fowler/Noll/Vo hash on a case insensitive 
 // unicode string
-std::size_t std::hash<wstringcase>::operator()(const wstringcase& str) const
+std::size_t std::hash<wstringcase>::operator()(const wstringcase& str) const noexcept
 {
 	const wchar_t* s = str.c_str();
-	wchar_t c;
+	wchar_t c = 0;
 #ifdef _WIN64
 	size_t hval = FNV1_64_INIT;
 	while (*s) {
 		c = towlower (*s++);
 		hval *= FNV_64_PRIME;
-		hval ^= (size_t)(c & 0xFF);
+		hval ^= static_cast<size_t>(c & 0xFF);
 		hval *= FNV_64_PRIME;
-		hval ^= (size_t)(c >> 8);
+		hval ^= static_cast<size_t>(c >> 8);
 	}
 #else 
 	size_t hval = FNV1_32_INIT;
 	while (*s) {
 		c = towlower (*s++);
 		hval *= FNV_32_PRIME;
-		hval ^= (size_t)(c & 0xFF);
+		hval ^= static_cast<size_t>(c & 0xFF);
 		hval *= FNV_32_PRIME;
-		hval ^= (size_t)(c >> 8);
+		hval ^= static_cast<size_t>(c >> 8);
 	}
-#endif;
+#endif
 	return hval;
 }
 

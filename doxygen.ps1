@@ -17,7 +17,7 @@ $download = "$parent\Download"
 $html = "html"
 $latex = "latex"
 # 
-$version = "2_2"
+$version = "2_3"
 #
 # set path
 $env:Path = "C:\Program Files\doxygen\bin;$env:Path"

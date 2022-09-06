@@ -24,7 +24,7 @@ param ([switch] $d,
 
 write "Install tcIoc Binaries"
 
-$version = "2_2"
+$version = "2_3"
 # Path
 $parent = "$PSScriptRoot"
 $download = "$parent\Download"

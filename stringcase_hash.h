@@ -17,7 +17,7 @@ public:
 	/// http://www.isthe.com/chongo/tech/comp/fnv/index.html#FNV-source
 	/// @param str string to hash
 	/// @return 32/64 bit hash
-	std::size_t operator()(const stringcase& str) const;
+	std::size_t operator()(const stringcase& str) const noexcept;
 };
 
 /** This is a function specialization for case sensitive unicode strings.
@@ -33,7 +33,7 @@ public:
 	/// http://www.isthe.com/chongo/tech/comp/fnv/index.html#FNV-source
 	/// @param str string to hash
 	/// @return 32/64 bit hash
-	std::size_t operator()(const wstringcase& str) const;
+	std::size_t operator()(const wstringcase& str) const noexcept;
 };
 
 

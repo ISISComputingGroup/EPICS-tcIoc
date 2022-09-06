@@ -18,7 +18,7 @@ namespace DevTc {
 class tcRegisterToIocShell {
 private:
 	/// Constructor
-    tcRegisterToIocShell();
+    tcRegisterToIocShell() noexcept;
 	/// Single static instance
 	static tcRegisterToIocShell gtcRegisterToIocShell;
 };

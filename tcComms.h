@@ -24,26 +24,26 @@ namespace TcComms {
 /** @{ */
 
 /// maximum allowed request size (bytes)
-const int MAX_REQ_SIZE = 250000;
+constexpr int MAX_REQ_SIZE = 250000;
 /// maximum allowed size (bytes) of a memory gap within continuous request
-const int MAX_SINGLE_GAP_SIZE = 50;
+constexpr int MAX_SINGLE_GAP_SIZE = 50;
 /// (maximum allowed total gap size) / (current request size)
-const double MAX_REL_GAP = 0.25;
+constexpr double MAX_REL_GAP = 0.25;
 /// minimum allowed relative gap size (bytes)
-const int MIN_REL_GAP_SIZE = 100;
+constexpr int MIN_REL_GAP_SIZE = 100;
 
 /// default PLC TwinCAT scan rate (100ms)
-const int default_scanrate = 100;
+constexpr int default_scanrate = 100;
 /// minimum PLC TwinCAT scan rate (5ms)
-const int minimum_scanrate = 5;	
+constexpr int minimum_scanrate = 5;	
 /// maximum PLC TwinCAT scan rate (10s)
-const int maximum_scanrate = 10000;
+constexpr int maximum_scanrate = 10000;
 /// default multiple for PLC EPICS scan rate (10)
-const int default_multiple = 10;
+constexpr int default_multiple = 10;
 /// minimum multiple for PLC EPICS scan rate (1)
-const int minimum_multiple = 1;	
+constexpr int minimum_multiple = 1;	
 /// maximum multiple for PLC EPICS scan rate (200) 
-const int maximum_multiple = 200;
+constexpr int maximum_multiple = 200;
 
 
 /** Forward declaration
@@ -67,11 +67,11 @@ struct DataPar
 /** This is a class for a TCat interface
 	@brief TCat interface class
  ************************************************************************/
-class TCatInterface	:	public plc::Interface
+class TCatInterface	: public plc::Interface
 {
 public:
 	/// Constructor
-	explicit TCatInterface (plc::BaseRecord& dval)
+	explicit TCatInterface (plc::BaseRecord& dval) noexcept
 		: Interface(dval), tCatSymbol({ 0,0,0 }), requestNum (0), 
 		requestOffs (0) {};
 	/// Constructor
@@ -86,70 +86,68 @@ public:
 	TCatInterface (plc::BaseRecord& dval, const std::stringcase& name, 
 		unsigned long group, unsigned long offset, unsigned long length,
 		const std::stringcase& type, bool isStruct, bool isEnum);
-	/// Deconstructor
-	~TCatInterface() {};
 
 	/// Get name of TCat symbol
-	const std::stringcase get_tCatName() const { 
+	const std::stringcase get_tCatName() const noexcept {
 		return tCatName; };							
 	/// Set name of TCat symbol
-	void set_tCatName(std::stringcase name) { 
+	void set_tCatName(std::stringcase name) noexcept {
 		tCatName = name; };
 	/// Get symbol name
-	virtual const char* get_symbol_name() const { 
+	const char* get_symbol_name() const noexcept override {
 		return tCatName.c_str(); }
 	/// Get TCat data type
-	const std::stringcase get_tCatType() { 
+	const std::stringcase get_tCatType() noexcept {
 		return tCatType; };
 	/// Set TCat data type
-	void set_tCatType(std::stringcase type) { 
+	void set_tCatType(std::stringcase type) noexcept {
 		tCatType = type; };
 	/// Get structure containing index group, index offset, size
-	DataPar	get_tCatSymbol() { 
+	DataPar	get_tCatSymbol() noexcept {
 		return tCatSymbol; };
 	/// Get index group
-	unsigned long get_indexGroup() const { 
+	unsigned long get_indexGroup() const noexcept {
 		return tCatSymbol.indexGroup; };
 	/// Set index group
-	void set_indexGroup(unsigned long group) { 
+	void set_indexGroup(unsigned long group) noexcept {
 		tCatSymbol.indexGroup = group; };
 	/// Get index offset
-	unsigned long get_indexOffset() const {
+	unsigned long get_indexOffset() const noexcept {
 		return tCatSymbol.indexOffset; };
 	/// Set index offset
-	void set_indexOffset(unsigned long offset) { 
+	void set_indexOffset(unsigned long offset) noexcept {
 		tCatSymbol.indexOffset = offset; };
 	/// Get size in bytes of symbol
-	unsigned long get_size() const { 
+	unsigned long get_size() const noexcept {
 		return tCatSymbol.length; };
 	/// Set size in bytes of symbol
-	void set_size(unsigned long nBytes) { 
+	void set_size(unsigned long nBytes) noexcept {
 		tCatSymbol.length = nBytes; };
 	/// Get offset into response buffer
-	size_t get_requestOffs() const { 
+	size_t get_requestOffs() const noexcept {
 		return requestOffs; };
 	/// Set offset into response buffer
-	void set_requestOffs(size_t pVal) { 
+	void set_requestOffs(size_t pVal) noexcept {
 		requestOffs = pVal; };
 	/// Get parent PLC that owns this record
-	TcPLC* get_parent();
+	virtual TcPLC* get_parent() noexcept;
 	/// Get parent PLC that owns this record
-	const TcPLC* get_parent() const;
+	virtual const TcPLC* get_parent() const noexcept;
 	/// Get the request group number this record is in
-	int	get_requestNum() { 
+	int	get_requestNum() noexcept {
 		return requestNum; };
 	/// Set the request group number this record is in
-	void set_requestNum(int rNum) { 
+	void set_requestNum(int rNum) noexcept {
 		requestNum = rNum; };
 
 	/// Prints TCat symbol value and information
 	/// @param fp File to print symbol to
-	virtual void printVal (FILE* fp);
+	void printVal (FILE* fp) noexcept override;
 
 	/// Does nothing
-	virtual bool push() override;
+	bool push() noexcept override;
 	/// Does nothing
-	virtual bool pull() override;
+	bool pull() noexcept override;
 protected:
 	/// Name of TCat symbol
 	std::stringcase		tCatName;
@@ -178,23 +176,25 @@ class tcProcWrite
 {
 public:
 	/// Default constructor
-	tcProcWrite (const AmsAddr& a, long amsport, size_t mrec = 1000) 
+	tcProcWrite (const AmsAddr& a, long amsport, size_t mrec = 1000) noexcept
 		: addr (a), port (amsport), ptr (nullptr), data (nullptr), 
 		maxrec (mrec), size (0), alloc (0), count (0) {
 	}
 	/// Destructor: will porcess the TCat writes
 	~tcProcWrite();
-	/// Move constructor
+		/// Move constructor
 	tcProcWrite (tcProcWrite&& tp) noexcept 
 		: addr({ AmsNetId({0,0,0,0,0,0}),0 }), port(0), ptr(nullptr),
 		data (nullptr), maxrec (0), size (0), alloc (0), count (0) {
 		*this = std::move (tp); }
+	/// Move assignment operator
+	tcProcWrite& operator= (tcProcWrite&&) noexcept;
 
 	/// Process on record
 	void operator () (plc::BaseRecord* prec);
 	/// Get a pointer to read the value in
 	/// @param sz Requested size
-	void* read_ptr (int sz);
+	void* read_ptr (int sz) noexcept;
 	/// Add header info
 	/// @param igroup iGroup number for tc write
 	/// @param ioffs  iOffset number for tc write
@@ -224,17 +224,15 @@ protected:
 	std::vector<tcProcWrite> req;
 
 	/// Checks if we have enough memory allocated
-	bool check_alloc (int extra = 0);
+	bool check_alloc (int extra = 0) noexcept;
 	/// writes the current header/data to TCat
-	void tcwrite();
+	void tcwrite() noexcept;
 
-	/// Move operator
-	tcProcWrite&  operator= (tcProcWrite&&) noexcept;
 private:
 	/// Copy constructor (disabled)
-	tcProcWrite (const tcProcWrite&);
+	tcProcWrite (const tcProcWrite&) = delete;
 	/// Assignment operator (disabled)
-	tcProcWrite&  operator= (const tcProcWrite&);
+	tcProcWrite&  operator= (const tcProcWrite&) = delete;
 };
 
 
@@ -254,59 +252,59 @@ private:
 
 	@brief TwinCAT PLC
  ************************************************************************/
-class TcPLC	:	public plc::BasePLC
+class TcPLC	: public plc::BasePLC
 {
 	/// Notification callback is a friend
 	friend void __stdcall ADScallback (AmsAddr*, AdsNotificationHeader*, unsigned long);
 public:
 	/// Buffer type
-	typedef char						buffer_type;
+	using buffer_type = char;
 	/// Smart pointer to buffer
-	typedef std::shared_ptr<buffer_type> buffer_ptr;
+	using buffer_ptr = std::shared_ptr<buffer_type>;
 
 	/// Constructor
 	TcPLC(std::string tpyPath);
 	/// Destructor
-	~TcPLC() { remove_ads_notification(); };
+	~TcPLC() override { remove_ads_notification(); };
 
 	/// Is typ still valid? Meaning, it hasn't changed
-	bool is_valid_tpy();
+	bool is_valid_tpy() noexcept;
 
 	/// Get AMS netID of TwinCAT system and port number for this PLC
-	AmsAddr	get_addr() const { return addr; };
+	AmsAddr	get_addr() const noexcept { return addr; };
 	/// Set AMS address
 	/// @return true if successful
 	bool set_addr(std::stringcase netid, int port);
 	/// Get read port number
-	long get_nReadPort() const { return nReadPort; };
+	long get_nReadPort() const noexcept { return nReadPort; };
 	/// Get write port number
-	long get_nWritePort() const { return nWritePort; };
+	long get_nWritePort() const noexcept { return nWritePort; };
 	/// Get slowdown multiple for EPICS read
-	int get_read_scanner_multiple() const {
+	int get_read_scanner_multiple() const noexcept {
 		return scanRateMultiple; };
 	/// Set slowdown multiple for EPICS read
-	void set_read_scanner_multiple (int mult) { 
+	void set_read_scanner_multiple (int mult) noexcept {
 		scanRateMultiple = mult; };
 	/// Get ADS state
 #pragma warning(disable :26812)
-	ADSSTATE get_ads_state() const { return ads_state.load(); }
+	ADSSTATE get_ads_state() const noexcept { return ads_state.load(); }
 #pragma warning(default :26812)
 	/// Is read scanner active and successful
-	bool is_read_active() const { return read_active; }
+	bool is_read_active() const noexcept { return read_active; }
 
 	/// Get the tpy filename
-	const std::string& get_tpyfilename() const {
+	const std::string& get_tpyfilename() const noexcept {
 		return pathTpy; }
 	/// Is the tpy file valid?
-	bool is_tpyfile_valid() const {
+	bool is_tpyfile_valid() const noexcept {
 		return validTpy; }
 	/// Get the file modification time of the tpy file
-	time_t get_tpyfile_time() const {
+	time_t get_tpyfile_time() const noexcept {
 		return timeTpy;
 	}
 
 	/// Starts the appropriate scanners
-	virtual bool start();
+	bool start() override;
 
 	/** Sorts read channels into request groups. Will make a new request 
 		group for channels not in continuous memory region in TCat. Will 
@@ -320,34 +318,34 @@ public:
 	/// Get pointer to the beginning of a read request response buffer
 	/// @param idx Index of response buffer
 	/// @return pointer to buffer
-	buffer_ptr get_responseBuffer(size_t idx);
+	buffer_ptr get_responseBuffer(size_t idx) noexcept;
 
 	/// Prints symbol information for entire list of symbols to console
-	virtual void printAllRecords();
+	void printAllRecords() override;
 	/// Print a record values to stdout. (override for action)
 	/// @param var variable name (accepts wildcards)
-	virtual void printRecord(const std::string& var);
+	void printRecord(const std::string& var) override;
 
 protected:
 	/// Makes read requests to ADS, makes PlcWrite on all data values
-	virtual void read_scanner();
+	void read_scanner() override;
 	/// Collects records to be written to TCat, makes write request
-	virtual void write_scanner();
+	void write_scanner() override;
 	/// Makes sure we don't have stale values.
-	virtual void update_scanner();
+	void update_scanner() override;
 	
 	/// Set ADS state
-	void set_ads_state(ADSSTATE state);
+	void set_ads_state(ADSSTATE state) noexcept;
 	/// Set up ADS status change notification
-	void setup_ads_notification();
+	void setup_ads_notification() noexcept;
 	/// Remove ADS status change notification
-	void remove_ads_notification();
+	void remove_ads_notification() noexcept;
 
 	/// Opens a new ADS communication port
-	long openPort();
+	long openPort() noexcept;
 	/// Closes an ADS communication port
 	/// @param nPort Number of port to close
-	void closePort(long nPort);
+	void closePort(long nPort) noexcept;
 
 	/// Mutex
 	std::mutex	sync;
@@ -415,21 +413,21 @@ class AmsRouterNotification
 public:
 	/// get router notification
 #pragma warning(disable :26812)
-	static AmsRouterEvent get_router_notification() {
+	static AmsRouterEvent get_router_notification() noexcept {
 		return gAmsRouterNotification.ams_router_event.load(); };
 #pragma warning(default :26812)
 	///get global instance
-	static const AmsRouterNotification& get_instance() {
+	static const AmsRouterNotification& get_instance() noexcept {
 		return gAmsRouterNotification; }
 
 	/// get ADS protocol/library version
-	int get_ads_version() const {
+	int get_ads_version() const noexcept {
 		return ads_version; }
 	/// get ADS protocol/library revision
-	int get_ads_revision() const {
+	int get_ads_revision() const noexcept {
 		return ads_revision; }
 	/// get ADS protocol/library build
-	int get_ads_build() const {
+	int get_ads_build() const noexcept {
 		return ads_build; }
 protected:
 	/// ADS protocol/library version
@@ -442,15 +440,19 @@ private:
 	/// AMS router state
 	std::atomic<AmsRouterEvent>	ams_router_event;
 	/// Constructor
-	AmsRouterNotification();
+	AmsRouterNotification() noexcept;
 	/// Copy constructor
-	AmsRouterNotification (const AmsRouterNotification&);
+	AmsRouterNotification (const AmsRouterNotification&) = delete;
+	/// Move constructor
+	AmsRouterNotification(AmsRouterNotification&&) = delete;
 	/// Destructor
 	~AmsRouterNotification();
 	/// Copy operator
-	AmsRouterNotification& operator= (const AmsRouterNotification&);
+	AmsRouterNotification& operator= (const AmsRouterNotification&) = delete;
+	/// Copy move operator
+	AmsRouterNotification& operator= (AmsRouterNotification&&) = delete;
 	/// set router notification
-	static void set_router_notification(AmsRouterEvent routerevent);
+	static void set_router_notification(AmsRouterEvent routerevent) noexcept;
 	/// one global instance
 	static AmsRouterNotification gAmsRouterNotification;
 };

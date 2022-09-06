@@ -4,7 +4,7 @@
 #include "windows.h"
 #include "TpyToEpics.h"
 #include "TcAdsDef.h"
-#include "TcAdsApi.h"
+#include "TcAdsAPI.h"
 #include <memory>
 #include <filesystem>
 #include <chrono>
@@ -28,7 +28,7 @@ namespace TcComms {
 /** Print an error message for an ADS error return code
 	@brief errorPrintf
  ************************************************************************/
-void errorPrintf(int nErr)
+void errorPrintf(int nErr) noexcept
 {
 	static int maxerror = 10;
 	static int lasterror = 0;
@@ -101,35 +101,35 @@ TCatInterface::TCatInterface (BaseRecord& dval, const stringcase& name,
 
 /* TCatInterface::push
  ************************************************************************/
-bool TCatInterface::push()
+bool TCatInterface::push() noexcept
 {
 	return true;
 }
 
 /* TCatInterface::pull
  ************************************************************************/
-bool TCatInterface::pull()
+bool TCatInterface::pull() noexcept
 {
 	return true;
 }
 
 /* TCatInterface::get_parent
  ************************************************************************/
-TcPLC* TCatInterface::get_parent()
+TcPLC* TCatInterface::get_parent() noexcept
 { 
 	return dynamic_cast<TcPLC*>(record.get_parent()); 
 }
 
 /* TCatInterface::get_parent
  ************************************************************************/
-const TcPLC* TCatInterface::get_parent() const
+const TcPLC* TCatInterface::get_parent() const noexcept
 {
 	return dynamic_cast<const TcPLC*>(record.get_parent());
 }
 
 /* TCatInterface::printTCatVal
  ************************************************************************/
-void TCatInterface::printVal (FILE* fp)
+void TCatInterface::printVal (FILE* fp) noexcept
 {
 	/////////////////////////////////////////////////
 	/// This is a function for printing the variable name and value of a record.
@@ -138,47 +138,47 @@ void TCatInterface::printVal (FILE* fp)
 	/////////////////////////////////////////////////
 	fprintf(fp,"%65s: %15s         ",tCatName.c_str(), tCatType.c_str());
 
-	double				doublePLCVar;
-	float				floatPLCVar;
-	signed long long	sllPLCVar;
-	signed long int		sliPLCVar;
-	signed short int	ssiPLCVar;
-	signed char			charPLCVar;
-	char				chararrPLCVar[256];
+	double				doublePLCVar = 0.0;
+	float				floatPLCVar = 0.0;
+	signed long long	sllPLCVar = 0;
+	signed long int		sliPLCVar = 0;
+	signed short int	ssiPLCVar = 0;
+	signed char			charPLCVar = 0;
+	char				chararrPLCVar[256]{};
 	
 	TcPLC*				parent = get_parent();
 	if (!parent) return;	
 	TcPLC::buffer_ptr buf = parent->get_responseBuffer (requestNum);
 	if (!buf) return;
-	char* pTCatVal = buf.get() + requestOffs;
+	const char* const pTCatVal = buf.get() + requestOffs;
 	if (tCatType == "LREAL") {
-		doublePLCVar	= *(double*)pTCatVal;
+		doublePLCVar	= *(const double*)pTCatVal;
 		fprintf(fp,"%f",doublePLCVar);
 	}
 	else if (tCatType == "REAL") {
-		floatPLCVar		= *(float*)pTCatVal;
+		floatPLCVar		= *(const float*)pTCatVal;
 		fprintf(fp,"%f",floatPLCVar);
 	}
-	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT") {
-		sllPLCVar = *(signed long long*)pTCatVal;
+	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT" || tCatType == "LTIME") {
+		sllPLCVar = *(const signed long long*)pTCatVal;
 		fprintf(fp, "%lld", sllPLCVar);
 	}
-	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT")  {
-		sliPLCVar		= *(signed long int*)pTCatVal;
-		fprintf(fp,"%d",sliPLCVar);
+	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT" ||
+		tCatType == "TIME" || tCatType == "TOD" || tCatType == "DATE" ||
+		tCatType == "DT" || tCatType == "TIME_OF_DAY" || tCatType == "DATE_AND_TIME")  {
+		sliPLCVar		= *(const signed long int*)pTCatVal;
+		fprintf(fp,"%ld",sliPLCVar);
 	}
 	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
-		ssiPLCVar		= *(signed short int*)pTCatVal;
+		ssiPLCVar		= *(const signed short int*)pTCatVal;
 		fprintf(fp,"%d",ssiPLCVar);
 	}
 	else if (tCatType == "BOOL" || tCatType == "BYTE" || tCatType == "SINT" || tCatType == "USINT") {
-		charPLCVar		= *(signed char*)pTCatVal;
+		charPLCVar		= *(const signed char*)pTCatVal;
 		fprintf(fp,"%d",charPLCVar);
 	}
 	else if (tCatType.substr(0,6) == "STRING") {
-		#pragma warning (disable : 4996)
-		strncpy(chararrPLCVar, (char*)pTCatVal, min (tCatSymbol.length, sizeof(chararrPLCVar)));
-		#pragma warning (default : 4996)
+		strncpy_s(chararrPLCVar, sizeof (chararrPLCVar), (char*)pTCatVal, min (tCatSymbol.length, sizeof(chararrPLCVar)));
 		fprintf(fp,"%s",chararrPLCVar);
 	}
 	else {
@@ -225,9 +225,9 @@ tcProcWrite&  tcProcWrite::operator= (tcProcWrite&& tp) noexcept
 void tcProcWrite::operator () (BaseRecord* prec)
 {
 	if (!prec || !prec->PlcIsDirty()) return;
-	TCatInterface* tcat = dynamic_cast<TCatInterface*> (prec->get_plcInterface());
+	const TCatInterface* const tcat = dynamic_cast<TCatInterface*> (prec->get_plcInterface());
 	if (!tcat) return;
-	long len = tcat->get_size();
+	const long len = tcat->get_size();
 	if (len <= 0) return;
 	if (add (tcat->get_indexGroup(), tcat->get_indexOffset(), len)) {
 		prec->PlcReadBinary (read_ptr (len), len);
@@ -236,7 +236,7 @@ void tcProcWrite::operator () (BaseRecord* prec)
 
 /* tcProcWrite::read_ptr
  ************************************************************************/
-void* tcProcWrite::read_ptr (int sz)
+void* tcProcWrite::read_ptr (int sz) noexcept
 {
 	if (!check_alloc (sz)) {
 		return nullptr;
@@ -267,7 +267,7 @@ bool tcProcWrite::add (long igroup, long ioffs, long sz)
 
 /* tcProcWrite::check_alloc
  ************************************************************************/
-bool tcProcWrite::check_alloc (int extra)
+bool tcProcWrite::check_alloc (int extra) noexcept
 {
 	if (extra < 0) {
 		return false;
@@ -294,21 +294,26 @@ bool tcProcWrite::check_alloc (int extra)
 
 /* tcProcWrite::tcwrite
  ************************************************************************/
-void tcProcWrite::tcwrite()
+void tcProcWrite::tcwrite() noexcept
 {
 	if (!ptr || (count == 0)) return;
 	if ((count < maxrec) && (size > 0)) {
 		memmove (ptr + count * 3 * sizeof (long), data, size);
 	}
 	// ads write
-	char* ret = new char [4 * count];
+	char* ret = new (std::nothrow) char [4 * count];
 	if (!ret) return;
-	unsigned long read;
-	int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
+	unsigned long read = 0;
+	const int nErr = AdsSyncReadWriteReqEx2(port, &addr, 0xF081, 
 		static_cast<unsigned long>(count),
 		static_cast<unsigned long>(sizeof(long)*count), ret, 
 		static_cast<unsigned long>(3*sizeof(long)*count + size), ptr, &read);
-	if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf (nErr);
+	try {
+		if (nErr && (nErr != 18) && (nErr != 6)) errorPrintf(nErr);
+	}
+	catch (...) {
+		;
+	}
 	// ready for next transfer
 	count = 0;
 	size = 0;
@@ -318,9 +323,9 @@ void tcProcWrite::tcwrite()
 /************************************************************************
   TcPLC
  ************************************************************************/
-const time_t WINDOWS_TICK = 10'000'000;
-const time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
-static time_t FileTimeToUnixSeconds(time_t windowsTicks)
+constexpr time_t WINDOWS_TICK = 10'000'000;
+constexpr time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
+static constexpr time_t FileTimeToUnixSeconds(time_t windowsTicks) noexcept
 {
 	return (time_t)(windowsTicks / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
 }
@@ -338,15 +343,18 @@ TcPLC::TcPLC (std::string tpyPath)
 	//timeTpy = file_time_type::clock::to_time_t (last_write_time (fpath));
 	timeTpy = last_write_time(fpath).time_since_epoch().count();
 
-	#pragma warning (disable : 4996)
 	if (debug) {
-		time_t unixt = FileTimeToUnixSeconds(timeTpy);
-		printf("Tpy time: %s\n", std::asctime(std::localtime(&unixt)));
+		const time_t unixt = FileTimeToUnixSeconds(timeTpy);
+		char buf[80] = {};
+		struct tm loc;
+		if (localtime_s(&loc, &unixt) && asctime_s(buf, sizeof(buf), &loc)) {
+			buf[79] = '0';
+			printf("Tpy time: %s\n", buf);
+		}
 	}
-	#pragma warning (default : 4996)
 	// Set PLC ID and initialize list of PLC instances
 	{
-		std::lock_guard<std::mutex> lock(plcVecMutex);
+		std::lock_guard lock(plcVecMutex);
 		plcVec.push_back(this);
 		plcId = (unsigned int)plcVec.size() - 1;
 	};
@@ -392,14 +400,14 @@ bool TcPLC::start()
 	// Optain local ADS address if netid is zero
 	if ((addr.netId.b[0] == 0) && (addr.netId.b[1] == 0) && (addr.netId.b[2] == 0) &&
 		(addr.netId.b[3] == 0) && (addr.netId.b[4] == 0) && (addr.netId.b[5] == 0)) {
-		unsigned short port = addr.port;
-		long nErr = AdsGetLocalAddressEx (nReadPort, &addr);
+		const unsigned short port = addr.port;
+		const long nErr = AdsGetLocalAddressEx (nReadPort, &addr);
 		if (nErr) {
 			errorPrintf(nErr);
 			return false;
 		}
 		addr.port = port;
-		if(debug) printf("NetID is %i.%i.%i.%i.%i.%i, port is %i \n",
+		if(debug) printf("NetID is %u.%u.%u.%u.%u.%u, port is %u \n",
 			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
 			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5], port);
 	}
@@ -415,29 +423,35 @@ bool TcPLC::start()
  ************************************************************************/
 static bool compByOffset(BaseRecordPtr recA, BaseRecordPtr recB)
 {
-	TCatInterface* a = dynamic_cast<TCatInterface*>(recA.get()->get_plcInterface());
-	TCatInterface* b = dynamic_cast<TCatInterface*>(recB.get()->get_plcInterface());
+	const TCatInterface* const a = dynamic_cast<TCatInterface*>(recA->get_plcInterface());
+	const TCatInterface* const b = dynamic_cast<TCatInterface*>(recB->get_plcInterface());
 	if (!a || !b) return true;
 	return ((a->get_indexGroup() <= b->get_indexGroup()) && (a->get_indexOffset() < b->get_indexOffset()));
 }
 
 /* Checks is tpy file is valid, ie. hasn't changed
  ************************************************************************/
-bool TcPLC::is_valid_tpy()
+bool TcPLC::is_valid_tpy() noexcept
 {
 	if (validTpy && checkTpy.load()) {
-		checkTpy = false; // only check when we switch to online
-		path fpath (pathTpy);
-		if (exists (fpath)) {
-			//time_t modtime = file_time_type::clock::to_time_t(last_write_time(fpath));
-			time_t modtime = last_write_time(fpath).time_since_epoch().count();
-			validTpy = (modtime == timeTpy);
+		try {
+			checkTpy = false; // only check when we switch to online
+			path fpath(pathTpy);
+			if (exists(fpath)) {
+				//time_t modtime = file_time_type::clock::to_time_t(last_write_time(fpath));
+				const time_t modtime = last_write_time(fpath).time_since_epoch().count();
+				validTpy = (modtime == timeTpy);
+			}
+			else {
+				validTpy = false;
+			}
+			if (!validTpy) {
+				printf("ABORT! Updated tpy file for PLC %s\nRESTART tcioc!\n", name.c_str());
+			}
 		}
-		else {
-			validTpy = false;
-		}
-		if (!validTpy) {
-			printf ("ABORT! Updated tpy file for PLC %s\nRESTART tcioc!\n", name.c_str());
+		catch (...)
+		{
+			;
 		}
 	}
 	return validTpy;
@@ -456,7 +470,7 @@ bool TcPLC::optimizeRequests()
 	// Copy records into a list for sorting
 	std::list<BaseRecordPtr> recordList;
 	for (const auto& it : records) {
-		TCatInterface* a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
+		const TCatInterface* const a = dynamic_cast<TCatInterface*>(it.second->get_plcInterface());
 		// add tc records to optimize list
 		if (a) {
 			recordList.push_back(it.second);
@@ -466,27 +480,27 @@ bool TcPLC::optimizeRequests()
 			nonTcRecords.insert(it);
 		}
 	}
-	if (debug) printf("Number of info records %i\n", (int)nonTcRecords.size());
+	if (debug) printf("Number of info records %i\n", (int)std::ssize(nonTcRecords));
 
 	// Sort record list by group and offset
 	recordList.sort(compByOffset);
-	bool gap;
-	int nextOffs;
+	bool gap = 0;
+	int nextOffs = 0;
 	if (recordList.size() == 0) {
 		return false;
 	}
 	TCatInterface* rec = dynamic_cast<TCatInterface*>(
 							recordList.begin()->get()->get_plcInterface());
 	if (!rec) return false;
-	DataPar request;
+	DataPar request{};
 	nextOffs = rec->get_indexOffset(); 
 	request.indexGroup = rec->get_indexGroup();
 	request.indexOffset = rec->get_indexOffset();
 	request.length = 0;
 	int totalGap = 0;
-	double relGap;
+	double relGap = 0.0;
 	int nextLength = 0;
-	int nextGap;
+	int nextGap = 0;
 
 	// Iterate through the record list
 	for (const auto& it : recordList)
@@ -495,9 +509,9 @@ bool TcPLC::optimizeRequests()
 		if (!rec) continue;
 		if (tcdebug) printf("Processing record: %s\n", rec->get_tCatName().c_str());
 	
-		long recGroup = rec->get_indexGroup();
-		long recOffset = rec->get_indexOffset();
-		long recSize = rec->get_size();
+		const long recGroup = rec->get_indexGroup();
+		const long recOffset = rec->get_indexOffset();
+		const long recSize = rec->get_size();
 
 		nextGap = recOffset - nextOffs;
 		totalGap += nextGap;
@@ -512,7 +526,7 @@ bool TcPLC::optimizeRequests()
 		// Make new request if gap condition met or if request size too big
 		if (request.length + recSize > MAX_REQ_SIZE || gap)
 		{
-			if (debug) printf("Moving to next request... Gap size is %d\n",recOffset - nextOffs);
+			if (debug) printf("Moving to next request... Gap size is %ld\n", recOffset - nextOffs);
 			nRequest++;
 			adsGroupReadRequestVector.push_back(request);
 			request.indexGroup = recGroup;
@@ -529,22 +543,22 @@ bool TcPLC::optimizeRequests()
 	}
 	// Flush out last request
 	adsGroupReadRequestVector.push_back(request);
-	if (tcdebug) printf("length: %d, nextOffs: %d, totalGap: %d\n", request.length, nextOffs, totalGap);
+	if (tcdebug) printf("length: %lu, nextOffs: %d, totalGap: %d\n", request.length, nextOffs, totalGap);
 
 	// Make response buffer
 	if (debug) printf("Making buffer...\n");
 	for (const auto& i : adsGroupReadRequestVector)
 	{
-		size_t bufsize = (size_t)i.length + 4;
+		const size_t bufsize = (size_t)i.length + 4;
 		buffer_type* buffer = new (nothrow) buffer_type [bufsize];
 		if (buffer) memset(buffer, 0, bufsize);
 		adsResponseBufferVector.push_back(buffer_ptr(buffer));
 	}
 
 	// Set offset into request buffer for each record
-	int reqNum;
-	size_t recOffs;
-	size_t reqOffs;
+	int reqNum = 0;
+	size_t recOffs = 0;
+	size_t reqOffs = 0;
 	for (const auto& it : recordList)
 	{
 		rec = dynamic_cast<TCatInterface*>(it.get()->get_plcInterface());
@@ -562,7 +576,7 @@ bool TcPLC::optimizeRequests()
 
 /* TcPLC::get_responseBuffer
 ************************************************************************/
-TcPLC::buffer_ptr TcPLC::get_responseBuffer(size_t idx)
+TcPLC::buffer_ptr TcPLC::get_responseBuffer(size_t idx) noexcept
 {
 	return (idx >= 0 && idx < adsResponseBufferVector.size()) ?
 		adsResponseBufferVector[idx] : buffer_ptr();
@@ -580,7 +594,7 @@ void TcPLC::printAllRecords()
 		}
 	}
 	std::sort (rlist.begin(), rlist.end(),
-		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) noexcept {
 		return _stricmp (p1->get_plcInterface()->get_symbol_name(), 
 						 p2->get_plcInterface()->get_symbol_name()) < 0; });
 	int num = 0;
@@ -648,7 +662,7 @@ void TcPLC::printRecord (const std::string& var)
 		}
 	}
 	std::sort(rlist.begin(), rlist.end(),
-		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) {
+		[](const BaseRecordPtr& p1, const BaseRecordPtr& p2) noexcept {
 		return _stricmp(p1->get_plcInterface()->get_symbol_name(), 
 					    p2->get_plcInterface()->get_symbol_name()) < 0;	});
 	int num = 0;
@@ -671,23 +685,23 @@ void __stdcall ADScallback (AmsAddr* pAddr, AdsNotificationHeader* pNotification
 {
 	TcPLC* tCatPlcUser = nullptr;
 	{
-		std::lock_guard<std::mutex> lock(TcPLC::plcVecMutex);
+		std::lock_guard lock(TcPLC::plcVecMutex);
 		if ((plcId >= 0) && (plcId < TcPLC::plcVec.size())) {
 			tCatPlcUser = TcPLC::plcVec[plcId];
 		}
 	}
 	if (tCatPlcUser) {
-		ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
+		const ADSSTATE state = (ADSSTATE) *(USHORT*)pNotification->data;
 		tCatPlcUser->set_ads_state(state);
 	}
 	else {
-		printf("Unknown PLC ID %i\n", plcId);
+		printf("Unknown PLC ID %lu\n", plcId);
 	}
 }
 
 /** TcPLC::set_ads_state
  ************************************************************************/
-void TcPLC::set_ads_state(ADSSTATE state)
+void TcPLC::set_ads_state(ADSSTATE state) noexcept
 {
 	if (ads_state.exchange (state) != state) {
 		printf ("%s PLC %s\n", state == ADSSTATE_RUN ? "Online" : "Offline", name.c_str());
@@ -697,10 +711,9 @@ void TcPLC::set_ads_state(ADSSTATE state)
 
 /* TcPLC::setup_ads_notification
  ************************************************************************/
-void TcPLC::setup_ads_notification()
+void TcPLC::setup_ads_notification() noexcept
 {
-	LONG                    nErr;
-	AdsNotificationAttrib   adsNotificationAttrib;
+	AdsNotificationAttrib   adsNotificationAttrib{};
 
 	// Invoke notification
 	adsNotificationAttrib.cbLength       = sizeof(short);
@@ -709,7 +722,7 @@ void TcPLC::setup_ads_notification()
 	adsNotificationAttrib.nCycleTime	 = 0; // in 100ns units
 
 	nNotificationPort = openPort ();
-	nErr = AdsSyncAddDeviceNotificationReqEx (nNotificationPort, &addr, 
+	const LONG nErr = AdsSyncAddDeviceNotificationReqEx (nNotificationPort, &addr, 
 		ADSIGRP_DEVICE_DATA, ADSIOFFS_DEVDATA_ADSSTATE, 
 		&adsNotificationAttrib, ADScallback, plcId, &ads_handle);
 	if (nErr) {
@@ -725,13 +738,14 @@ void TcPLC::setup_ads_notification()
 
 /* TcPLC::remove_ads_notification
  ************************************************************************/
-void TcPLC::remove_ads_notification()
+void TcPLC::remove_ads_notification() noexcept
 {
-	LONG nErr;
 	if (ads_handle) {
-		nErr = AdsSyncDelDeviceNotificationReqEx (nNotificationPort, 
-			&addr, ads_handle);
-		if (nErr && (nErr != 1813)) errorPrintf(nErr);
+		try {
+			const LONG nErr = AdsSyncDelDeviceNotificationReqEx(nNotificationPort, &addr, ads_handle);
+			if (nErr && (nErr != 1813)) errorPrintf(nErr);
+		}
+		catch (...) {}
 	}
 	if (nNotificationPort) closePort (nNotificationPort);
 }
@@ -740,13 +754,13 @@ void TcPLC::remove_ads_notification()
  ************************************************************************/
 void TcPLC::read_scanner()
 {	
-	std::lock_guard<std::mutex>	lockit (sync);
+	std::lock_guard	lockit (sync);
 	bool read_success = false;
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		for (int request = 0; request <= nRequest; ++request) {
 			 //The below works if using AdsOpenPortEx()
 			 //Note: this no longer includes error flag so +4 may not be necessary
-			unsigned long retsize;
+			unsigned long retsize = 0;
 			int nErr = 0;
 			nErr = AdsSyncReadReqEx2 (nReadPort, &addr,
 				adsGroupReadRequestVector[request].indexGroup,
@@ -790,7 +804,7 @@ void TcPLC::read_scanner()
 		if (!pRecord) continue;
 		TCatInterface* tcat = dynamic_cast<TCatInterface*>(pRecord->get_plcInterface());
 		if (!tcat) continue;
-		bool isReadOnly = (pRecord->get_access_rights() == access_rights_enum::read_only);
+		const bool isReadOnly = (pRecord->get_access_rights() == access_rights_enum::read_only);
 		buffer_type* buffer = adsResponseBufferVector[tcat->get_requestNum()].get();
 		if (readAll || !isReadOnly) {
 			if (read_success) {
@@ -819,7 +833,7 @@ void TcPLC::read_scanner()
  ************************************************************************/
 void TcPLC::write_scanner()
 {
-	std::lock_guard<std::mutex>	lockit (sync);
+	std::lock_guard	lockit (sync);
 	if ((get_ads_state() == ADSSTATE_RUN) && is_valid_tpy()) {
 		tcProcWrite proc(addr, nWritePort);
 		for_each (proc);
@@ -844,7 +858,7 @@ void TcPLC::update_scanner()
 	if (!update_last.get()) return;
 	BaseRecordPtr next;
 	for (int i = 0; i < update_workload; ++i) {
-		if (get_next (next, update_last) && next.get()) {
+		if (get_next (next, update_last.get()) && next.get()) {
 			next->UserSetDirty();
 			update_last = next;
 		}
@@ -857,7 +871,7 @@ void TcPLC::update_scanner()
 	// restart ads callback when needed
 	if ((get_ads_state() == ADSSTATE_INVALID) ||
 		(is_read_active() && ads_restart.load())) {
-		time_t t = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now());
+		const time_t t = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now());
 		if (t > last_restart + 10) {
 			last_restart = t;
 			printf("Reconnect to PLC %s\n", name.c_str());
@@ -870,14 +884,14 @@ void TcPLC::update_scanner()
 
 /* TcPLC::openPort
  ************************************************************************/
-long TcPLC::openPort()
+long TcPLC::openPort() noexcept
 {
 	return AdsPortOpenEx();
 }
 
 /* TcPLC::closePort
  ************************************************************************/
-void TcPLC::closePort(long nPort)
+void TcPLC::closePort(long nPort) noexcept
 {
 	AdsPortCloseEx(nPort);
 }
@@ -907,7 +921,7 @@ AmsRouterNotification AmsRouterNotification::gAmsRouterNotification;
 
 /* AmsRouterNotification::set_router_notification
  ************************************************************************/
-void AmsRouterNotification::set_router_notification(AmsRouterEvent routerevent) {
+void AmsRouterNotification::set_router_notification(AmsRouterEvent routerevent) noexcept {
 	gAmsRouterNotification.ams_router_event.store(routerevent); 
 	switch (routerevent)
 	{
@@ -927,32 +941,32 @@ void AmsRouterNotification::set_router_notification(AmsRouterEvent routerevent) 
 
 /* AmsRouterNotification constructor
  ************************************************************************/
-AmsRouterNotification::AmsRouterNotification()
+AmsRouterNotification::AmsRouterNotification() noexcept
 	: ads_version (0), ads_revision (0), ads_build (0),
 	ams_router_event (AMSEVENT_ROUTERSTART)
 {
-	LONG nErr;
-	AdsVersion* pDLLVersion;
-	nErr = AdsGetDllVersion();
-	pDLLVersion = (AdsVersion *)&nErr;
-	ads_version = pDLLVersion->version;
-	ads_revision = pDLLVersion->revision;
-	ads_build = pDLLVersion->build;
+	const LONG nErr = AdsGetDllVersion();
+	//AdsVersion* pDLLVersion = (AdsVersion *)&nErr;
+	ads_version = (int)(nErr & 0x000000FF);// pDLLVersion->version;
+	ads_revision = (int)(nErr & 0x0000FF00) >> 8;//pDLLVersion->revision;
+	ads_build = (int)(((unsigned int)nErr & 0xFFFF0000U) >> 16); // pDLLVersion->build;
 	printf("ADS version: %i, revision: %i, build: %i\n", 
 		   ads_version, ads_revision, ads_build);
 	return;
-	nErr = AdsPortOpen();
-	nErr = AdsAmsRegisterRouterNotification(&RouterCall);
-	if (nErr) errorPrintf(nErr);
+	//nErr = AdsPortOpen();
+	//nErr = AdsAmsRegisterRouterNotification(&RouterCall);
+	//if (nErr) errorPrintf(nErr);
 }
 
 /* AmsRouterNotification destructor
  ************************************************************************/
 AmsRouterNotification::~AmsRouterNotification()
 {
-	LONG nErr;
-	nErr = AdsAmsUnRegisterRouterNotification();
-	if (nErr) errorPrintf(nErr);
+	try {
+		const LONG nErr = AdsAmsUnRegisterRouterNotification();
+		if (nErr) errorPrintf(nErr);
+	}
+	catch(...) {}
 }
 
 }

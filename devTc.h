@@ -1,9 +1,5 @@
 #pragma once
 #include "stdafx.h"
-#define _CRT_SECURE_NO_WARNINGS
-#pragma warning (disable : 26812)
-#pragma warning (disable : 26495)
-#pragma warning (disable: 4996)
 #include "epicsVersion.h"
 #include "dbAccess.h"
 #include "alarm.h"
@@ -14,10 +10,6 @@
 #include "menuFtype.h"
 #include "devSup.h"
 #include "dbAccessDefs.h"
-#pragma warning (default: 4996)
-#pragma warning (default : 26495)
-#pragma warning (default : 26812)
-#undef _CRT_SECURE_NO_WARNINGS
 #include "tcComms.h"
 
 /** @file devTc.h
@@ -35,11 +27,11 @@ namespace DevTc {
  ************************************************************************/
 	
 /// Regex for indentifying TwinCAT records
-const std::regex tc_regex (
+inline const std::regex tc_regex (
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(\\d{1,9})/(\\d{1,9}):(\\d{1,9})");
 
 /// Regex for indentifying info records
-const std::regex info_regex(
+inline const std::regex info_regex(
 	"((tc)://((\\b([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.?)+:(8[0-9][0-9]))/)(info)/([A-Za-z0-9_]+)");
 
 
@@ -51,14 +43,14 @@ class register_devsup
 {
 public:
 	/// Type descriping the link function
-	typedef auto link_func (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord) -> bool;
+	using link_func = bool (&) (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord);
 	/// pair of pattern and link function
-	typedef std::pair<std::regex, link_func&> test_pattern;
+	using test_pattern = std::pair<std::regex, link_func&>;
 	/// list of pattern/link functions
-	typedef std::vector<test_pattern> test_pattern_list;
+	using test_pattern_list = std::vector<test_pattern>;
 
 	/// Register a pattern/link function
-	static void add (const std::regex& rgx, link_func& func) {
+	static void add (const std::regex& rgx, link_func& func) noexcept {
 		the_register_devsup.tp_list.push_back (test_pattern (rgx, func)); }
 
 	/// Go through list and call first link function which matches the pattern
@@ -69,15 +61,19 @@ public:
 	/// @return true if one match was found and successfully linked
 	/// @brief linkRecord
 	static bool linkRecord (const std::stringcase& inpout, dbCommon* pEpicsRecord, 
-		plc::BaseRecordPtr& pRecord);
+		plc::BaseRecordPtr& pRecord) noexcept;
 
 protected:
 	/// Default constructor (adds linkTcRecord entry)
-	register_devsup();
+	register_devsup() noexcept;
 	/// Disabled copy constructor
-	register_devsup (const register_devsup&);
+	register_devsup (const register_devsup&) = delete;
+	/// Disabled move constructor
+	register_devsup(register_devsup&&) = delete;
 	/// Disabled assignment operator
-	register_devsup& operator= (const register_devsup&);
+	register_devsup& operator= (const register_devsup&) = delete;
+	/// Disabled move assignment operator
+	register_devsup& operator= (register_devsup&&) = delete;
 
 	/// list of pattern and links
 	test_pattern_list	tp_list;
@@ -92,53 +88,51 @@ protected:
 /** This is a class for an EPICS Interface
     @brief Epics interface class.
  ************************************************************************/
-class EpicsInterface	:	public plc::Interface
+class EpicsInterface : public plc::Interface
 {
-	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int);
+	friend void complete_io_scan (EpicsInterface*, IOSCANPVT, int) noexcept;
 public:
 	/// Constructor
-	EpicsInterface (plc::BaseRecord& dval);
-	/// Deconstructor
-	~EpicsInterface() {};
+	explicit EpicsInterface(plc::BaseRecord& dval) noexcept : Interface(dval) {}
 
 	/// Set isPassive
-	void set_isPassive(bool passive) { 
+	void set_isPassive(bool passive) noexcept {
 		isPassive = passive; };
 	/// Get isCallback
-	bool get_isCallback() const { 
+	bool get_isCallback() const noexcept {
 		return isCallback; };
 	/// Set isCallback
-	void set_isCallback(bool isCb) { 
+	void set_isCallback(bool isCb) noexcept {
 		isCallback = isCb; };
 	/// Set pEpicsRecord
-	void set_pEpicsRecord(dbCommon* pEpRecord) {
+	void set_pEpicsRecord(dbCommon* pEpRecord) noexcept {
 		pEpicsRecord = pEpRecord;};
 	/// Get callbackRequestPending
-	bool get_callbackRequestPending() const;
+	bool get_callbackRequestPending() const noexcept;
 
 	/// Get pointer to callback structure
-	const CALLBACK& callback() const {
+	const epicsCallback& callback() const noexcept {
 		return callbackval; }
 	/// Get pointer to callback structure
-	CALLBACK& callback() {
+	epicsCallback& callback() noexcept {
 		return callbackval; }
 	/// Get reference to io scan list pointer
-	const IOSCANPVT& ioscan() const {
+	const IOSCANPVT& ioscan() const noexcept {
 		return ioscanpvt; }
 	/// Get reference to io scan list pointer
-	IOSCANPVT& ioscan() {
+	IOSCANPVT& ioscan() noexcept {
 		return ioscanpvt; }
 	/// Get pointer to io scan list
-	IOSCANPVT get_ioscan() const {
+	IOSCANPVT get_ioscan() const noexcept {
 		return ioscanpvt; }
 	/// Set pointer to io scan list
-	void set_ioscan (const IOSCANPVT ioscan) {
+	void set_ioscan (const IOSCANPVT ioscan) noexcept {
 		ioscanpvt = ioscan; }
 
 	/// Makes a call to the EPICS dbProcess function
-	virtual bool push() override;
+	bool push() noexcept override;
 	/// Does nothing
-	virtual bool pull() override { return true; }
+	bool pull() noexcept override { return true; }
 
 	/** Get the size of the callback ring buffer 
 		For this function to return a valid value the EPICS
@@ -158,7 +152,7 @@ public:
 
 		@param pri Priority of ring buffer
 		@return size of the callback ring buffer */
-	static int get_callback_queue_size (int pri);
+	static int get_callback_queue_size (int pri) noexcept;
 	/** Get the used entries in the callback ring buffer
 		For this function to return a valid value the EPICS
 		distribution needs to be patched. Add the following lines:
@@ -177,7 +171,7 @@ public:
 
 		@param pri Priority of ring buffer
 		@return used entries in the callback ring buffer */
-	static int get_callback_queue_used (int pri);
+	static int get_callback_queue_used (int pri) noexcept;
 	/** Get the free entries in the callback ring buffer
 		For this function to return a valid value the EPICS
 		distribution needs to be patched. Add the following lines:
@@ -196,45 +190,46 @@ public:
 
 		@param pri Priority of ring buffer
 		@return free entries in the callback ring buffer */
-	static int get_callback_queue_free(int pri);
+	static int get_callback_queue_free(int pri) noexcept;
 	/** Get the high watermark in the callback ring buffer
 		@param pri Priority of ring buffer
 		@return high watermark in the callback ring buffer */
-	static int get_callback_queue_highwatermark(int pri);
+	static int get_callback_queue_highwatermark(int pri) noexcept;
 	/** Get the number of overflows in the callback ring buffer
 		@param pri Priority of ring buffer
 		@return number of overflows in the callback ring buffer */
-	static int get_callback_queue_overflow(int pri);
+	static int get_callback_queue_overflow(int pri) noexcept;
 	/** Reset the overflow count in the callback ring buffer
 		@return number of overflows in the callback ring buffer */
-	static int set_callback_queue_highwatermark_reset();
+	static int set_callback_queue_highwatermark_reset() noexcept;
 
 protected:
 	/// Reset ioscan use flag
-	void ioscan_reset(int bitnum);
+	void ioscan_reset(int bitnum) noexcept;
 	/** Bool indicating passive scan
 		true : EPICS record SCAN field is set to PASSIVE */
-	bool				isPassive;
+
+	bool				isPassive = false;
 	/// Bool indicating whether callback is needed to call dbProcess
 	/// true : SCAN = I/O Intr or the record is an out record
-	bool				isCallback;
+	bool				isCallback = false;
 	/// Pointer to the EPICS record
-	dbCommon*			pEpicsRecord;
+	dbCommon*			pEpicsRecord = nullptr;
 	/// IOSCAN mutex
 	std::mutex			ioscanmux;
 	/// Pointer to IO scan list
-	IOSCANPVT			ioscanpvt;
+	IOSCANPVT			ioscanpvt = nullptr;
 	/// Scan in progress (bit encoded value from priorities)
-	std::atomic<unsigned int>	ioscan_inuse;
+	std::atomic<unsigned int>	ioscan_inuse = 0;
 	/// Callback structure
-	CALLBACK			callbackval;
+	epicsCallback		callbackval = {};
 };
 
 
 /** This record type enums are used as index the epics traits class
     @brief Epics record type enum.
  ************************************************************************/
-enum epics_record_enum
+enum class epics_record_enum
 {
 	/// double input array
 	aaival = 0,
@@ -309,12 +304,15 @@ template <epics_record_enum RecType>
 struct epics_record_traits
 {
 	/// Epics record type
-	typedef struct { 
+	using traits_type = struct {
 		/// Value
 		double val; 
-	} traits_type;
+	};
+	/// Epics record type pointer
+	using traits_type_ptr = epics_record_traits<RecType>::value_type*;
 	/// Value type of (raw) value field
-	typedef epicsFloat64 value_type;
+	using value_type = epicsFloat64;
+
 	/// Name of the record
 	static const char* const name () { return "invalid"; };
     /// return value for read_io functions 0=default, 2=don't convert
@@ -324,12 +322,12 @@ struct epics_record_traits
 	/// Indicates if this is a raw record
 	static const bool raw_record = false;
 	/// Returns the (raw) value of a record
-	static typename value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static traits_type_ptr val (traits_type* prec) { return (traits_type_ptr) &prec->val; }
 	/// Performs the read access on prec 
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static bool read (traits_type_ptr epicsrec, plc::BaseRecord* baserec) {
 		return baserec->UserRead (*val (epicsrec)); }
 	/// Performs the write access on prec
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type_ptr epicsrec) {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
@@ -343,30 +341,44 @@ struct devTcDefIo
 {
 public:
 	/// Record type: aiRecord, etc.
-	typedef typename epics_record_traits<RecType>::traits_type rec_type;
+	using rec_type = epics_record_traits<RecType>::traits_type;
 	/// Pointer to record type
-	typedef typename rec_type* rec_type_ptr;
+	using rec_type_ptr = epics_record_traits<RecType>::traits_type*;
+	/// Report support function
+	using report_type = long (*) (int level);
+	/// Initialization function
+	using init_type = long (*) (int after);
+	/// Initialization function
+	using init_record_type = long (*) (rec_type_ptr prec);
+	/// IO/INT support function
+	using get_ioint_info_type = long (*) (int cmd, rec_type_ptr prec, IOSCANPVT* piosl);
+	/// IO function like read or write
+	using io_type = long (*) (rec_type_ptr prec);
+	/// Linear conversion support function
+	using special_linconv_type = long (*) (rec_type_ptr prec, int after);
 
 	/// Number of support functions
-    long		number;
+    long			number = 6;
 	/// Report support function
-    DEVSUPFUN	report_fn;
+	report_type		report_fn = nullptr;
 	/// Init support function
-    DEVSUPFUN	init_fn;
+	init_type		init_fn = nullptr;
 	/// Record init support function
-    DEVSUPFUN	init_record_fn;
+	init_record_type init_record_fn = nullptr;
 	/// IO/INT support function
-    DEVSUPFUN	get_ioint_info_fn;
+	get_ioint_info_type	get_ioint_info_fn = get_ioint_info;
 	/// Read/write support function
-    DEVSUPFUN	io_fn;
+	io_type			io_fn = nullptr;
 	/// Linear conversion support function
-    DEVSUPFUN	special_linconv_fn;
+	special_linconv_type special_linconv_fn = nullptr;
 
 protected:
-	/// Hide constructor
-	devTcDefIo();
+	/// Constructor for IO record
+	devTcDefIo(init_record_type ioinit, io_type io) noexcept :
+		init_record_fn(ioinit), io_fn (io) {}
+
 	/// IO/INT info callback
-	static long get_ioint_info (int cmd, dbCommon* prec, IOSCANPVT* ppvt);
+	static long get_ioint_info (int cmd, rec_type_ptr prec, IOSCANPVT* ppvt) noexcept;
 };
 
 /** Deviced Support Record for TwinCAT/ADS input
@@ -375,20 +387,20 @@ protected:
     @brief Device support input record.
  ************************************************************************/
 template <epics_record_enum RecType>
-struct devTcDefIn : public devTcDefIo <RecType>
+struct devTcDefIn : public devTcDefIo<RecType>
 {
 public:
 	/// Record type: aiRecord, etc.
-	typedef typename devTcDefIo<RecType>::rec_type rec_type;
+	using rec_type = devTcDefIo<RecType>::rec_type;
 	/// Pointer to record type
-	typedef typename devTcDefIo<RecType>::rec_type_ptr rec_type_ptr;
+	using rec_type_ptr = devTcDefIo<RecType>::rec_type_ptr;
 
 	/// Constructor
-	devTcDefIn();
+	devTcDefIn() noexcept : devTcDefIo<RecType>::devTcDefIo(init_read_record, read) {}
 	/// init callback for read records
-	static long init_read_record (rec_type_ptr prec);
+	static long init_read_record (rec_type_ptr prec) noexcept;
 	/// read callback
-	static long read (rec_type_ptr precord);
+	static long read (rec_type_ptr precord) noexcept;
 };
 
 /** Deviced Support Record for TwinCAT/ADS output
@@ -397,20 +409,20 @@ public:
     @brief device support output record.
  ************************************************************************/
 template <epics_record_enum RecType>
-struct devTcDefOut : public devTcDefIo <RecType>
+struct devTcDefOut : public devTcDefIo<RecType>
 {
 public:
 	/// Record type: aiRecord, etc.
-	typedef typename devTcDefIo<RecType>::rec_type rec_type;
+	using rec_type = devTcDefIo<RecType>::rec_type;
 	/// Pointer to record type
-	typedef typename devTcDefIo<RecType>::rec_type_ptr rec_type_ptr;
+	using rec_type_ptr = devTcDefIo<RecType>::rec_type_ptr;
 
 	/// Constructor
-	devTcDefOut();
+	devTcDefOut() noexcept : devTcDefIo<RecType>::devTcDefIo(init_write_record, write) {}
 	/// init callback for write records
-	static long init_write_record (rec_type_ptr prec);
+	static long init_write_record (rec_type_ptr prec) noexcept;
 	/// write callback
-	static long write (rec_type_ptr precord);
+	static long write (rec_type_ptr precord) noexcept;
 };
 
 /** Deviced Support Record for TwinCAT/ADS waveform input
@@ -419,23 +431,23 @@ public:
     @brief device support waveform record.
  ************************************************************************/
 template <epics_record_enum RecType>
-struct devTcDefWaveformIn : public devTcDefIo <RecType>
+struct devTcDefWaveformIn : public devTcDefIo<RecType>
 {
 public:
 	/// Record type: aiRecord, etc.
-	typedef typename devTcDefIo <RecType>::rec_type rec_type;
+	using rec_type = devTcDefIo<RecType>::rec_type;
 	/// Pointer to record type
-	typedef typename devTcDefIo <RecType>::rec_type_ptr rec_type_ptr;
+	using rec_type_ptr = devTcDefIo<RecType>::rec_type_ptr;
 
 	/// Constructor
-	devTcDefWaveformIn();
+	devTcDefWaveformIn() noexcept : devTcDefIo<RecType>::devTcDefIo(init_read_waveform_record, read_waveform) {}
 	/// init callback for read records
-	static long init_read_waveform_record (rec_type_ptr prec);
+	static long init_read_waveform_record (rec_type_ptr prec) noexcept;
 	/// read callback
-	static long read_waveform (rec_type_ptr precord);
+	static long read_waveform (rec_type_ptr precord) noexcept;
 };
 
-void complete_io_scan(EpicsInterface* epics, IOSCANPVT ioscan, int prio);
+void complete_io_scan(EpicsInterface* epics, IOSCANPVT ioscan, int prio) noexcept;
 
 }
 #include "devTcTemplate.h"

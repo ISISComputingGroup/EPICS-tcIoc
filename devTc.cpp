@@ -1,10 +1,6 @@
 #include "devTc.h"
 #include "ParseTpy.h"
-#include "InfoPlc.h"
-#define _CRT_SECURE_NO_WARNINGS
-#pragma warning (disable : 26812)
-#pragma warning (disable : 26495)
-#pragma warning (disable : 4996)
+#include "infoPlc.h"
 #include "errlog.h"
 #undef va_start
 #undef va_end
@@ -19,10 +15,6 @@
 #else
 #include "callback.h"
 #endif
-#pragma warning (default : 4996)
-#pragma warning (default : 26495)
-#pragma warning (default : 26812)
-#undef _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #if defined(_MSC_VER) && (EPICS_VERSION < 7)
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
@@ -50,10 +42,10 @@ namespace DevTc {
 	@return true if successful
 	@brief Link TwinCat Record
  ************************************************************************/
-static bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+static bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord) noexcept
 {
 	// Let EPICS interface know about size of data
-	TcComms::TCatInterface* tcat = dynamic_cast<TcComms::TCatInterface*>(pRecord->get_plcInterface());
+	const TcComms::TCatInterface* const tcat = dynamic_cast<TcComms::TCatInterface*>(pRecord->get_plcInterface());
 	if (!tcat) {
 		printf("dynamic cast failed, record name is %s.\n", pEpicsRecord->name);
 		return false;
@@ -81,10 +73,10 @@ static bool linkTcRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 	@return true if successful
 	@brief Link Info Record
  ************************************************************************/
-static bool linkInfoRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+static bool linkInfoRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord) noexcept
 {
 	// Let EPICS interface know about size of data
-	InfoPlc::InfoInterface* info = dynamic_cast<InfoPlc::InfoInterface*>(pRecord->get_plcInterface());
+	const InfoPlc::InfoInterface* const info = dynamic_cast<InfoPlc::InfoInterface*>(pRecord->get_plcInterface());
 	if (!info) {
 		printf("dynamic cast failed, record name is %s.\n", pEpicsRecord->name);
 		return false;
@@ -107,7 +99,7 @@ static bool linkInfoRecord (dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
 
 /** register_devsup::register_devsup
  ************************************************************************/
-register_devsup::register_devsup()
+register_devsup::register_devsup() noexcept
 {
 	add (tc_regex, linkTcRecord);
 	add (info_regex, linkInfoRecord);
@@ -116,32 +108,35 @@ register_devsup::register_devsup()
 /** register_devsup::linkRecord
  ************************************************************************/
 bool register_devsup::linkRecord (const std::stringcase& inpout, 
-	dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord)
+	dbCommon* pEpicsRecord, plc::BaseRecordPtr& pRecord) noexcept
 {
 	if (inpout.empty() ) {
 		printf ("Error in inp field for record %s.\n", pEpicsRecord->name);
 		return false;
 	}
 
-	std::smatch match;
-	for (const auto& i : the_register_devsup.tp_list) {
-		if (std::regex_search (inpout, match, i.first)) {
-			// Get PLC name from EPICS name string
-			BasePLCPtr plcMatch = plc::System::get().find (match[1].str().c_str());
-			if (!plcMatch.get()) {
-				printf ("PLC not found %s.\n", pEpicsRecord->name);
-				return false;
+	try {
+		std::smatch match;
+		for (const auto& i : the_register_devsup.tp_list) {
+			if (std::regex_search(inpout, match, i.first)) {
+				// Get PLC name from EPICS name string
+				BasePLCPtr plcMatch = plc::System::get().find(match[1].str().c_str());
+				if (!plcMatch.get()) {
+					printf("PLC not found %s.\n", pEpicsRecord->name);
+					return false;
+				}
+				// Link record object to EPICS record
+				pRecord = plcMatch->find(inpout);
+				if (!pRecord.get()) {
+					printf("No PLC record for %s.\n", pEpicsRecord->name);
+					return false;
+				}
+				// Call link function
+				return i.second(pEpicsRecord, pRecord);
 			}
-			// Link record object to EPICS record
-			pRecord = plcMatch->find (inpout);
-			if (!pRecord.get()) {
-				printf("No PLC record for %s.\n", pEpicsRecord->name);
-				return false;
-			}
-			// Call link function
-			return i.second (pEpicsRecord, pRecord);
 		}
 	}
+	catch (...) {}
 	printf ("Name doesn't fit regex for %s, link field is %s.\n", 
 		pEpicsRecord->name, inpout.c_str());
 	return false;
@@ -152,40 +147,34 @@ bool register_devsup::linkRecord (const std::stringcase& inpout,
 register_devsup register_devsup::the_register_devsup;
 
 
-/* EpicsInterface::EpicsInterface
- ************************************************************************/
-EpicsInterface::EpicsInterface (plc::BaseRecord& dval)
-		: Interface (dval), isPassive (false), isCallback (false),
-		pEpicsRecord (nullptr), ioscanpvt (nullptr), ioscan_inuse (0)
-{
-	memset (&callbackval, 0, sizeof (callbackval));
-}
-
 /* EpicsInterface::get_callbackRequestPending
  ************************************************************************/
-bool EpicsInterface::get_callbackRequestPending() const
+bool EpicsInterface::get_callbackRequestPending() const noexcept
 {
 	return (get_record().UserIsDirty());
 }
 
 /* Callback complete_io_scan
  ************************************************************************/
-void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio)
+void complete_io_scan (EpicsInterface* epics, IOSCANPVT ioscan, int prio) noexcept
 {
 	epics->ioscan_reset(prio);
 }
 
 /* EpicsInterface::ioscan_reset
  ************************************************************************/
-void EpicsInterface::ioscan_reset (int bitnum)
+void EpicsInterface::ioscan_reset (int bitnum) noexcept
 {
-	std::lock_guard<std::mutex> guard(ioscanmux);
-	std::atomic_fetch_and(&ioscan_inuse, ~(1 << bitnum));
+	try {
+		std::lock_guard guard(ioscanmux);
+		std::atomic_fetch_and(&ioscan_inuse, ~(1 << bitnum));
+	}
+	catch (...) { }
 }
 
 /* EpicsInterface::push
  ************************************************************************/
-bool EpicsInterface::push()
+bool EpicsInterface::push() noexcept
 {
 	static int skip = 0;
 	static int proc = 0;
@@ -203,12 +192,16 @@ bool EpicsInterface::push()
 //+			callbackRequestPending = true;
 		}
 		else {
-			std::lock_guard<std::mutex> guard(ioscanmux);
-			if (ioscan_inuse.load() == 0) ++proc; else ++skip;
-			std::atomic_store (&ioscan_inuse, scanIoRequest(get_ioscan()));
+			try {
+				std::lock_guard guard(ioscanmux);
+				if (ioscan_inuse.load() == 0) ++proc; else ++skip;
+				std::atomic_store(&ioscan_inuse, scanIoRequest(get_ioscan()));
+			}
+			catch (...) {}
+
 			/*
 			if (ioscan_inuse.load() == 0) {
-				std::lock_guard<std::mutex> guard(ioscanmux);
+				std::lock_guard guard(ioscanmux);
 				std::atomic_store(&ioscan_inuse, scanIoRequest(get_ioscan()));
 				++proc;
 				//printf("Processing %s %4.1f %%\n", record.get_name().c_str(), 100.0*(double)skip / (double)(skip + proc));
@@ -216,7 +209,7 @@ bool EpicsInterface::push()
 			else {
 				// skip  ioscan due to overload
 				++skip;
-				//std::lock_guard<std::mutex> guard(ioscanmux);
+				//std::lock_guard guard(ioscanmux);
 				//std::atomic_store(&ioscan_inuse, 0);
 				//if (skip % 100 == 0) {
 				//	printf("Skipping %s %4.1f %%\n", record.get_name().c_str(), 100.0*(double)skip / (double)(skip + proc));
@@ -235,7 +228,7 @@ bool EpicsInterface::push()
  /// @cond Doxygen_Suppress
 const char* const callback_queue_library = "dbCore.dll";
 const char* const callback_queue_symbol = "tcat_callbackQueue";
-typedef epicsRingPointerId(__cdecl *callback_queue_func)(int);
+using callback_queue_func = epicsRingPointerId(__cdecl *)(int);
 static std::atomic<bool> callback_queue_init = false;
 static std::mutex callback_queue_mux;
 static epicsRingPointerId callback_queue[3] = { nullptr, nullptr, nullptr };
@@ -249,12 +242,12 @@ callbackQueueStats callback_status{};
 /* load_callback_queue_func
    Looking for tcat_queuePriorityHigh in dbCore.dll
  ************************************************************************/
-static bool load_callback_queue_func()
+static bool load_callback_queue_func() noexcept
 {
 	bool RunTimeLinkSuccess = false;
 	// Use dynamic DLL linking in case of unpatched EPICS base
-	HINSTANCE hinstLib;
-	callback_queue_func func;
+	HINSTANCE hinstLib{};
+	callback_queue_func func = nullptr;
 	// Get a handle to the DLL module.
 	hinstLib = LoadLibrary (callback_queue_library);
 	// If the handle is valid, try to get the function address.
@@ -279,37 +272,45 @@ static bool load_callback_queue_func()
 
 /* load_callback_queue_func
  ************************************************************************/
-static void check_callback_init()
+static void check_callback_init() noexcept
 {
 	// Check if initialized
 	if (callback_queue_init) return;
-	// If not get the mutex
-	std::lock_guard<std::mutex> lock (callback_queue_mux);
-	// Check again!
-	if (callback_queue_init) return;
-	// No initialize
-	load_callback_queue_func();
-	callback_queue_init = true;
+	try {
+		// If not get the mutex
+		std::lock_guard lock(callback_queue_mux);
+		// Check again!
+		if (callback_queue_init) return;
+		// No initialize
+		load_callback_queue_func();
+		callback_queue_init = true;
+	}
+	catch (...) {}
 }
 #else
 /* update_callback
  ************************************************************************/
-static void update_callback(bool reset = false)
+static void update_callback(bool reset = false) noexcept
 {
-	std::lock_guard<std::mutex> lock(callback_queue_mux);
-	static epicsUInt64 last_access{ 0 };
-	epicsUInt64 current = epicsMonotonicGet();
-	if (current > last_access + 10000000UL) // 10ms
-	{
-		last_access = current;
-		callbackQueueStatus(reset, &callback_status);
+	try {
+		std::lock_guard lock(callback_queue_mux);
+		static epicsUInt64 last_access{ 0 };
+		epicsUInt64 current = epicsMonotonicGet();
+		if (current > last_access + 10000000UL) // 10ms
+		{
+			last_access = current;
+			callbackQueueStatus(reset, &callback_status);
+		}
+	}
+	catch (...) {
+		;
 	}
 }
 #endif
 
 /* EpicsInterface::get_callback_queue_size
  ************************************************************************/
-int EpicsInterface::get_callback_queue_size (int pri)
+int EpicsInterface::get_callback_queue_size (int pri) noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 #if EPICS_VERSION < 7
@@ -329,14 +330,14 @@ int EpicsInterface::get_callback_queue_size (int pri)
 
 /* EpicsInterface::get_callback_queue_used
  ************************************************************************/
-int EpicsInterface::get_callback_queue_used (int pri)
+int EpicsInterface::get_callback_queue_used (int pri) noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 #if EPICS_VERSION < 7
 #ifdef _MSC_VER
 	check_callback_init();
 	if ((pri < 0) || (pri >= NUM_CALLBACK_PRIORITIES)) return 0;
-	int used = epicsRingPointerGetUsed(callback_queue[pri]);
+	const int used = epicsRingPointerGetUsed(callback_queue[pri]);
 	if (used > callback_queue_max[pri])  callback_queue_max[pri] = used;
 	return used;
 #else
@@ -351,7 +352,7 @@ int EpicsInterface::get_callback_queue_used (int pri)
 
 /* EpicsInterface::get_callback_queue_free
  ************************************************************************/
-int EpicsInterface::get_callback_queue_free (int pri)
+int EpicsInterface::get_callback_queue_free (int pri) noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1; 
 #if EPICS_VERSION < 7
@@ -371,7 +372,7 @@ int EpicsInterface::get_callback_queue_free (int pri)
 
 /* EpicsInterface::get_callback_queue_highwatermark
  ************************************************************************/
-int EpicsInterface::get_callback_queue_highwatermark(int pri)
+int EpicsInterface::get_callback_queue_highwatermark(int pri) noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 #if EPICS_VERSION < 7
@@ -391,7 +392,7 @@ int EpicsInterface::get_callback_queue_highwatermark(int pri)
 
 /* EpicsInterface::get_callback_queue_overflow
  ************************************************************************/
-int EpicsInterface::get_callback_queue_overflow(int pri)
+int EpicsInterface::get_callback_queue_overflow(int pri) noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 #if EPICS_VERSION < 7
@@ -409,9 +410,9 @@ int EpicsInterface::get_callback_queue_overflow(int pri)
 #endif
 }
 
-/* EpicsInterface::get_callback_queue_overflow
+/* EpicsInterface::set_callback_queue_highwatermark_reset
  ************************************************************************/
-int EpicsInterface::set_callback_queue_highwatermark_reset()
+int EpicsInterface::set_callback_queue_highwatermark_reset() noexcept
 {
 	if (!plc::System::get().is_ioc_running()) return -1;
 #if EPICS_VERSION < 7
@@ -447,75 +448,75 @@ extern "C" {
 }
 /// @endcond
 
-/************************************************************************/
-/* Create and export device support entry tables (DSETs).
-/* These tell EPICS about the functions used for TCat device support.
+/************************************************************************
+ * Create and export device support entry tables (DSETs).
+ * These tell EPICS about the functions used for TCat device support.
  ************************************************************************/
 
 // ai record
-static devTcDefIn<aival> aival_record_tc_dset;
-static devTcDefIn<airval> airval_record_tc_dset;
+static devTcDefIn<epics_record_enum::aival> aival_record_tc_dset;
+static devTcDefIn<epics_record_enum::airval> airval_record_tc_dset;
 
 // aai record
-static devTcDefIn<aaival> aaival_record_tc_dset;
+static devTcDefIn<epics_record_enum::aaival> aaival_record_tc_dset;
 
 // bi record
-static devTcDefIn<bival> bival_record_tc_dset;
-static devTcDefIn<birval> birval_record_tc_dset;
+static devTcDefIn<epics_record_enum::bival> bival_record_tc_dset;
+static devTcDefIn<epics_record_enum::birval> birval_record_tc_dset;
 
 // longin record
-static devTcDefIn<longinval> longinval_record_tc_dset;
+static devTcDefIn<epics_record_enum::longinval> longinval_record_tc_dset;
 
 // int64int record
 #if EPICS_VERSION >= 7
-static devTcDefIn<int64inval> int64inval_record_tc_dset;
+static devTcDefIn<epics_record_enum::int64inval> int64inval_record_tc_dset;
 #endif
 
 // mbbi record
-static devTcDefIn<mbbival> mbbival_record_tc_dset;
-static devTcDefIn<mbbirval> mbbirval_record_tc_dset;
+static devTcDefIn<epics_record_enum::mbbival> mbbival_record_tc_dset;
+static devTcDefIn<epics_record_enum::mbbirval> mbbirval_record_tc_dset;
 
 // mbbiDirect record
-static devTcDefIn<mbbiDirectval> mbbiDirectval_record_tc_dset;
-static devTcDefIn<mbbiDirectrval> mbbiDirectrval_record_tc_dset;
+static devTcDefIn<epics_record_enum::mbbiDirectval> mbbiDirectval_record_tc_dset;
+static devTcDefIn<epics_record_enum::mbbiDirectrval> mbbiDirectrval_record_tc_dset;
 
 // stringin record
-static devTcDefIn<stringinval> stringinval_record_tc_dset;
-static devTcDefIn<lsival> lsival_record_tc_dset;
+static devTcDefIn<epics_record_enum::stringinval> stringinval_record_tc_dset;
+static devTcDefIn<epics_record_enum::lsival> lsival_record_tc_dset;
 
 // waveform record
-static devTcDefWaveformIn<waveformval> waveformval_record_tc_dset;
+static devTcDefWaveformIn<epics_record_enum::waveformval> waveformval_record_tc_dset;
 
 
 // ao record
-static devTcDefOut<aoval> aoval_record_tc_dset;
-static devTcDefOut<aorval> aorval_record_tc_dset;
+static devTcDefOut<epics_record_enum::aoval> aoval_record_tc_dset;
+static devTcDefOut<epics_record_enum::aorval> aorval_record_tc_dset;
 
 // aao record
-static devTcDefOut<aaoval> aaoval_record_tc_dset;
+static devTcDefOut<epics_record_enum::aaoval> aaoval_record_tc_dset;
 
 // bo record
-static devTcDefOut<boval> boval_record_tc_dset;
-static devTcDefOut<borval> borval_record_tc_dset;
+static devTcDefOut<epics_record_enum::boval> boval_record_tc_dset;
+static devTcDefOut<epics_record_enum::borval> borval_record_tc_dset;
 
 // longout record
-static devTcDefOut<longoutval> longoutval_record_tc_dset;
+static devTcDefOut<epics_record_enum::longoutval> longoutval_record_tc_dset;
 
 // int64out record
 #if EPICS_VERSION >= 7
-static devTcDefOut<int64outval> int64outval_record_tc_dset;
+static devTcDefOut<epics_record_enum::int64outval> int64outval_record_tc_dset;
 #endif
 // mbbo record
-static devTcDefOut<mbboval> mbboval_record_tc_dset;
-static devTcDefOut<mbborval> mbborval_record_tc_dset;
+static devTcDefOut<epics_record_enum::mbboval> mbboval_record_tc_dset;
+static devTcDefOut<epics_record_enum::mbborval> mbborval_record_tc_dset;
 
 // mbboDirect record
-static devTcDefOut<mbboDirectval> mbboDirectval_record_tc_dset;
-static devTcDefOut<mbboDirectrval> mbboDirectrval_record_tc_dset;
+static devTcDefOut<epics_record_enum::mbboDirectval> mbboDirectval_record_tc_dset;
+static devTcDefOut<epics_record_enum::mbboDirectrval> mbboDirectrval_record_tc_dset;
 
 // stringout record
-static devTcDefOut<stringoutval> stringoutval_record_tc_dset;
-static devTcDefOut<lsoval> lsoval_record_tc_dset;
+static devTcDefOut<epics_record_enum::stringoutval> stringoutval_record_tc_dset;
+static devTcDefOut<epics_record_enum::lsoval> lsoval_record_tc_dset;
 
 }
 
