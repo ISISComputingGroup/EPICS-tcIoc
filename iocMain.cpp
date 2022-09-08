@@ -19,12 +19,10 @@ static clock_t end;
  ************************************************************************/
 
 
-static bool debug;
-
 /** Main program for tcIoc
 	@brief tcIoc
  */
-int main(int argc,char *argv[])
+int main(int argc,char *argv[]) 
 {
 	// Start timer
 	begin = clock();

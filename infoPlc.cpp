@@ -11,10 +11,10 @@ extern "C" {
 	int get_callback_queue_size(int pri);
 	int get_callback_queue_used(int pri);
 	int get_callback_queue_free(int pri);
+	int get_callback_queue_highwatermark(int pri);
+	int get_callback_queue_overflow(int pri);
+	int set_callback_queue_highwatermark_reset(void);
 }
-static int queue0_max = 0;
-static int queue1_max = 0;
-static int queue2_max = 0;
 /// @endcond
 
 /** @file infoPlc.cpp
@@ -433,6 +433,15 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_max),
+info_dbrecord_type(
+	variable_name("cb.queue[0].overflow"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Overflows in low pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue0_overflow),
 info_dbrecord_type (
 	variable_name("cb.queue[0].free"),
 	process_type_enum::pt_int,
@@ -442,7 +451,7 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue0_free),
-info_dbrecord_type (
+info_dbrecord_type(
 	variable_name("cb.queue[0].percent"),
 	process_type_enum::pt_real,
 	opc_list(opc_enum::publish, property_map({
@@ -467,7 +476,7 @@ info_dbrecord_type (
 		property_el(OPC_PROP_UNIT, "percent")
 		})),
 	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue0_mprcnt),
+	&InfoInterface::info_update_callback_queue0_max_prcnt),
 info_dbrecord_type (
 	variable_name("cb.queue[1].size"),
 	process_type_enum::pt_int,
@@ -495,6 +504,15 @@ info_dbrecord_type (
 		})),
 	"DINT", true, update_enum::forever,
 	&InfoInterface::info_update_callback_queue1_max),
+info_dbrecord_type(
+	variable_name("cb.queue[1].overflow"),
+	process_type_enum::pt_int,
+	opc_list(opc_enum::publish, property_map({
+		property_el(OPC_PROP_RIGHTS, "1"),
+		property_el(OPC_PROP_DESC, "Overflows in med pri. callback queue")
+		})),
+	"DINT", true, update_enum::forever,
+	&InfoInterface::info_update_callback_queue1_overflow),
 info_dbrecord_type (
 	variable_name("cb.queue[1].free"),
 	process_type_enum::pt_int,
@@ -515,83 +533,103 @@ info_dbrecord_type (
 		property_el(OPC_PROP_PREC, "1"),
 		property_el(OPC_PROP_UNIT, "percent")
 		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue1_percent),
-info_dbrecord_type (
-	variable_name("cb.queue[1].mprcnt"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max % of med pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue1_mprcnt),
-info_dbrecord_type (
-	variable_name("cb.queue[2].size"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_size),
-info_dbrecord_type (
-	variable_name("cb.queue[2].used"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_used),
-info_dbrecord_type (
-	variable_name("cb.queue[2].max"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max. entries in hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_max),
-info_dbrecord_type (
-	variable_name("cb.queue[2].free"),
-	process_type_enum::pt_int,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
-		})),
-	"DINT", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_free),
-info_dbrecord_type (
-	variable_name("cb.queue[2].percent"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_percent),
-info_dbrecord_type (
-	variable_name("cb.queue[2].mprcnt"),
-	process_type_enum::pt_real,
-	opc_list(opc_enum::publish, property_map({
-		property_el(OPC_PROP_RIGHTS, "1"),
-		property_el(OPC_PROP_DESC, "Max % of hi pri. callback queue"),
-		property_el(OPC_PROP_HIEU, "1"),
-		property_el(OPC_PROP_LOEU, "0"),
-		property_el(OPC_PROP_PREC, "1"),
-		property_el(OPC_PROP_UNIT, "percent")
-		})),
-	"LREAL", true, update_enum::forever,
-	&InfoInterface::info_update_callback_queue2_mprcnt)
+		"LREAL", true, update_enum::forever,
+	& InfoInterface::info_update_callback_queue1_percent),
+	info_dbrecord_type(
+		variable_name("cb.queue[1].mprcnt"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max % of med pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue1_max_prcnt),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].size"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Size of hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_size),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].used"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Used entries in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_used),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].max"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max. entries in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_max),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].overflow"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Overflows in hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_overflow),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].free"),
+		process_type_enum::pt_int,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Free entries hi pri. callback queue")
+			})),
+		"DINT", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_free),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].percent"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Use % of hi pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_percent),
+	info_dbrecord_type(
+		variable_name("cb.queue[2].mprcnt"),
+		process_type_enum::pt_real,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "1"),
+			property_el(OPC_PROP_DESC, "Max % of hi pri. callback queue"),
+			property_el(OPC_PROP_HIEU, "1"),
+			property_el(OPC_PROP_LOEU, "0"),
+			property_el(OPC_PROP_PREC, "1"),
+			property_el(OPC_PROP_UNIT, "percent")
+			})),
+		"LREAL", true, update_enum::forever,
+		&InfoInterface::info_update_callback_queue2_max_prcnt),
+	info_dbrecord_type(
+		variable_name("cb.reset.max"),
+		process_type_enum::pt_bool,
+		opc_list(opc_enum::publish, property_map({
+			property_el(OPC_PROP_RIGHTS, "3"),
+			property_el(OPC_PROP_DESC, "Reset queue max values"),
+			property_el(OPC_PROP_CLOSE, "RESET"),
+			property_el(OPC_PROP_OPEN, "INACTIVE")
+			})),
+		"BOOL", false, update_enum::forever,
+		&InfoInterface::info_update_callback_queue_reset_max)
 });
 
 
@@ -602,7 +640,9 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 	const std::stringcase& id, const std::stringcase& name, 
 	const std::stringcase& tname)
 	: Interface(dval), tCatName(name), tCatType(tname), 
-	update_freq (update_enum::done), info_update (nullptr)
+	update_freq (update_enum::done), readonly(false),
+	info_update (nullptr)
+	
 {
 	// Look for variable by name
 	auto iter = find_if (dbinfo_list.cbegin(), dbinfo_list.cend(), 
@@ -617,6 +657,7 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 	else {
 		// Set update method & frequency
 		update_freq = get<update_enum>(*iter);
+		readonly = get<bool>(*iter);
 		info_update = get<info_update_method>(*iter);
 		// check for enum
 		if (get<ParseUtil::process_type_enum>(*iter) == process_type_enum::pt_enum) {
@@ -635,11 +676,23 @@ InfoInterface::InfoInterface (plc::BaseRecord& dval,
 	}
 };
 
-/* InfoInterface::InfoInterface
+/* InfoInterface::push
  ************************************************************************/
-bool InfoInterface::update() 
+bool InfoInterface::push() noexcept
 {
 	if (!info_update) return false;
+	if (readonly) return false; // only update input records
+	if (update_freq == update_enum::done) return true;
+	if (update_freq == update_enum::once) update_freq = update_enum::done;
+	return (this->*info_update)();
+}
+
+/* InfoInterface::update
+ ************************************************************************/
+bool InfoInterface::update() noexcept
+{
+	if (!info_update) return false;
+	if (!readonly) return false; // do not update output records
 	if (update_freq == update_enum::done) return true;
 	if (update_freq == update_enum::once) update_freq = update_enum::done;
 	return (this->*info_update)();
@@ -647,7 +700,7 @@ bool InfoInterface::update()
 
 /* InfoInterface::printTCatVal
  ************************************************************************/
-void InfoInterface::printVal (FILE* fp)
+void InfoInterface::printVal (FILE* fp) 
 {
 	/////////////////////////////////////////////////
 	/// This is a function for printing the variable name and value of a record.
@@ -656,12 +709,12 @@ void InfoInterface::printVal (FILE* fp)
 	/////////////////////////////////////////////////
 	fprintf(fp, "%65s: %15s         ", tCatName.c_str(), tCatType.c_str());
 
-	double				doublePLCVar;
-	float				floatPLCVar;
-	signed long long	sllPLCVar;
-	signed long int		sliPLCVar;
-	signed short int	ssiPLCVar;
-	signed char			charPLCVar;
+	double				doublePLCVar = 0.0;
+	float				floatPLCVar = 0.0;
+	signed long long	sllPLCVar = 0;
+	signed long int		sliPLCVar = 0;
+	signed short int	ssiPLCVar = 0;
+	signed char			charPLCVar = 0;
 	string				chararrPLCVar;
 
 	if (tCatType == "LREAL") {
@@ -670,11 +723,13 @@ void InfoInterface::printVal (FILE* fp)
 	else if (tCatType == "REAL") {
 		if (record.PlcRead(floatPLCVar)) fprintf(fp, "%f", floatPLCVar);
 	}
-	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT") {
+	else if (tCatType == "LWORD" || tCatType == "LINT" || tCatType == "ULINT" || tCatType == "LTIME") {
 		if (record.PlcRead(sllPLCVar)) fprintf(fp, "%lld", sllPLCVar);
 	}
-	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT") {
-		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%d", sliPLCVar);
+	else if (tCatType == "DWORD" || tCatType == "DINT" || tCatType == "UDINT" || 
+		     tCatType == "TIME" || tCatType == "TOD" || tCatType == "DATE" || 
+			 tCatType == "DT" || tCatType == "TIME_OF_DAY" || tCatType == "DATE_AND_TIME") {
+		if (record.PlcRead(sliPLCVar)) fprintf(fp, "%ld", sliPLCVar);
 	}
 	else if (tCatType == "INT" || tCatType == "WORD" || tCatType == "ENUM" || tCatType == "UINT") {
 		if (record.PlcRead(ssiPLCVar)) fprintf(fp, "%d", ssiPLCVar);
@@ -693,123 +748,129 @@ void InfoInterface::printVal (FILE* fp)
 
 /* InfoInterface::info_update_name
  ************************************************************************/
-bool InfoInterface::info_update_name ()
+bool InfoInterface::info_update_name () noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
 	return record.PlcWrite(tc->get_name().c_str(), tc->get_name().size());
 }
 
 /* InfoInterface::info_update_alias
  ************************************************************************/
-bool InfoInterface::info_update_alias()
+bool InfoInterface::info_update_alias() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
 	return record.PlcWrite(tc->get_alias().c_str(), tc->get_alias().size());
 }
 
 /* InfoInterface::info_update_active
  ************************************************************************/
-bool InfoInterface::info_update_active()
+bool InfoInterface::info_update_active() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	bool active = (tc->get_ads_state() == ADSSTATE_RUN);
+	const bool active = (tc->get_ads_state() == ADSSTATE_RUN);
 	return record.PlcWrite(active);
 }
 
 /* InfoInterface::info_update_state
  ************************************************************************/
-bool InfoInterface::info_update_state()
+bool InfoInterface::info_update_state() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int state = tc->get_ads_state();
+	const int state = tc->get_ads_state();
 	return record.PlcWrite(state);
 }
 
 /* InfoInterface::info_update_statestr
  ************************************************************************/
-bool InfoInterface::info_update_statestr()
+bool InfoInterface::info_update_statestr() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
-	if (!tc) return false;
-	int state = tc->get_ads_state();
-	string str;
-	switch (state) {
-	case 0: 
-		str = "INVALID";
-		break;
-	case 1:
-		str = "IDLE";
-		break;
-	case 2:
-		str = "RESET";
-		break;
-	case 3:
-		str = "INIT";
-		break;
-	case 4:
-		str = "START";
-		break;
-	case 5:
-		str = "RUN";
-		break;
-	case 6:
-		str = "STOP";
-		break;
-	case 7:
-		str = "SAVECFG";
-		break;
-	case 8:
-		str = "LOADCFG";
-		break;
-	case 9:
-		str = "POWERFAILURE";
-		break;
-	case 10:
-		str = "POWERGOOD";
-		break;
-	case 11:
-		str = "ERROR";
-		break;
-	case 12:
-		str = "SHUTDOWN";
-		break;
-	case 13:
-		str = "SUSPEND";
-		break;
-	case 14:
-		str = "RESUME";
-		break;
-	case 15:
-		str = "CONFIG";
-		break;
-	case 16:
-		str = "RECONFIG";
-		break;
-	case 17:
-		str = "STOPPING";
-		break;
-	default:
-		str = "UNKNOWN";
-		break;
+	try {
+		const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+		if (!tc) return false;
+		const int state = tc->get_ads_state();
+		string str;
+		switch (state) {
+		case 0:
+			str = "INVALID";
+			break;
+		case 1:
+			str = "IDLE";
+			break;
+		case 2:
+			str = "RESET";
+			break;
+		case 3:
+			str = "INIT";
+			break;
+		case 4:
+			str = "START";
+			break;
+		case 5:
+			str = "RUN";
+			break;
+		case 6:
+			str = "STOP";
+			break;
+		case 7:
+			str = "SAVECFG";
+			break;
+		case 8:
+			str = "LOADCFG";
+			break;
+		case 9:
+			str = "POWERFAILURE";
+			break;
+		case 10:
+			str = "POWERGOOD";
+			break;
+		case 11:
+			str = "ERROR";
+			break;
+		case 12:
+			str = "SHUTDOWN";
+			break;
+		case 13:
+			str = "SUSPEND";
+			break;
+		case 14:
+			str = "RESUME";
+			break;
+		case 15:
+			str = "CONFIG";
+			break;
+		case 16:
+			str = "RECONFIG";
+			break;
+		case 17:
+			str = "STOPPING";
+			break;
+		default:
+			str = "UNKNOWN";
+			break;
+		}
+		return record.PlcWrite(str);
 	}
-	return record.PlcWrite(str);
+	catch (...) {
+		return false;
+	}
 }
 
 /* InfoInterface::info_update_timestamp_str
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_str()
+bool InfoInterface::info_update_timestamp_str() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
-	tm utc;
-	char buf[100];
+	const time_t tstamp = tc->get_timestamp_unix();
+	tm utc{};
+	char buf[100]{};
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
+		buf[99] = 0;
 		return record.PlcWrite(buf, sizeof (buf));
 	}
 	return false;
@@ -817,15 +878,16 @@ bool InfoInterface::info_update_timestamp_str()
 
 /* InfoInterface::info_update_timestamp_local
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_local()
+bool InfoInterface::info_update_timestamp_local() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
-	tm local;
-	char buf[100];
+	const time_t tstamp = tc->get_timestamp_unix();
+	tm local{};
+	char buf[100]{};
 	if (localtime_s(&local, &tstamp) == 0) {
 		strftime(buf, sizeof(buf), "%c", &local);
+		buf[99] = 0;
 		return record.PlcWrite(buf, sizeof(buf));
 	}
 	return false;
@@ -833,11 +895,11 @@ bool InfoInterface::info_update_timestamp_local()
 
 /* InfoInterface::info_update_timestamp_year
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_year()
+bool InfoInterface::info_update_timestamp_year() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
@@ -847,11 +909,11 @@ bool InfoInterface::info_update_timestamp_year()
 
 /* InfoInterface::info_update_timestamp_month
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_month()
+bool InfoInterface::info_update_timestamp_month() noexcept
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
@@ -861,11 +923,11 @@ bool InfoInterface::info_update_timestamp_month()
 
 /* InfoInterface::info_update_timestamp_day
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_day()
+bool InfoInterface::info_update_timestamp_day() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mday);
@@ -875,11 +937,11 @@ bool InfoInterface::info_update_timestamp_day()
 
 /* InfoInterface::info_update_timestamp_hour
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_hour()
+bool InfoInterface::info_update_timestamp_hour() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_hour);
@@ -889,11 +951,11 @@ bool InfoInterface::info_update_timestamp_hour()
 
 /* InfoInterface::info_update_timestamp_min
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_min()
+bool InfoInterface::info_update_timestamp_min() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_min);
@@ -903,11 +965,11 @@ bool InfoInterface::info_update_timestamp_min()
 
 /* InfoInterface::info_update_timestamp_sec
  ************************************************************************/
-bool InfoInterface::info_update_timestamp_sec()
+bool InfoInterface::info_update_timestamp_sec() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_timestamp_unix();
+	const time_t tstamp = tc->get_timestamp_unix();
 	tm utc;
 	if (gmtime_s(&utc, &tstamp) == 0) {
 		return record.PlcWrite(utc.tm_sec);
@@ -917,81 +979,86 @@ bool InfoInterface::info_update_timestamp_sec()
 
 /* InfoInterface::info_update_rate_read
  ************************************************************************/
-bool InfoInterface::info_update_rate_read()
+bool InfoInterface::info_update_rate_read() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int rate = tc->get_read_scanner_period() * tc->get_read_scanner_multiple();
+	const int rate = tc->get_read_scanner_period() * tc->get_read_scanner_multiple();
 	return record.PlcWrite (rate);
 }
 
 /* InfoInterface::info_update_rate_write
  ************************************************************************/
-bool InfoInterface::info_update_rate_write()
+bool InfoInterface::info_update_rate_write() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int rate = tc->get_write_scanner_period();
+	const int rate = tc->get_write_scanner_period();
 	return record.PlcWrite(rate);
 }
 
 /* InfoInterface::info_update_rate_update
  ************************************************************************/
-bool InfoInterface::info_update_rate_update()
+bool InfoInterface::info_update_rate_update() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int rate = tc->get_update_scanner_period();
+	const int rate = tc->get_update_scanner_period();
 	return record.PlcWrite(rate);
 }
 
 /* InfoInterface::info_update_records_num
  ************************************************************************/
-bool InfoInterface::info_update_records_num()
+bool InfoInterface::info_update_records_num() noexcept
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	int rate = tc->count();
+	const int rate = tc->count();
 	return record.PlcWrite(rate);
 }
 
 /* InfoInterface::info_update_tpy_filename
  ************************************************************************/
-bool InfoInterface::info_update_tpy_filename()
+bool InfoInterface::info_update_tpy_filename() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
-	if (!tc) return false;
-	string tpyfname = tc->get_tpyfilename();
-	string::size_type pos;
-	while ((tpyfname.size() >= 40) && 
-		   ((pos = tpyfname.find('\\')) != string::npos)) {
-		tpyfname.erase (0, pos + 1);
+	try {
+		const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+		if (!tc) return false;
+		string tpyfname = tc->get_tpyfilename();
+		string::size_type pos = 0;
+		while ((tpyfname.size() >= 40) &&
+			((pos = tpyfname.find('\\')) != string::npos)) {
+			tpyfname.erase(0, pos + 1);
+		}
+		if (tpyfname.size() >= 40) {
+			tpyfname.erase(39, string::npos);
+		}
+		return record.PlcWrite(tpyfname);
 	}
-	if (tpyfname.size() >= 40) {
-		tpyfname.erase (39, string::npos);
+	catch (...) {
+		return false;
 	}
-	return record.PlcWrite(tpyfname);
 }
 
 /* InfoInterface::info_update_tpy_valid
  ************************************************************************/
-bool InfoInterface::info_update_tpy_valid()
+bool InfoInterface::info_update_tpy_valid() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	bool tpyvalid = tc->is_tpyfile_valid();
+	const bool tpyvalid = tc->is_tpyfile_valid();
 	return record.PlcWrite(tpyvalid);
 }
 
 /* InfoInterface::info_update_tpy_time_str
  ************************************************************************/
-const time_t WINDOWS_TICK = 10'000'000;
-const time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
-static time_t FileTimeToUnixSeconds(time_t windowsTicks)
+constexpr time_t WINDOWS_TICK = 10'000'000;
+constexpr time_t SEC_TO_UNIX_EPOCH = 11'644'473'600LL;
+static constexpr time_t FileTimeToUnixSeconds(time_t windowsTicks) noexcept
 {
 	return (time_t)(windowsTicks / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
 }
-static errno_t GetFileTimeUnix (tm& utc, time_t ftime)
+static errno_t GetFileTimeUnix (tm& utc, time_t ftime) noexcept
 {
 	if (ftime < 1000'000'000'000LL) {
 		if (gmtime_s(&utc, &ftime) == 0) {
@@ -999,22 +1066,23 @@ static errno_t GetFileTimeUnix (tm& utc, time_t ftime)
 		}
 	}
 	else {
-		time_t unixt = FileTimeToUnixSeconds(ftime);
+		const time_t unixt = FileTimeToUnixSeconds(ftime);
 		if (gmtime_s(&utc, &unixt) == 0) {
 			return 0;
 		}
 	}
 	return 1;
 }
-bool InfoInterface::info_update_tpy_time_str()
+bool InfoInterface::info_update_tpy_time_str() noexcept
 {
 	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
-	tm utc;
-	char buf[100];
+	const time_t tstamp = tc->get_tpyfile_time();
+	tm utc{};
+	char buf[100]{};
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		strftime(buf, sizeof(buf), "%F %T", &utc);
+		buf[99] = 0;
 		return record.PlcWrite(buf, sizeof(buf));
 	} 
 	return false;
@@ -1022,11 +1090,11 @@ bool InfoInterface::info_update_tpy_time_str()
 
 /* InfoInterface::info_update_tpy_time_year
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_year()
+bool InfoInterface::info_update_tpy_time_year() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_year + 1900);
@@ -1036,11 +1104,11 @@ bool InfoInterface::info_update_tpy_time_year()
 
 /* InfoInterface::info_update_tpy_time_month
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_month()
+bool InfoInterface::info_update_tpy_time_month() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mon + 1);
@@ -1050,11 +1118,11 @@ bool InfoInterface::info_update_tpy_time_month()
 
 /* InfoInterface::info_update_tpy_time_day
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_day()
+bool InfoInterface::info_update_tpy_time_day() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_mday);
@@ -1064,11 +1132,11 @@ bool InfoInterface::info_update_tpy_time_day()
 
 /* InfoInterface::info_update_tpy_time_hour
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_hour()
+bool InfoInterface::info_update_tpy_time_hour() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_hour);
@@ -1078,11 +1146,11 @@ bool InfoInterface::info_update_tpy_time_hour()
 
 /* InfoInterface::info_update_tpy_time_min
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_min()
+bool InfoInterface::info_update_tpy_time_min() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_min);
@@ -1092,11 +1160,11 @@ bool InfoInterface::info_update_tpy_time_min()
 
 /* InfoInterface::info_update_tpy_time_sec
  ************************************************************************/
-bool InfoInterface::info_update_tpy_time_sec()
+bool InfoInterface::info_update_tpy_time_sec() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	time_t tstamp = tc->get_tpyfile_time();
+	const time_t tstamp = tc->get_tpyfile_time();
 	tm utc;
 	if (GetFileTimeUnix(utc, tstamp) == 0) {
 		return record.PlcWrite(utc.tm_sec);
@@ -1106,7 +1174,7 @@ bool InfoInterface::info_update_tpy_time_sec()
 
 /* InfoInterface::info_update_ads_version
  ************************************************************************/
-bool InfoInterface::info_update_ads_version()
+bool InfoInterface::info_update_ads_version() noexcept
 {
 	return record.PlcWrite (
 		TcComms::AmsRouterNotification::get_instance().get_ads_version());
@@ -1114,7 +1182,7 @@ bool InfoInterface::info_update_ads_version()
 
 /* InfoInterface::info_update_ads_revision
  ************************************************************************/
-bool InfoInterface::info_update_ads_revision()
+bool InfoInterface::info_update_ads_revision() noexcept
 {
 	return record.PlcWrite(
 		TcComms::AmsRouterNotification::get_instance().get_ads_revision());
@@ -1122,7 +1190,7 @@ bool InfoInterface::info_update_ads_revision()
 
 /* InfoInterface::info_update_ads_build
  ************************************************************************/
-bool InfoInterface::info_update_ads_build()
+bool InfoInterface::info_update_ads_build() noexcept
 {
 	return record.PlcWrite(
 		TcComms::AmsRouterNotification::get_instance().get_ads_build());
@@ -1130,151 +1198,169 @@ bool InfoInterface::info_update_ads_build()
 
 /* InfoInterface::info_update_ads_port
  ************************************************************************/
-bool InfoInterface::info_update_ads_port()
+bool InfoInterface::info_update_ads_port() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.port);
 }
 
 /* InfoInterface::info_update_ads_netid_str
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_str()
+bool InfoInterface::info_update_ads_netid_str() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
-	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
-	char buf[100];
-	snprintf(buf, sizeof(buf), "%u.%u.%u.%u.%u.%u", 
-		addr.netId.b[0], addr.netId.b[1], addr.netId.b[2], 
-		addr.netId.b[3], addr.netId.b[4], addr.netId.b[5]);
-	string netid (buf);
-	return record.PlcWrite(netid);
+	try {
+		const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+		if (!tc) return false;
+		const AmsAddr addr = tc->get_addr();
+		char buf[100]{};
+		snprintf(buf, sizeof(buf), "%u.%u.%u.%u.%u.%u",
+			addr.netId.b[0], addr.netId.b[1], addr.netId.b[2],
+			addr.netId.b[3], addr.netId.b[4], addr.netId.b[5]);
+		string netid(buf);
+		return record.PlcWrite(netid);
+	}
+	catch(...) {
+		return false;
+	}
 }
 
 /* InfoInterface::info_update_ads_netid_b0
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b0()
+bool InfoInterface::info_update_ads_netid_b0() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[0]);
 }
 
 /* InfoInterface::info_update_ads_netid_b1
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b1()
+bool InfoInterface::info_update_ads_netid_b1() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[1]);
 }
 
 /* InfoInterface::info_update_ads_netid_b2
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b2()
+bool InfoInterface::info_update_ads_netid_b2() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[2]);
 }
 
 /* InfoInterface::info_update_ads_netid_b3
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b3()
+bool InfoInterface::info_update_ads_netid_b3() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[3]);
 }
 
 /* InfoInterface::info_update_ads_netid_b4
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b4()
+bool InfoInterface::info_update_ads_netid_b4() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[4]);
 }
 
 /* InfoInterface::info_update_ads_netid_b5
  ************************************************************************/
-bool InfoInterface::info_update_ads_netid_b5()
+bool InfoInterface::info_update_ads_netid_b5() noexcept
 {
-	const TcComms::TcPLC* tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
+	const TcComms::TcPLC* const tc = dynamic_cast<const TcComms::TcPLC*>(get_parent());
 	if (!tc) return false;
-	AmsAddr addr = tc->get_addr();
+	const AmsAddr addr = tc->get_addr();
 	return record.PlcWrite(addr.netId.b[5]);
 }
 
 /* InfoInterface::info_update_svn_local
  ************************************************************************/
-bool InfoInterface::info_update_svn_local()
+bool InfoInterface::info_update_svn_local() noexcept
 {
 	return record.PlcWrite(svn_local_modifications);
 }
 
 /* InfoInterface::info_update_svn_revision
  ************************************************************************/
-bool InfoInterface::info_update_svn_revision()
+bool InfoInterface::info_update_svn_revision() noexcept
 {
 	return record.PlcWrite(svn_revision_committed);
 }
 
 /* InfoInterface::info_update_svn_time
  ************************************************************************/
-bool InfoInterface::info_update_svn_time()
+bool InfoInterface::info_update_svn_time() noexcept
 {
-	std::string	svn_time (svn_time_now);
-	string::size_type pos;
-	while ((pos = svn_time.find('/')) != string::npos) {
-		svn_time[pos] = '-';
+	try {
+		std::string	svn_time(svn_time_now);
+		string::size_type pos = 0;
+		while ((pos = svn_time.find('/')) != string::npos) {
+			svn_time[pos] = '-';
+		}
+		return record.PlcWrite(svn_time);
 	}
-	return record.PlcWrite (svn_time);
+	catch (...) {
+		return false;
+	}
 }
 
 /* InfoInterface::info_update_callback_queue0_size
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_size()
+bool InfoInterface::info_update_callback_queue0_size() noexcept
 {
 	return record.PlcWrite (get_callback_queue_size(0));
 }
 
 /* InfoInterface::info_update_callback_queue0_used
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_used()
+bool InfoInterface::info_update_callback_queue0_used() noexcept
 {
-	int val = get_callback_queue_used(0);
-	if (val > queue0_max) queue0_max = val;
+	const int val = get_callback_queue_used(0);
 	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue0_max
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_max()
+bool InfoInterface::info_update_callback_queue0_max() noexcept
 {
-	return record.PlcWrite(queue0_max);
+	const int val = get_callback_queue_highwatermark(0);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue0_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue0_overflow() noexcept
+{
+	const int val = get_callback_queue_overflow(0);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue0_free
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_free()
+bool InfoInterface::info_update_callback_queue0_free() noexcept
 {
 	return record.PlcWrite(get_callback_queue_free(0));
 }
 
 /* InfoInterface::info_update_callback_queue0_percent
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_percent()
+bool InfoInterface::info_update_callback_queue0_percent() noexcept
 {
-	double sz = (double)get_callback_queue_size(0);
-	double usd = (double)get_callback_queue_used(0);
+	const double sz = (double)get_callback_queue_size(0);
+	const double usd = (double)get_callback_queue_used(0);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd/sz);
 	}
@@ -1283,12 +1369,12 @@ bool InfoInterface::info_update_callback_queue0_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue0_mprcnt
+/* InfoInterface::info_update_callback_queue0_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue0_mprcnt()
+bool InfoInterface::info_update_callback_queue0_max_prcnt() noexcept
 {
-	double sz = (double)get_callback_queue_size(0);
-	double usd = (double)queue0_max;
+	const double sz = (double)get_callback_queue_size(0);
+	const double usd = (double)get_callback_queue_highwatermark(0);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1299,40 +1385,48 @@ bool InfoInterface::info_update_callback_queue0_mprcnt()
 
 /* InfoInterface::info_update_callback_queue1_size
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_size()
+bool InfoInterface::info_update_callback_queue1_size() noexcept
 {
 	return record.PlcWrite(get_callback_queue_size(1));
 }
 
 /* InfoInterface::info_update_callback_queue1_used
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_used()
+bool InfoInterface::info_update_callback_queue1_used() noexcept
 {
-	int val = get_callback_queue_used(1);
-	if (val > queue1_max) queue1_max = val;
+	const int val = get_callback_queue_used(1);
 	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue1_max
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_max()
+bool InfoInterface::info_update_callback_queue1_max() noexcept
 {
-	return record.PlcWrite(queue1_max);
+	const int val = get_callback_queue_highwatermark(1);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue1_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue1_overflow() noexcept
+{
+	const int val = get_callback_queue_overflow(1);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue1_free
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_free()
+bool InfoInterface::info_update_callback_queue1_free() noexcept
 {
 	return record.PlcWrite(get_callback_queue_free(1));
 }
 
 /* InfoInterface::info_update_callback_queue1_percent
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_percent()
+bool InfoInterface::info_update_callback_queue1_percent() noexcept
 {
-	double sz = (double)get_callback_queue_size(1);
-	double usd = (double)get_callback_queue_used(1);
+	const double sz = (double)get_callback_queue_size(1);
+	const double usd = (double)get_callback_queue_used(1);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1341,12 +1435,12 @@ bool InfoInterface::info_update_callback_queue1_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue1_mprcnt
+/* InfoInterface::info_update_callback_queue1_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue1_mprcnt()
+bool InfoInterface::info_update_callback_queue1_max_prcnt() noexcept
 {
-	double sz = (double)get_callback_queue_size(1);
-	double usd = (double)queue1_max;
+	const double sz = (double)get_callback_queue_size(1);
+	const double usd = (double)get_callback_queue_highwatermark(1);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1357,40 +1451,48 @@ bool InfoInterface::info_update_callback_queue1_mprcnt()
 
 /* InfoInterface::info_update_callback_queue2_size
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_size()
+bool InfoInterface::info_update_callback_queue2_size() noexcept
 {
 	return record.PlcWrite(get_callback_queue_size(2));
 }
 
 /* InfoInterface::info_update_callback_queue2_used
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_used()
+bool InfoInterface::info_update_callback_queue2_used() noexcept
 {
-	int val = get_callback_queue_used(2);
-	if (val > queue2_max) queue2_max = val;
+	const int val = get_callback_queue_used(2);
 	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue2_max
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_max()
+bool InfoInterface::info_update_callback_queue2_max() noexcept
 {
-	return record.PlcWrite(queue2_max);
+	const int val = get_callback_queue_highwatermark(2);
+	return record.PlcWrite(val);
+}
+
+/* InfoInterface::info_update_callback_queue2_overflow
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue2_overflow() noexcept
+{
+	const int val = get_callback_queue_overflow(2);
+	return record.PlcWrite(val);
 }
 
 /* InfoInterface::info_update_callback_queue2_free
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_free()
+bool InfoInterface::info_update_callback_queue2_free() noexcept
 {
 	return record.PlcWrite(get_callback_queue_free(2));
 }
 
 /* InfoInterface::info_update_callback_queue2_percent
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_percent()
+bool InfoInterface::info_update_callback_queue2_percent() noexcept
 {
-	double sz = (double)get_callback_queue_size(2);
-	double usd = (double)get_callback_queue_used(2);
+	const double sz = (double)get_callback_queue_size(2);
+	const double usd = (double)get_callback_queue_used(2);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1399,12 +1501,12 @@ bool InfoInterface::info_update_callback_queue2_percent()
 	}
 }
 
-/* InfoInterface::info_update_callback_queue2_mprcnt
+/* InfoInterface::info_update_callback_queue2_max_prcnt
  ************************************************************************/
-bool InfoInterface::info_update_callback_queue2_mprcnt()
+bool InfoInterface::info_update_callback_queue2_max_prcnt() noexcept
 {
-	double sz = (double)get_callback_queue_size(2);
-	double usd = (double)queue2_max;
+	const double sz = (double)get_callback_queue_size(2);
+	const double usd = (double)get_callback_queue_highwatermark(2);
 	if ((sz > 1.0) && (usd > 1.0)) {
 		return record.PlcWrite(usd / sz);
 	}
@@ -1413,6 +1515,18 @@ bool InfoInterface::info_update_callback_queue2_mprcnt()
 	}
 }
 
+/* InfoInterface::info_update_callback_queue_reset_max
+ ************************************************************************/
+bool InfoInterface::info_update_callback_queue_reset_max() noexcept
+{
+	bool state;
+	if (!record.PlcRead(state)) return false;
+	if (state)	{
+		set_callback_queue_highwatermark_reset();
+		record.PlcWrite(false);
+	}
+	return true;
+}
 
 /* process_arg::get
  ************************************************************************/

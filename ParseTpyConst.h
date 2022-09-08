@@ -98,6 +98,11 @@ const char* const opcExport = "opc";
 const char* const opcProp = "opc_prop";
 /// OPC bracket
 const char* const opcBracket = "[";
+
+/// Substitution 
+const char* const xmlSubstitution = "TcSubstitution";
+/// Substitution EPICS channel name 
+const char* const xmlAlias = "Alias";
 /** @} */
 
 }

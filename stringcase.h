@@ -20,7 +20,7 @@ namespace std {
     @brief case insensitive compare with maximum length
  ************************************************************************/
 inline
-int strncasecmp (const char *s1, const char *s2, size_t n) {
+int strncasecmp (const char *s1, const char *s2, size_t n) noexcept {
 	return _strnicmp (s1, s2, n); }
 
 /** Case insensitive compare for unicode string.
@@ -31,7 +31,7 @@ int strncasecmp (const char *s1, const char *s2, size_t n) {
     @brief case insensitive unicode compare with maximum length
  ************************************************************************/
 inline
-int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, size_t n) {
+int wcsncasewcmp (const wchar_t *s1, const wchar_t *s2, size_t n) noexcept {
 	return _wcsnicmp (s1, s2, n); }
 
 /** This traits class is not case sensitive.
@@ -42,26 +42,26 @@ struct case_char_traits : public std::char_traits<char>
 	/// Equal character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool eq (const char_type& c1, const char_type& c2) {
+	static bool eq (const char_type& c1, const char_type& c2) noexcept {
 		return ::tolower (c1) == ::tolower (c2); 
 	}
 	/// Not equal character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool ne (const char_type& c1, const char_type& c2) {
+	static bool ne (const char_type& c1, const char_type& c2) noexcept {
 		return !(::tolower (c1) == ::tolower (c2));
 	}
 	/// Lower than character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool lt (const char_type& c1, const char_type& c2) {
+	static bool lt (const char_type& c1, const char_type& c2) noexcept {
 		return ::tolower (c1) < ::tolower (c2);
 	}
 	/// Compare strings
 	/// @param s1 First string
 	/// @param s2 Second string
 	/// @param n number of characters
-	static int compare (const char_type* s1, const char_type* s2, size_t n) {
+	static int compare (const char_type* s1, const char_type* s2, size_t n) noexcept {
 		return strncasecmp (s1, s2, n); 
 	}
 };
@@ -74,26 +74,26 @@ struct case_wchar_traits : public std::char_traits<wchar_t>
 	/// Equal character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool eq (const char_type& c1, const char_type& c2) {
+	static bool eq (const char_type& c1, const char_type& c2) noexcept {
 		return towlower (c1) == towlower (c2); 
 	}
 	/// Not equal character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool ne (const char_type& c1, const char_type& c2) {
+	static bool ne (const char_type& c1, const char_type& c2) noexcept {
 		return !(towlower (c1) == towlower (c2));
 	}
 	/// Lower than character
 	/// @param c1 First char
 	/// @param c2 Second char
-	static bool lt (const char_type& c1, const char_type& c2) {
+	static bool lt (const char_type& c1, const char_type& c2) noexcept {
 		return towlower (c1) < towlower (c2);
 	}
 	/// Compare strings
 	/// @param s1 First string
 	/// @param s2 Second string
 	/// @param n number of characters
-	static int compare (const char_type* s1, const char_type* s2, size_t n) {
+	static int compare (const char_type* s1, const char_type* s2, size_t n) noexcept {
 		return wcsncasewcmp (s1, s2, n); 
 	}
 };
@@ -101,12 +101,12 @@ struct case_wchar_traits : public std::char_traits<wchar_t>
 /** This string class is not case sensitive.
     @brief case insensitive string.
  ************************************************************************/
-typedef std::basic_string <char, case_char_traits> stringcase;
+using stringcase = std::basic_string <char, case_char_traits>;
 
 /** This string class is not case sensitive.
     @brief case insensitive string.
  ************************************************************************/
-typedef std::basic_string <wchar_t, case_wchar_traits> wstringcase;
+using wstringcase = std::basic_string <wchar_t, case_wchar_traits>;
 
 /** trim space on both ends.
 	@param s string to trim

@@ -11,57 +11,17 @@ System System::tCat;
 
 /* Interface::get_parent
  ************************************************************************/
-BasePLC* Interface::get_parent()
+BasePLC* Interface::get_parent() noexcept
 {
 	return record.get_parent();
 }
 
 /* Interface::get_parent
  ************************************************************************/
-const BasePLC* Interface::get_parent() const
+const BasePLC* Interface::get_parent() const noexcept
 {
 	return record.get_parent();
 }
-
-
-/* DataValueTraits: template specialization
- ************************************************************************/
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_bool>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_bool>::data_enum = data_type_enum::dtBool; ///< Bool specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_int8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int8>::data_enum = data_type_enum::dtInt8; ///< Int8 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_uint8>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint8>::data_enum = data_type_enum::dtUInt8; ///< UInt8 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_int16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int16>::data_enum = data_type_enum::dtInt16; ///< Int16 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_uint16>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint16>::data_enum = data_type_enum::dtInt16; ///< UInt16 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_int32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_int32>::data_enum = data_type_enum::dtInt32; ///< Int32 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_uint32>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_uint32>::data_enum = data_type_enum::dtInt32; ///< UInt32 specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_float>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_float>::data_enum = data_type_enum::dtFloat; ///< Float specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_double>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_double>::data_enum = data_type_enum::dtDouble; ///< Double specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_string>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_string>::data_enum = data_type_enum::dtString; ///< String specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_wstring>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_wstring>::data_enum = data_type_enum::dtWString; ///< WString specialization for DataValueTraits
-template<> const 
-	DataValueTraits<DataValueTypeDef::type_binary>::data_type_enum 
-	DataValueTraits<DataValueTypeDef::type_binary>::data_enum = data_type_enum::dtBinary; ///< Binary specialization for DataValueTraits
 
 
 /** Will read the value and reset the dirty flag (wstring from string).
@@ -70,14 +30,19 @@ template<> const
 template<>
 bool reset_and_read (DataValueTypeDef::atomic_bool& dirty, 
 					 DataValueTypeDef::type_wstring& dest, 
-					 DataValueTypeDef::atomic_string* source)
+					 const DataValueTypeDef::atomic_string* source) noexcept
 {
 	// must be before read
-	dirty.store (false, DataValueTypeDef::memory_order); 
-	auto s = source->load (DataValueTypeDef::memory_order);
-	// conversion only works with simple acsii strings; not UTF-8
-	dest = DataValueTypeDef::type_wstring (s.begin(), s.end());
-	return true;
+	try {
+		dirty.store(false, DataValueTypeDef::memory_order);
+		auto s = source->load(DataValueTypeDef::memory_order);
+		// conversion only works with simple acsii strings; not UTF-8
+		dest = DataValueTypeDef::type_wstring(s.begin(), s.end());
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /** Will set the dirty bit, when the newly written value is different 
@@ -89,18 +54,23 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 					 const DataValueTypeDef::atomic_bool& read_pending, 
 					 DataValueTypeDef::atomic_bool& valid, 
 					 DataValueTypeDef::atomic_wstring* dest, 
-					 const DataValueTypeDef::type_string& source)
+					 const DataValueTypeDef::type_string& source) noexcept
 {
 	if (read_pending.load (DataValueTypeDef::memory_order)) return false;
-	// conversion only works with simple acsii strings; not UTF-8
-	DataValueTypeDef::type_wstring s (source.begin(), source.end());
-	auto old = dest->exchange (s, DataValueTypeDef::memory_order);
-	valid.store (true);
-	if (old != s) {
-		// must be after modifying the value
-		dirty.store (true, DataValueTypeDef::memory_order); 
+	try {
+		// conversion only works with simple acsii strings; not UTF-8
+		DataValueTypeDef::type_wstring s(source.begin(), source.end());
+		auto old = dest->exchange(s, DataValueTypeDef::memory_order);
+		valid.store(true, DataValueTypeDef::memory_order);
+		if (old != s) {
+			// must be after modifying the value
+			dirty.store(true, DataValueTypeDef::memory_order);
+		}
+		return true;
 	}
-	return true;
+	catch (...) {
+		return false;
+	}
 }
 
 
@@ -113,8 +83,8 @@ DataValue::~DataValue()
 
 /* DataValue copy constructor
  ************************************************************************/
-DataValue::DataValue (const DataValue& dval)
-: mydata (nullptr), mytype (data_type_enum::dtInvalid), mysize (0), myvalid (false),
+DataValue::DataValue (const DataValue& dval) noexcept
+: mydata (nullptr), mysize(0), mytype (data_type_enum::dtInvalid), myvalid (false),
 	myuserdirty (false), myplcdirty (false)
 {
 	*this = dval;
@@ -122,7 +92,7 @@ DataValue::DataValue (const DataValue& dval)
 
 /* DataValue assignment
  ************************************************************************/
-DataValue& DataValue::operator= (const DataValue& dval)
+DataValue& DataValue::operator= (const DataValue& dval) noexcept
 {
 	Init (dval.mytype, dval.mysize);
 	if (!mydata) {
@@ -175,16 +145,16 @@ DataValue& DataValue::operator= (const DataValue& dval)
 		memcpy (mydata, (const type_binary)mydata, mysize);
 		break;
 	}
-	myuserdirty.store (dval.myuserdirty.load());
-	myplcdirty.store (dval.myplcdirty.load());
-	myvalid.store (dval.myvalid.load());
+	myuserdirty.store (dval.myuserdirty.load(), DataValueTypeDef::memory_order);
+	myplcdirty.store (dval.myplcdirty.load(), DataValueTypeDef::memory_order);
+	myvalid.store (dval.myvalid.load(), DataValueTypeDef::memory_order);
 	return *this;
 }
 
 
 /* DataValue::Init (not really MT safe)
  ************************************************************************/
-void DataValue::Init (data_type_enum rt, size_type len)
+void DataValue::Init (data_type_enum rt, size_type len) noexcept
 {
 	if (rt == mytype) {
 		if ((mytype == data_type_enum::dtInvalid) && !mydata) return;
@@ -192,10 +162,10 @@ void DataValue::Init (data_type_enum rt, size_type len)
 	}
 	if (mydata) {
 		if (mytype == data_type_enum::dtBinary) {
-			delete [] mydata;
+			delete [] (char*) mydata;
 		}
 		else {
-			delete mydata;
+			delete (char*) mydata;
 		}
 	}
 	mydata = nullptr;
@@ -276,73 +246,79 @@ void DataValue::Init (data_type_enum rt, size_type len)
 		mytype = data_type_enum::dtInvalid;
 		mysize = 0;
 	}
-	myuserdirty.store (false);
-	myplcdirty.store (false);
+	myuserdirty.store (false, DataValueTypeDef::memory_order);
+	myplcdirty.store (false, DataValueTypeDef::memory_order);
 }
 
 /* DataValue::Read (type_string)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_string& data) const
+bool DataValue::Read (atomic_bool& dirty, type_string& data) const noexcept
 {
-	switch (mytype) {
-	case data_type_enum::dtString:
-		return reset_and_read (dirty, data, (atomic_string*)mydata);
-	default:
+	try {
+		switch (mytype) {
+		case data_type_enum::dtString:
+			return reset_and_read(dirty, data, (const atomic_string*)mydata);
+		default:
+			return false;
+		}
+	}
+	catch (...) {
 		return false;
 	}
 }
 
 /* DataValue::Read (type_wstring)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_wstring& data) const
+bool DataValue::Read (atomic_bool& dirty, type_wstring& data) const noexcept
 {
-	switch (mytype) {
-	case data_type_enum::dtString:
-		// conversion only works with simple acsii strings; not UTF-8
-		return reset_and_read (dirty, data, (atomic_string*)mydata);
-	case data_type_enum::dtWString:
-		return reset_and_read (dirty, data, (atomic_wstring*)mydata);
-	default:
+	try {
+		switch (mytype) {
+		case data_type_enum::dtString: 
+			// conversion only works with simple acsii strings; not UTF-8
+			return reset_and_read (dirty, data, (const atomic_string*)mydata);
+		case data_type_enum::dtWString:
+			return reset_and_read(dirty, data, (const atomic_wstring*)mydata);
+		default:
+			return false;
+		}
+	}
+	catch (...) {
 		return false;
 	}
 }
 
 /* DataValue::Read (type_string_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_string_value* data, size_type max) const
+bool DataValue::Read (atomic_bool& dirty, type_string_value* data, size_type max) const noexcept
 {
 	if (!data || (max <= 0)) {
 		return false;
 	}
 	type_string d;
 	if (!Read (dirty, d)) return false;
-	#pragma warning (disable : 4996)
-	strncpy (data, d.c_str(), max);
-	#pragma warning (default : 4996)
+	const errno_t err = strncpy_s (data, max, d.c_str(), max - 1);
 	data[max-1] = 0;
-	return true;
+	return err == 0;
 }
 
 /* DataValue::Read (type_wstring_value*)
  ************************************************************************/
-bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const
+bool DataValue::Read (atomic_bool& dirty, type_wstring_value* data, size_type max) const noexcept
 {
 	if (!data || (max <= 0)) {
 		return false;
 	}
 	type_wstring d;
 	if (!Read (dirty, d)) return false;
-	#pragma warning (disable : 4996)
-	wcsncpy (data, d.c_str(), max);
-	#pragma warning (default : 4996)
+	const errno_t err = wcsncpy_s (data, max, d.c_str(), max - 1);
 	data[max-1] = 0;
-	return true;
+	return err == 0;
 }
 
 /* DataValue::Write (type_string)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_string& data)
+					   const type_string& data) noexcept
 {
 	switch (mytype) {
 	case data_type_enum::dtString:
@@ -358,7 +334,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_wstring)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_wstring& data)
+					   const type_wstring& data) noexcept
 {
 	switch (mytype) {
 	case data_type_enum::dtWString:
@@ -371,12 +347,12 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_string_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_string_value* data, size_type max)
+					   const type_string_value* data, size_type max) noexcept
 {
 	if (!data || (max <= 0)) {
 		return false;
 	}
-	size_t len = strnlen (data, max);
+	const size_t len = strnlen (data, max);
 	type_string d (data, len);
 	return Write (dirty, pend, d);
 }
@@ -384,12 +360,12 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::Write (type_wstring_value)
  ************************************************************************/
 bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, 
-					   const type_wstring_value* data, size_type max)
+					   const type_wstring_value* data, size_type max) noexcept
 {
 	if (!data || (max <= 0)) {
 		return false;
 	}
-	size_t len = wcsnlen (data, max);
+	const size_t len = wcsnlen (data, max);
 	type_wstring d (data, len);
 	return Write (dirty, pend, d);
 }
@@ -397,7 +373,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend,
 /* DataValue::ReadBinary
  ************************************************************************/
 DataValue::size_type 
-DataValue::ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const
+DataValue::ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const noexcept
 {
 	if ((mytype == data_type_enum::dtInvalid) || !mydata || !p) {
 		return 0;
@@ -434,7 +410,9 @@ DataValue::ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const
 		if (len != mysize) {
 			return 0;
 		}
-		dirty.store (false, memory_order); // must be first
+		// Really need a mutex here to protect the memcpy.
+		// However, this is currently not used.
+		dirty.store (false, DataValueTypeDef::memory_order); // must be first
 		memcpy (p, (const type_binary)mydata, len);
 		return mysize;
 	default:
@@ -446,7 +424,7 @@ DataValue::ReadBinary (atomic_bool& dirty, type_binary p, size_type len) const
  ************************************************************************/
 DataValue::size_type 
 DataValue::WriteBinary (atomic_bool& dirty, const atomic_bool& pend, 
-						const data_type p, size_type len)
+						const type_binary p, size_type len) noexcept
 {
 	if ((mytype == data_type_enum::dtInvalid) || !mydata || !p) {
 		return 0;
@@ -483,8 +461,12 @@ DataValue::WriteBinary (atomic_bool& dirty, const atomic_bool& pend,
 		if (len != mysize) {
 			return 0;
 		}
+		if (pend.load(DataValueTypeDef::memory_order)) return false;
+		// Really need a mutex here to protect the memcpy; also doesn't
+		// check if the new value is different form the old, always sets dirty.
+		// However, this is currently not used.
 		memcpy ((type_binary)mydata, p, len);
-		dirty.store (false, memory_order); // must be last
+		dirty.store (false, DataValueTypeDef::memory_order); // must be last
 		return mysize;
 	default:
 		return 0;
@@ -493,10 +475,10 @@ DataValue::WriteBinary (atomic_bool& dirty, const atomic_bool& pend,
 
 /* DataValue::set_valid
  ************************************************************************/
-void DataValue::SetValid (atomic_bool& dirty, bool valid)
+void DataValue::SetValid (atomic_bool& dirty, bool valid) noexcept
 {
 
-	bool old = myvalid.exchange (valid, DataValueTypeDef::memory_order);
+	const bool old = myvalid.exchange (valid, DataValueTypeDef::memory_order);
 	if (old != valid) {
 		// must be after modifying the value
 		dirty.store (true, DataValueTypeDef::memory_order); 
@@ -505,7 +487,7 @@ void DataValue::SetValid (atomic_bool& dirty, bool valid)
 
 /* DataValue::get_valid
  ************************************************************************/
-bool DataValue::GetValid (atomic_bool& dirty) const
+bool DataValue::GetValid (atomic_bool& dirty) const noexcept
 {
 	// must be before read
 	dirty.store (false, DataValueTypeDef::memory_order); 
@@ -519,7 +501,7 @@ bool DataValue::GetValid (atomic_bool& dirty) const
 
 /* BaseRecord::get_timestamp
  ************************************************************************/
-BasePLC::time_type BaseRecord::get_timestamp() const
+BasePLC::time_type BaseRecord::get_timestamp() const noexcept
 {
 	if (!parent) return 0;
 	return parent->get_timestamp();
@@ -531,17 +513,11 @@ BasePLC::time_type BaseRecord::get_timestamp() const
 
 /* BasePLC::BasePLC
  ************************************************************************/
-BasePLC::BasePLC()
+BasePLC::BasePLC() noexcept
 	: timestamp (0), read_scanner_period (1000), write_scanner_period (1000),
 	update_scanner_period (1000), scanners_active (false)
 {
 	records.max_load_factor (0.5);
-}
-
-/* BasePLC::~BasePLC
- ************************************************************************/
-BasePLC::~BasePLC()
-{
 }
 
 /* BasePLC::add
@@ -576,13 +552,14 @@ BaseRecordPtr BasePLC::find (const std::stringcase& name)
  ************************************************************************/
 bool BasePLC::erase (const std::stringcase& name)
 {
-	auto num = records.erase (name);
+	guard lock(mux);
+	const auto num = records.erase (name);
 	return num > 0;
 }
 
 /* BasePLC::get_next
  ************************************************************************/
-bool BasePLC::get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const
+bool BasePLC::get_next (BaseRecordPtr& next, const BaseRecord* prev) const
 {
 	guard lock (mux);
 	if (records.empty() || !prev) {
@@ -603,10 +580,10 @@ bool BasePLC::get_next (BaseRecordPtr& next, const BaseRecordPtr& prev) const
 
 /* BasePLC::get_timestamp_unix
  ************************************************************************/
-static const BasePLC::time_type TICKS_PER_SECOND = 10000000ULL;
-static const BasePLC::time_type EPOCH_DIFFERENCE = 11644473600ULL;
+static constexpr BasePLC::time_type TICKS_PER_SECOND = 10000000ULL;
+static constexpr BasePLC::time_type EPOCH_DIFFERENCE = 11644473600ULL;
 
-time_t BasePLC::get_timestamp_unix() const 
+time_t BasePLC::get_timestamp_unix() const noexcept
 {
     time_type temp;
 	//convert from 100ns intervals to seconds
@@ -623,35 +600,40 @@ time_t BasePLC::get_timestamp_unix() const
 
 /* BasePLC::update_timestamp
  ************************************************************************/
-void BasePLC::update_timestamp()
+void BasePLC::update_timestamp() noexcept
 {
 	GetSystemTimeAsFileTime ((LPFILETIME )&timestamp);
 }
 
 /* BasePLC::count
  ************************************************************************/
-int BasePLC::count() const
+int BasePLC::count() const noexcept
 {
-	guard lock (mux);
-	return (int)records.size();
+	try {
+		guard lock(mux);
+		return (int)records.size();
+	}
+	catch (...) {
+		return 0;
+	}
 }
 
 /* BasePLC::test
  ************************************************************************/
-void BasePLC::user_data_set_valid (bool valid)
+void BasePLC::user_data_set_valid (bool valid) noexcept
 {
 	for_each (
-		[&valid](BaseRecord* rec) {
+		[&valid](BaseRecord* rec) noexcept {
 			rec->UserSetValid (valid);
 	});
 }
 
 /* BasePLC::test
  ************************************************************************/
-void BasePLC::plc_data_set_valid (bool valid)
+void BasePLC::plc_data_set_valid (bool valid) noexcept
 {
 	for_each (
-		[&valid](BaseRecord* rec) {
+		[&valid](BaseRecord* rec) noexcept {
 			rec->PlcSetValid (valid);
 	});
 }
@@ -659,7 +641,7 @@ void BasePLC::plc_data_set_valid (bool valid)
 /** Structure for arguments sent to a scanner thread
     @brief Scanner thread arguments
  ************************************************************************/
-typedef struct 
+using scanner_thread_args = struct
 { 
 	/// PLC this scanner operates on
 	plc::BasePLC* plc; 
@@ -667,7 +649,7 @@ typedef struct
 	long scanperiod;
 	/// Address of the scanner function to be used (read, write, or upddate)
 	plc::BasePLC::scanner_func scanner; 
-} scanner_thread_args;
+};
 
 /** Scanner thread callback with periodic timer
 	@brief Scanner thread callback
@@ -691,16 +673,16 @@ VOID CALLBACK ScannerProc (
 	update_scanner.
     @brief Scanner thread
 ************************************************************************/
-DWORD WINAPI scannerThread (scanner_thread_args args)
+DWORD WINAPI scannerThread (scanner_thread_args args) noexcept
 {
-	HANDLE				hTimer;
-	LARGE_INTEGER		due_time;
+	HANDLE				hTimer = 0;
+	LARGE_INTEGER		due_time{};
 
 	// Default security attributes, auto-reset timer, unnamed
 	hTimer = CreateWaitableTimer (NULL, FALSE, NULL); 
 	if (hTimer == NULL) {
 
-		printf("CreateWaitableTimer failed with error %d\n", GetLastError());
+		printf("CreateWaitableTimer failed with error %lu\n", GetLastError());
 		return 1;
 	}
 	// Create an integer that will be used to signal the timer 
@@ -708,7 +690,7 @@ DWORD WINAPI scannerThread (scanner_thread_args args)
 	due_time.QuadPart = -1 * (LONGLONG) TICKS_PER_SECOND;
 	if (!SetWaitableTimer (hTimer, &due_time, args.scanperiod, 
 						   ScannerProc, &args, FALSE)) {
-		printf("SetWaitableTimer failed with error %d\n", GetLastError());
+		printf("SetWaitableTimer failed with error %lu\n", GetLastError());
 		CloseHandle (hTimer);
 		return 1;
 	}
@@ -722,7 +704,7 @@ DWORD WINAPI scannerThread (scanner_thread_args args)
 
 /* BasePLC::start_read_scanner
  ************************************************************************/
-bool BasePLC::start_read_scanner()
+bool BasePLC::start_read_scanner() noexcept
 {
 	scanner_thread_args args = {this, read_scanner_period, &BasePLC::read_scanner};
 	try {
@@ -737,7 +719,7 @@ bool BasePLC::start_read_scanner()
 
 /* BasePLC::start_write_scanner
  ************************************************************************/
-bool BasePLC::start_write_scanner()
+bool BasePLC::start_write_scanner() noexcept
 {
 	scanner_thread_args args = {this, write_scanner_period, &BasePLC::write_scanner};
 	try {
@@ -752,7 +734,7 @@ bool BasePLC::start_write_scanner()
 
 /* BasePLC::start_update_scanner
  ************************************************************************/
-bool BasePLC::start_update_scanner()
+bool BasePLC::start_update_scanner() noexcept
 {
 	scanner_thread_args args = {this, update_scanner_period, &BasePLC::update_scanner};
 	try {
@@ -772,7 +754,7 @@ bool BasePLC::start_update_scanner()
 
 /* Constructor
  ************************************************************************/
-System::System()
+System::System() noexcept
 	: IocRun (false)
 {
 }
@@ -834,16 +816,16 @@ BasePLCPtr System::find (std::stringcase id)
 }
 
 
-void System::start()
+void System::start() noexcept
 {
-	for_each ([] (BasePLC* plc) {
+	for_each ([] (BasePLC* plc) noexcept {
 		plc->set_scanners_active (true);
 	});
 }
 
-void System::stop()
+void System::stop() noexcept
 {
-	for_each ([] (BasePLC* plc) {
+	for_each ([] (BasePLC* plc) noexcept {
 		plc->set_scanners_active (false);
 	});
 }

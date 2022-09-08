@@ -15,11 +15,12 @@ namespace EpicsTpy {
  ************************************************************************/
 /** @{ */
 
-const int MAX_EPICS_CHANNEL=	54;	/**< maximum length of EPICS channel name */
-const int MAX_EPICS_DESC=		40;	/**< maximum length of EPICS channel description */
-const int MAX_EPICS_STRING=		40;	/**< maximum length of EPICS strings */
-const int MAX_EPICS_LONGSTRING= 65535;	/**< maximum length of EPICS long strings */
-const int MAX_EPICS_UNIT=		15;	/**< maximum length of EPICS channel unit string */
+constexpr int MAX_EPICS_CHANNEL=	54;	/**< maximum length of EPICS channel name */
+constexpr int MAX_EPICS_DESC=		40;	/**< maximum length of EPICS channel description */
+constexpr int MAX_EPICS_STRING=		40;	/**< maximum length of EPICS strings */
+constexpr int MAX_EPICS_LONGSTRING= 65535;	/**< maximum length of EPICS long strings */
+constexpr int MAX_EPICS_UNIT=		15;	/**< maximum length of EPICS channel unit string */
+constexpr int MAX_EPICS_ENUM=		25;	/**< maximum length of EPICS channel enum string */
 
 const char* const EPICS_DB_EGU=     "EGU";	/**< unit string */
 const char* const EPICS_DB_DESC=    "DESC";	/**< description string */
@@ -88,9 +89,9 @@ const char* const EPICS_DB_NUMVAL[] = {EPICS_DB_TSE, EPICS_DB_HOPR, EPICS_DB_LOP
 
 /** DAQ datatype name */
 const char* const LIGODAQ_DATATYPE_NAME = "datatype";
-const int LIGODAQ_DATATYPE_FLOAT = 4;	/**< DAQ datatype is float */
-const int LIGODAQ_DATATYPE_INT32 = 2;	/**< DAQ datatype is int32 */
-const int LIGODAQ_DATATYPE_DEFAULT = LIGODAQ_DATATYPE_FLOAT;	/**< default DAQ datatype is float */
+constexpr int LIGODAQ_DATATYPE_FLOAT = 4;	/**< DAQ datatype is float */
+constexpr int LIGODAQ_DATATYPE_INT32 = 2;	/**< DAQ datatype is int32 */
+constexpr int LIGODAQ_DATATYPE_DEFAULT = LIGODAQ_DATATYPE_FLOAT;	/**< default DAQ datatype is float */
 
 const char* const LIGODAQ_UNIT_NAME = "units";	/**< DAQ unit name */
 const char* const LIGODAQ_UNIT_NONE = "none";	/**<  DAQ unit for no unit */

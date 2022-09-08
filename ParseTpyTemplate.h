@@ -40,9 +40,10 @@ namespace ParseTpy {
 			}
 		}
 		else if (!n.get_name().empty()) {
+			ParseUtil::opc_list opc(symbol.get_opc());
 			return process_type_tree (symbol.get_type_name(), 
 				symbol.get_type_decoration(), 
-				symbol.get_opc(), symbol, process, n, 0);
+				opc, symbol, process, n, 0);
 		}
 		else {
 			return 0;
@@ -121,10 +122,13 @@ namespace ParseTpy {
 					return process (arg) ? 1 : 0;
 				}
 			}
+			else {
+				return 0;
+			}
 		case type_enum::structtype :
 		case type_enum::functionblock :
 			{
-				// Call process for entire array (not an atomic type)
+				// Call process for entire struct (not an atomic type)
 				int num = 0;
 				if (get_process_tags() == ParseUtil::process_tag_enum::structured ||
 					get_process_tags() == ParseUtil::process_tag_enum::all) {
@@ -149,7 +153,7 @@ namespace ParseTpy {
 				return num; 
 			}
 		default :
-			fprintf (stderr, "Unknown type for %s\n", varname.get_name().c_str());
+			fprintf (stderr, "Unknown type %s for %s\n", typ.get_name().c_str(), varname.get_name().c_str());
 			return 0;
 		}
 	}
@@ -165,7 +169,9 @@ namespace ParseTpy {
 
 		if ((typ == "SINT")  || (typ == "INT")  || (typ == "DINT")  || (typ == "LINT")  ||
 			(typ == "USINT") || (typ == "UINT") || (typ == "UDINT") || (typ == "ULINT") ||
-			(typ == "BYTE")  || (typ == "WORD") || (typ == "DWORD") || (typ == "LWORD")) {
+			(typ == "BYTE")  || (typ == "WORD") || (typ == "DWORD") || (typ == "LWORD") ||
+			(typ == "TIME")  || (typ == "TOD")  || (typ == "LTIME") || (typ == "DATE")  ||
+			(typ == "DT")    || (typ == "TIME_OF_DAY") || (typ == "DATE_AND_TIME")) {
 			if (get_process_tags() == ParseUtil::process_tag_enum::atomic ||
 				get_process_tags() == ParseUtil::process_tag_enum::all) {
 				ParseUtil::process_arg_tc arg (loc, varname, ParseUtil::process_type_enum::pt_int, defopc, typ, true);
@@ -202,7 +208,7 @@ namespace ParseTpy {
 			return process_type_tree (*t, defopc, loc, process, varname, level);
 		}
 		else {
-			fprintf (stderr, "Unknown type for %s\n", varname.get_name().c_str());
+			fprintf (stderr, "Unknown type %s for %s\n", typ.c_str(), varname.get_name().c_str());
 			return 0;
 		}
 	}
@@ -222,7 +228,7 @@ namespace ParseTpy {
 		}
 		// If not process through the indices
 		else {
-			dimension d = dim.front();
+			const dimension d = dim.front();
 			dim.pop_front();
 			// invalid number of elements
 			if (d.second < 0) {
@@ -253,13 +259,13 @@ namespace ParseTpy {
 				}
 			}
 			// loop through first array dimension and call process_array for next dimension
-			int el_bitsize = typ.get_bit_size() / d.second;
+			const int el_bitsize = typ.get_bit_size() / d.second;
 			// create a type with bit size = row size
 			type_record ntyp (typ);
 			ntyp.set_bit_size (el_bitsize);
 			for (int i = d.first; i < d.first + d.second; ++i) {
 				ParseUtil::memory_location el_loc = loc;
-				ParseUtil::bit_location el ((i - d.first) * el_bitsize, el_bitsize);
+				const ParseUtil::bit_location el ((i - d.first) * el_bitsize, el_bitsize);
 				if (!el_loc.set_section (el)) {
 					continue;
 				}

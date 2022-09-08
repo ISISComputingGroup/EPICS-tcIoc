@@ -1,8 +1,4 @@
 #include "tcComms.h"
-#define _CRT_SECURE_NO_WARNINGS
-#pragma warning (disable : 26812)
-#pragma warning (disable : 26495)
-#pragma warning (disable: 4996)
 #include "aiRecord.h"
 #include "aaiRecord.h"
 #include "aoRecord.h"
@@ -28,10 +24,6 @@
 #include "histogramRecord.h"
 #include "alarm.h"
 #include "recGbl.h"
-#pragma warning (default: 4996)
-#pragma warning (default : 26495)
-#pragma warning (default : 26812)
-#undef _CRT_SECURE_NO_WARNINGS
 
 /** @file devTcTemplate.h
 	Header which includes templates for the device support functions for 
@@ -42,247 +34,247 @@ namespace DevTc {
 
 /// Epics traits class specialization for aai record
 template<>
-struct epics_record_traits<aaival>
+struct epics_record_traits<epics_record_enum::aaival>
 {
-	typedef aaiRecord traits_type;
-	typedef void* value_type;
-	static const char* const name () { return "aaival"; };
+	using traits_type = aaiRecord;
+	using value_type = void*;
+	static const char* const name () noexcept { return "aaival"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) {
-		auto size = baserec->get_data().get_size();
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
+		const auto size = baserec->get_data().get_size();
 		return baserec->UserReadBinary(*val (epicsrec), size) == size; }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
-		auto size = baserec->get_data().get_size();
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
+		const auto size = baserec->get_data().get_size();
 		return baserec->UserWriteBinary(*val (epicsrec), size) == size; }
 };
 
 /// Epics traits class specialization for aao record
 template<>
-struct epics_record_traits<aaoval>
+struct epics_record_traits<epics_record_enum::aaoval>
 {
-	typedef aaoRecord traits_type;
-	typedef void* value_type;
-	static const char* const name () { return "aaoval"; };
+	using traits_type = aaoRecord;
+	using value_type = void*;
+	static const char* const name () noexcept { return "aaoval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) {
-		auto size = baserec->get_data().get_size();
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
+		const auto size = baserec->get_data().get_size();
 		return baserec->UserReadBinary(*val (epicsrec), size) == size; }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
-		auto size = baserec->get_data().get_size();
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
+		const auto size = baserec->get_data().get_size();
 		return baserec->UserWriteBinary(*val (epicsrec), size) == size; }
 };
 
 /// Epics traits class specialization for ai record
 template<>
-struct epics_record_traits<aival> 
+struct epics_record_traits<epics_record_enum::aival>
 {
-	typedef aiRecord traits_type;
-	typedef epicsFloat64 value_type;
-	static const char* const name () { return "aival"; };
+	using traits_type = aiRecord;
+	using value_type = epicsFloat64;
+	static const char* const name () noexcept { return "aival"; };
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for ai raw record
 template<>
-struct epics_record_traits<airval>
+struct epics_record_traits<epics_record_enum::airval>
 {
-	typedef aiRecord traits_type;
-	typedef epicsInt32 value_type;
-	static const char* const name () { return "airval"; };
+	using traits_type = aiRecord;
+	using value_type = epicsInt32;
+	static const char* const name () noexcept { return "airval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for ao record
 template<>
-struct epics_record_traits<aoval>
+struct epics_record_traits<epics_record_enum::aoval>
 {
-	typedef aoRecord traits_type;
-	typedef epicsFloat64 value_type;
-	static const char* const name () { return "aoval"; };
+	using traits_type = aoRecord;
+	using value_type = epicsFloat64;
+	static const char* const name () noexcept { return "aoval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for ao raw record
 template<>
-struct epics_record_traits<aorval>
+struct epics_record_traits<epics_record_enum::aorval>
 {
-	typedef aoRecord traits_type;
-	typedef epicsInt32 value_type;
-	static const char* const name () { return "aorval"; };
+	using traits_type = aoRecord;
+	using value_type = epicsInt32;
+	static const char* const name () noexcept { return "aorval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for bi record
 template<>
-struct epics_record_traits<bival>
+struct epics_record_traits<epics_record_enum::bival>
 {
-	typedef biRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "bival"; };
+	using traits_type = biRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "bival"; };
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for bi raw record
 template<>
-struct epics_record_traits<birval>
+struct epics_record_traits<epics_record_enum::birval>
 {
-	typedef biRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "birval"; };
+	using traits_type = biRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "birval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for bo record
 template<>
-struct epics_record_traits<boval>
+struct epics_record_traits<epics_record_enum::boval>
 {
-	typedef boRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "boval"; };
+	using traits_type = boRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "boval"; };
     static const int value_conversion = 2;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for bo raw record
 template<>
-struct epics_record_traits<borval>
+struct epics_record_traits<epics_record_enum::borval>
 {
-	typedef boRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "borval"; };
+	using traits_type = boRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "borval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for longin record
 template<>
-struct epics_record_traits<longinval>
+struct epics_record_traits<epics_record_enum::longinval>
 {
-	typedef longinRecord traits_type;
-	typedef epicsInt32 value_type;
-	static const char* const name () { return "longinval"; };
+	using traits_type = longinRecord;
+	using value_type = epicsInt32;
+	static const char* const name () noexcept { return "longinval"; };
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for longout record
 template<>
-struct epics_record_traits<longoutval>
+struct epics_record_traits<epics_record_enum::longoutval>
 {
-	typedef longoutRecord traits_type;
-	typedef epicsInt32 value_type;
-	static const char* const name () { return "longoutval"; };
+	using traits_type = longoutRecord;
+	using value_type = epicsInt32;
+	static const char* const name () noexcept { return "longoutval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 #if EPICS_VERSION >= 7
 /// Epics traits class specialization for int64in record
 template<>
-struct epics_record_traits<int64inval>
+struct epics_record_traits<epics_record_enum::int64inval>
 {
-	typedef int64inRecord traits_type;
-	typedef epicsInt64 value_type;
-	static const char* const name() { return "int64inval"; };
+	using traits_type = int64inRecord;
+	using value_type = epicsInt64;
+	static const char* const name() noexcept { return "int64inval"; };
 	static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val(traits_type* prec) { return (value_type*)&prec->val; }
-	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+	static value_type* val(traits_type* prec) noexcept { return (value_type*)&prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead(*val(epicsrec));
 	}
-	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(*val(epicsrec));
 	}
 };
 
 /// Epics traits class specialization for int64out record
 template<>
-struct epics_record_traits<int64outval>
+struct epics_record_traits<epics_record_enum::int64outval>
 {
-	typedef int64outRecord traits_type;
-	typedef epicsInt64 value_type;
-	static const char* const name() { return "int64outval"; };
+	using traits_type = int64outRecord;
+	using value_type = epicsInt64;
+	static const char* const name() noexcept { return "int64outval"; };
 	static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val(traits_type* prec) { return (value_type*)&prec->val; }
-	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
+	static value_type* val(traits_type* prec) noexcept { return (value_type*)&prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead(*val(epicsrec));
 	}
-	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(*val(epicsrec));
 	}
 };
@@ -290,303 +282,267 @@ struct epics_record_traits<int64outval>
 
 /// Epics traits class specialization for mbbi record
 template<>
-struct epics_record_traits<mbbival>
+struct epics_record_traits<epics_record_enum::mbbival>
 {
-	typedef mbbiRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "mbbival"; };
+	using traits_type = mbbiRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "mbbival"; };
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbbi raw record
 template<>
-struct epics_record_traits<mbbirval>
+struct epics_record_traits<epics_record_enum::mbbirval>
 {
-	typedef mbbiRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "mbbirval"; };
+	using traits_type = mbbiRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "mbbirval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbbo record
 template<>
-struct epics_record_traits<mbboval>
+struct epics_record_traits<epics_record_enum::mbboval>
 {
-	typedef mbboRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "mbboval"; };
+	using traits_type = mbboRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "mbboval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbbo raw record
 template<>
-struct epics_record_traits<mbborval>
+struct epics_record_traits<epics_record_enum::mbborval>
 {
-	typedef mbboRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "mbborval"; };
+	using traits_type = mbboRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "mbborval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbbiDirect record
 template<>
-struct epics_record_traits<mbbiDirectval>
+struct epics_record_traits<epics_record_enum::mbbiDirectval>
 {
-	typedef mbbiDirectRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "mbbiDirectval"; };
+	using traits_type = mbbiDirectRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "mbbiDirectval"; };
     static const int value_conversion = 2;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbbiDirect raw record
 template<>
-struct epics_record_traits<mbbiDirectrval>
+struct epics_record_traits<epics_record_enum::mbbiDirectrval>
 {
-	typedef mbbiDirectRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "mbbiDirectrval"; };
+	using traits_type = mbbiDirectRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "mbbiDirectrval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbboDirect record
 template<>
-struct epics_record_traits<mbboDirectval>
+struct epics_record_traits<epics_record_enum::mbboDirectval>
 {
-	typedef mbboDirectRecord traits_type;
-	typedef epicsEnum16 value_type;
-	static const char* const name () { return "mbboDirectval"; };
+	using traits_type = mbboDirectRecord;
+	using value_type = epicsEnum16;
+	static const char* const name () noexcept { return "mbboDirectval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for mbboDirect raw record
 template<>
-struct epics_record_traits<mbboDirectrval>
+struct epics_record_traits<epics_record_enum::mbboDirectrval>
 {
-	typedef mbboDirectRecord traits_type;
-	typedef epicsUInt32 value_type;
-	static const char* const name () { return "mbboDirectrval"; };
+	using traits_type = mbboDirectRecord;
+	using value_type = epicsUInt32;
+	static const char* const name () noexcept { return "mbboDirectrval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = true;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->rval; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->rval; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead (*val (epicsrec)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite (*val (epicsrec)); }
 };
 
 /// Epics traits class specialization for stringin record
 template<>
-struct epics_record_traits<stringinval>
+struct epics_record_traits<epics_record_enum::stringinval>
 {
-	typedef stringinRecord traits_type;
-	typedef char value_type[40];
-	static const char* const name () { return "stringinval"; };
+	using traits_type = stringinRecord;
+	using value_type = char[40];
+	static const char* const name () noexcept { return "stringinval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static char* val (traits_type* prec) { return prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static char* val (traits_type* prec) noexcept { return prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead(val(epicsrec), sizeof(value_type)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(val(epicsrec), sizeof (value_type)); }
 };
 
 /// Epics traits class specialization for stringout record
 template<>
-struct epics_record_traits<stringoutval>
+struct epics_record_traits<epics_record_enum::stringoutval>
 {
-	typedef stringoutRecord traits_type;
-	typedef char value_type[40];
-	static const char* const name () { return "stringoutval"; };
+	using traits_type = stringoutRecord;
+	using value_type = char[40];
+	static const char* const name () noexcept { return "stringoutval"; };
     static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static char* val (traits_type* prec) { return prec->val; }
-	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) { 
+	static char* val (traits_type* prec) noexcept { return prec->val; }
+	static bool read (traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
 		return baserec->UserRead(val(epicsrec), sizeof(value_type)); }
-	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) { 
+	static bool write (plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(val(epicsrec), sizeof(value_type)); }
 };
 
 /// Epics traits class specialization for long stringin record
 template<>
-struct epics_record_traits<lsival>
+struct epics_record_traits<epics_record_enum::lsival>
 {
-	typedef lsiRecord traits_type;
-	typedef char* value_type;
-	static const char* const name() { return "lsival"; };
+	using traits_type = lsiRecord;
+	using value_type = char*;
+	static const char* const name() noexcept { return "lsival"; };
 	static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static char* val(traits_type* prec) { return prec->val; }
-	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
-		bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
+	static char* val(traits_type* prec) noexcept { return prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
+		const bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
 		if (succ) epicsrec->len = (epicsUInt32)strnlen(val(epicsrec), epicsrec->sizv) + 1;
 		return succ;
 	}
-	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(val(epicsrec), epicsrec->sizv);
 	}
 };
 
 /// Epics traits class specialization for long stringout record
 template<>
-struct epics_record_traits<lsoval>
+struct epics_record_traits<epics_record_enum::lsoval>
 {
-	typedef lsoRecord traits_type;
-	typedef char* value_type;
-	static const char* const name() { return "lsoval"; };
+	using traits_type = lsoRecord;
+	using value_type = char*;
+	static const char* const name() noexcept { return "lsoval"; };
 	static const int value_conversion = 0;
 	static const bool input_record = false;
 	static const bool raw_record = false;
-	static char* val(traits_type* prec) { return prec->val; }
-	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) {
-		bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
+	static char* val(traits_type* prec) noexcept { return prec->val; }
+	static bool read(traits_type* epicsrec, plc::BaseRecord* baserec) noexcept {
+		const bool succ = baserec->UserRead(val(epicsrec), epicsrec->sizv);
 		if (succ) epicsrec->len = (epicsUInt32)strnlen(val(epicsrec), epicsrec->sizv) + 1;
 		return succ;
 	}
-	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) {
+	static bool write(plc::BaseRecord* baserec, traits_type* epicsrec) noexcept {
 		return baserec->UserWrite(val(epicsrec), epicsrec->sizv);
 	}
 };
 
 /// Epics traits class specialization for waveform record
 template<>
-struct epics_record_traits<waveformval>
+struct epics_record_traits<epics_record_enum::waveformval>
 {
-	typedef waveformRecord traits_type;
-	typedef void* value_type;
-	static const char* const name () { return "waveformval"; };
+	using traits_type = waveformRecord;
+	using value_type = void*;
+	static const char* const name () noexcept { return "waveformval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
 };
 
 /// Epics traits class specialization for event record
 template<>
-struct epics_record_traits<eventval>
+struct epics_record_traits<epics_record_enum::eventval>
 {
-	typedef eventRecord traits_type;
-	typedef epicsUInt16 value_type;
-	static const char* const name () { return "eventval"; };
+	using traits_type = eventRecord;
+	using value_type = epicsUInt16;
+	static const char* const name () noexcept { return "eventval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
 };
 
 /// Epics traits class specialization for histogram record
 template<>
-struct epics_record_traits<histogramval>
+struct epics_record_traits<epics_record_enum::histogramval>
 {
-	typedef histogramRecord traits_type;
-	typedef void* value_type;
-	static const char* const name () { return "histogramval"; };
+	using traits_type = histogramRecord;
+	using value_type = void*;
+	static const char* const name () noexcept { return "histogramval"; };
     static const int value_conversion = 0;
 	static const bool input_record = true;
 	static const bool raw_record = false;
-	static value_type* val (traits_type* prec) { return (value_type*) &prec->val; }
+	static value_type* val (traits_type* prec) noexcept { return (value_type*) &prec->val; }
 };
-
-/* devTcDefIO<>::devTcDefIO
- ************************************************************************/
-template <epics_record_enum RecType>
-devTcDefIo<RecType>::devTcDefIo ()
-	: number (6), report_fn (0), init_fn (0), init_record_fn (0),
-	get_ioint_info_fn ((DEVSUPFUN)get_ioint_info), io_fn (0), special_linconv_fn (0)
-{
-}
-
-/* devTcDefIn<>::devTcDefIn
- ************************************************************************/
-template <epics_record_enum RecType>
-devTcDefIn<RecType>::devTcDefIn ()
-{
-	devTcDefIn<RecType>::init_record_fn = (DEVSUPFUN)init_read_record;
-	devTcDefIn<RecType>::io_fn = (DEVSUPFUN)read;
-}
-
-/* devTcDefOut<>::devTcDefOut
- ************************************************************************/
-template <epics_record_enum RecType>
-devTcDefOut<RecType>::devTcDefOut ()
-{
-	devTcDefOut<RecType>::init_record_fn = (DEVSUPFUN)init_write_record;
-	devTcDefOut<RecType>::io_fn = (DEVSUPFUN)write;
-}
-
-/* devTcDefWaveformIn<>::devTcDefWaveformIn
- ************************************************************************/
-template <epics_record_enum RecType>
-devTcDefWaveformIn<RecType>::devTcDefWaveformIn ()
-{
-	devTcDefWaveformIn<RecType>::init_record_fn = (DEVSUPFUN)init_read_waveform_record;
-	devTcDefWaveformIn<RecType>::io_fn = (DEVSUPFUN)read_waveform;
-}
 
 /* Initialization for I/O interrupts
 	devTcDefIo<>::get_ioint_info
  ************************************************************************/
 template <epics_record_enum RecType>
 long devTcDefIo<RecType>::
-	get_ioint_info (int cmd, dbCommon* prec, IOSCANPVT* ppvt)
+	get_ioint_info (int cmd, rec_type_ptr prec, IOSCANPVT* ppvt) noexcept
 {
     if(!prec || !prec->dpvt)
         return 1;
 
-	plc::BaseRecord* pRecord = (plc::BaseRecord*)(prec->dpvt);
-	EpicsInterface* epics = pRecord ? dynamic_cast<EpicsInterface*>(pRecord->get_userInterface()) : NULL;
+	const plc::BaseRecord* const pRecord = (const plc::BaseRecord*)(prec->dpvt);
+	EpicsInterface* const epics = pRecord ? dynamic_cast<EpicsInterface*>(pRecord->get_userInterface()) : NULL;
 
 	if (!epics) return 1;
 
@@ -602,7 +558,7 @@ long devTcDefIo<RecType>::
 /* devTcDefIn<>::init_read_record
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
+long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec) noexcept
 {
 	// Make pointer to TCat record
     plc::BaseRecordPtr pRecord;
@@ -610,14 +566,14 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
             "Fatal error: init_record record has NULL-pointer");
-        (void)getchar();
+		std::ignore = getchar();
         exit(S_db_notFound);
     }
 	// Check for inp.type
     if(!prec->inp.type) {
         recGblRecordError(S_db_badField, prec,
             "Fatal error: init_record INP field not initialized (It has value 0!!!)");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_badField);
     }
 	// Check for inp.type = INST_IO
@@ -647,7 +603,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 		prec->pact = TRUE;
 		recGblRecordError(S_db_badField, prec,
             "Fatal error: Internal record does not have an EPICS interface!");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_badField);
 	}
 	// Set scan properties
@@ -671,7 +627,7 @@ long devTcDefIn<RecType>::init_read_record (rec_type_ptr prec)
 /* devTcDefOut<>::init_write_record
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
+long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec) noexcept
 {
     // Make pointer to TCat record
     plc::BaseRecordPtr pRecord;
@@ -679,14 +635,14 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
     if(!prec) {
         recGblRecordError(S_db_notFound, prec,
             "Fatal error: init_record record has NULL-pointer");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_notFound);
     }
 	// Check for out.type
     if( prec->out.type == 0 ) {
         recGblRecordError(S_db_badField, prec,
             "Fatal error: init_record OUT field not initialized (It has value 0!!!)");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_badField);
     }
 	// Check for out.type = INST_IO
@@ -710,7 +666,7 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
 	if (!epics) {
 		recGblRecordError(S_db_badField, prec,
             "Fatal error: Internal record does not have an EPICS interface!");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_badField);
 	}
 	// Set scan properties
@@ -727,20 +683,20 @@ long devTcDefOut<RecType>::init_write_record (rec_type_ptr prec)
  ************************************************************************/
 template <epics_record_enum RecType>
 long devTcDefWaveformIn<RecType>::
-	init_read_waveform_record (rec_type_ptr precord)
+	init_read_waveform_record (rec_type_ptr precord) noexcept
 {
-    int iInit = 0;
+    constexpr int iInit = 0;
     if(!precord) {
         recGblRecordError(S_db_notFound, precord,
             "Fatal error: init_record record has NULL-pointer");
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_notFound);
     }
     if( precord->inp.type == 0 ) {
         recGblRecordError(S_db_badField, (void*)precord,
             "Fatal error: init_record INP field not initialized (It has value 0!!!)");
         precord->pact = TRUE;     // disable this record
-		(void)getchar();
+		std::ignore = getchar();
         exit(S_db_badField);
     }
     if( precord->inp.type != INST_IO ) {
@@ -785,13 +741,13 @@ long devTcDefWaveformIn<RecType>::
 /* devTcDefIn<>::read
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefIn<RecType>::read(rec_type_ptr precord)
+long devTcDefIn<RecType>::read(rec_type_ptr precord) noexcept
 {
 	// Get the conversion setting for this record
-	long ret = epics_record_traits<RecType>::value_conversion;
+	constexpr long ret = epics_record_traits<RecType>::value_conversion;
 	// Get the IOC internal record entry and EPICS user interface
 	plc::BaseRecord* pBaseRecord = (plc::BaseRecord*)precord->dpvt;
-	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface()) : NULL;
+	const EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>(pBaseRecord->get_userInterface()) : NULL;
 
 	if (!pBaseRecord || !epics) {
 		recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
@@ -823,8 +779,13 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 	// Grab data value into EPICS 
 	epics_record_traits<RecType>::read (precord, pBaseRecord);
 	// set time stamp
-	plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
-	precord->time = epicsTime (*((_FILETIME*)&timestamp)); 
+	const plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
+	try {
+		precord->time = epicsTime(*((_FILETIME*)&timestamp));
+	}
+	catch(...) {
+		precord->time = epicsTime();
+	};
 
 	precord->udf = udf;
 	precord->pact = FALSE;
@@ -839,11 +800,11 @@ long devTcDefIn<RecType>::read(rec_type_ptr precord)
 /* devTcDefOut<>::write
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefOut<RecType>::write (rec_type_ptr precord)
+long devTcDefOut<RecType>::write (rec_type_ptr precord) noexcept
 {
 	// Get the IOC internal record entry and EPICS user interface
 	plc::BaseRecord* pBaseRecord = (plc::BaseRecord*) precord->dpvt;
-	EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() ) : NULL;
+	const EpicsInterface* epics = pBaseRecord ? dynamic_cast<EpicsInterface*>( pBaseRecord->get_userInterface() ) : NULL;
 
     if(!pBaseRecord || !epics) {
         recGblRecordError(S_dev_noDeviceFound, precord, "unable to get device interface");
@@ -879,14 +840,24 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 		// Read data value
 		epics_record_traits<RecType>::read (precord, pBaseRecord);
 		// set time stamp
-		plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
-		precord->time = epicsTime(*((_FILETIME*)&timestamp));
+		const plc::BaseRecord::time_type timestamp = pBaseRecord->get_timestamp();
+		try {
+			precord->time = epicsTime(*((_FILETIME*)&timestamp));
+		}
+		catch (...) {
+			precord->time = epicsTime();
+		};
 	}
 	else {
 		// Write data value
 		epics_record_traits<RecType>::write (pBaseRecord, precord);
 		// set time stamp
-		precord->time = epicsTime::getCurrent();
+		try {
+			precord->time = epicsTime::getCurrent();
+		}
+		catch (...) {
+			precord->time = epicsTime();
+		};
 	}
 
 	precord->udf = udf;
@@ -897,9 +868,9 @@ long devTcDefOut<RecType>::write (rec_type_ptr precord)
 /* devTcDefIn<>::read_waveform
  ************************************************************************/
 template <epics_record_enum RecType>
-long devTcDefWaveformIn<RecType>::read_waveform (rec_type_ptr precord)
+long devTcDefWaveformIn<RecType>::read_waveform (rec_type_ptr precord) noexcept
 {
-	long ret = epics_record_traits<RecType>::value_conversion;
+	constexpr long ret = epics_record_traits<RecType>::value_conversion;
     //long ret = recPropStruct::prop[record_type].ret;
     //OpcToEpics* pOpc2Epics = (OpcToEpics*)precord->dpvt;
     //long ret = recProp[pOpc2Epics->recType].ret;

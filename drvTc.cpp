@@ -3,10 +3,6 @@
 #include "TpyToEpics.h"
 #include "TpyToEpicsConst.h"
 #include "infoPlc.h"
-#define _CRT_SECURE_NO_WARNINGS
-#pragma warning (disable : 26812)
-#pragma warning (disable : 26495)
-#pragma warning (disable : 4996)
 #include "dbStaticLib.h"
 #include "dbAccess.h"
 #include "dbDefs.h"
@@ -20,10 +16,6 @@
 #include "initHooks.h"
 #include "tcComms.h"
 #include "epicsExit.h"
-#pragma warning (default : 4996)
-#pragma warning (default : 26495)
-#pragma warning (default : 26812)
-#undef _CRT_SECURE_NO_WARNINGS
 
 /** @file drvTc.cpp
 	This contains functions for driver support for EPICS. These routines 
@@ -79,20 +71,20 @@ static const iocshFuncDef tcPrintValsFuncDef        = {"tcPrintVals", 1, tcPrint
 static const iocshFuncDef tcPrintValFuncDef			= {"tcPrintVal", 1, tcPrintValArg};
 
 /// Tuple for filnemae, rule and list processing 
-typedef std::tuple<std::stringcase, std::stringcase, 
-				   epics_list_processing*, bool> filename_rule_list_tuple;
+using filename_rule_list_tuple = 
+	std::tuple<std::stringcase, std::stringcase, epics_list_processing*, bool>;
 /// List of tuples for filnemae, rule and list processing 
-typedef std::vector<filename_rule_list_tuple> tc_listing_def;
+using tc_listing_def = std::vector<filename_rule_list_tuple>;
 /// Tuple for directory name, argument  and macro list processing
-typedef std::tuple<std::stringcase, std::stringcase, 
-				   epics_macrofiles_processing*, const char*> dirname_arg_macro_tuple;
+using dirname_arg_macro_tuple = 
+	std::tuple<std::stringcase, std::stringcase, epics_macrofiles_processing*, const char*>;
 /// List of tuples for directory name, argument  and macro list processing
-typedef std::vector<dirname_arg_macro_tuple> tc_macro_def;
+using tc_macro_def = std::vector<dirname_arg_macro_tuple>;
 
 static int scanrate = TcComms::default_scanrate;
 static int multiple = TcComms::default_multiple;
 static std::stringcase tc_alias;
-static ParseUtil::replacement_table tc_replacement_rules;
+static ParseUtil::replacement_rules tc_replacement_rules;
 static tc_listing_def tc_lists;
 static tc_macro_def tc_macros;
 static std::stringcase tc_infoprefix;
@@ -109,135 +101,151 @@ public:
 	/// @param l Pointer to list definitions
 	/// @param m Pointer to macro definition
 	explicit epics_tc_db_processing (TcComms::TcPLC& p,
-		ParseUtil::replacement_table& rules,
+		ParseUtil::replacement_rules& rules,
 		tc_listing_def* l = nullptr, tc_macro_def* m = nullptr)
-		: plc (&p), invnum (0), lists (l), macros (m) { 
+		: plc (&p), lists (l), macros (m) {
 			device_support = device_support_type::tc_name;
 #if EPICS_VERSION < 7
 			int_support = int_support_type::int_32;
 #endif
-			set_rule_table (rules);
+			set_rule_table(rules.get_rule_table());
+			set_recursive(rules.is_recursive());
 			init_lists(); init_macros(); }
-	~epics_tc_db_processing() { 
+	/// Destructor
+	~epics_tc_db_processing() override { 
 		done_lists(); done_macros(); }
+
+	/// Parse a command line
+	/// Processed options with epics_conversion::getopt and mygetopt.
+	/// @param argc Number of command line arguments
+	/// @param argv List of command line arguments, same format as in main()
+	/// @param argp Excluded/processed arguments (in/out), array length must be argc
+	/// @return Number of arguments processed
+	int getopt(int argc, const char* const argv[], bool argp[] = 0) override;
+	/// Set ignore for subsitution list on all list
+	void set_ignore_all(bool ignr) noexcept;
 
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
-	bool operator() (const ParseUtil::process_arg& arg);
+	bool operator() (const ParseUtil::process_arg& arg) noexcept override;
 	/// Flush output files
-	void flush();
+	void flush() noexcept;
 
 	/// Get number of EPICS records without tc records
-	int get_invalid_records() const { return invnum; }
-
-	/// Patch channel names in info database
-	/// @param infodb EPICS database
-	/// @return True if no errors
-	bool patch_db_recordnames (std::stringcase& infodb);
+	int get_invalid_records() const noexcept { return invnum; }
 
 protected:
 	/// Disable copy constructor
-	epics_tc_db_processing (const epics_tc_db_processing&);
+	epics_tc_db_processing (const epics_tc_db_processing&) = delete;
+	/// Disable move constructor
+	epics_tc_db_processing(epics_tc_db_processing&&) = delete;
 	/// Disable assignment operator
-	epics_tc_db_processing& operator= (const epics_tc_db_processing&);
+	epics_tc_db_processing& operator= (const epics_tc_db_processing&) = delete;
+	/// Disable move assignment operator
+	epics_tc_db_processing& operator= (epics_tc_db_processing&&) = delete;
 
 	/// Init lists
-	void init_lists();
+	void init_lists() noexcept;
 	/// Cleanup lists
-	void done_lists();
+	void done_lists() noexcept;
 	/// Process all listings
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
-	bool process_lists (const ParseUtil::process_arg& arg);
+	bool process_lists (const ParseUtil::process_arg& arg) noexcept;
 	/// Process a listing
 	/// @param listdef filename/rule pair defining a listing
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
 	bool process_list (filename_rule_list_tuple& listdef, 
-		const ParseUtil::process_arg& arg);
+		const ParseUtil::process_arg& arg) noexcept;
 
 	/// Init macros
-	void init_macros();
+	void init_macros() noexcept;
 	/// Cleanup macros
-	void done_macros();
+	void done_macros() noexcept;
 	/// Process all macros
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
-	bool process_macros (const ParseUtil::process_arg& arg);
+	bool process_macros (const ParseUtil::process_arg& arg) noexcept;
 	/// Process a macro
 	/// @param macrodef filename/rule pair defining a macro
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successful
 	bool process_macro (dirname_arg_macro_tuple& macrodef, 
-		const ParseUtil::process_arg& arg);
+		const ParseUtil::process_arg& arg) noexcept;
 
 	/// Pointer to PLC class
-	TcComms::TcPLC*		plc;
+	TcComms::TcPLC*		plc = nullptr;
 	/// Pointer to a set of listings
-	tc_listing_def*		lists;
+	tc_listing_def*		lists = nullptr;
 	/// Pointer to macros
-	tc_macro_def*		macros;
+	tc_macro_def*		macros = nullptr;
 	/// Number of EPICS records without tc records
-	int					invnum;
+	int					invnum = 0;
 };
 
 /// @cond Doxygen_Suppress
 
 /* epics_tc_db_processing::init_lists
  ************************************************************************/
-void epics_tc_db_processing::init_lists()
+void epics_tc_db_processing::init_lists() noexcept
 {
 	if (!lists) return;
-	for (filename_rule_list_tuple& list : *lists) {
-		optarg options (get<1>(list));
-		epics_list_processing* lproc = new (std::nothrow) epics_list_processing;
-		bool no_string = false;
-		if (lproc) {
-			// look for no string argument
-			for (int i = 1; i < options.argc(); ++i) {
-				if (options.argp() && options.argp()[i]) continue;
-				if (!options.argv()[i]) {
-					if (options.argp()) options.argp()[i] = true;
-					continue;
+	try {
+		for (filename_rule_list_tuple& list : *lists) {
+			optarg options(std::get<1>(list));
+			epics_list_processing* lproc = new (std::nothrow) epics_list_processing;
+			bool no_string = false;
+			if (lproc) {
+				// look for no string argument
+				for (int i = 1; i < options.argc(); ++i) {
+					if (options.argp() && options.argp()[i]) continue;
+					if (!options.argv()[i]) {
+						if (options.argp()) options.argp()[i] = true;
+						continue;
+					}
+					std::stringcase arg(options.argv()[i]);
+					// export only opc variables (default)
+					if (arg == "-ns" || arg == "/ns") {
+						no_string = true;
+						options.argp()[i] = true;
+					}
 				}
-				std::stringcase arg (options.argv()[i]);
-				// export only opc variables (default)
-				if (arg == "-ns" || arg == "/ns" ) {
-					no_string = true;
-					options.argp()[i] = true;
+				// option processing
+				lproc->getopt(options.argc(), options.argv(), options.argp());
+				// set replacement rules
+				lproc->set_rule_table(get_rule_table());
+				lproc->set_recursive(is_recursive());
+				// force single file
+				split_io_support iosupp(std::get<0>(list), false, 0);
+				if (!iosupp) {
+					printf("Failed to open output %s.\n", std::get<0>(list).c_str());
+					delete lproc;
+					lproc = nullptr;
+				}
+				else {
+					(split_io_support&)(*lproc) = iosupp;
 				}
 			}
-			// option processing
-			lproc->getopt (options.argc(), options.argv(), options.argp());
-			// set replacement rules
-			lproc->set_rule_table (get_rule_table());
-			// force single file
-			split_io_support iosupp (std::get<0>(list), false, 0);
-			if (!iosupp) {
-				printf ("Failed to open output %s.\n", std::get<0>(list).c_str());
-				delete lproc;
-				lproc = nullptr;
-			}
-			else {
-				(split_io_support&)(*lproc) = iosupp;
-			}
+			if (std::get<epics_list_processing*>(list))
+				delete std::get<epics_list_processing*>(list);
+			std::get<epics_list_processing*>(list) = lproc;
+			std::get<bool>(list) = no_string;
 		}
-		if (std::get<2>(list)) delete std::get<2>(list);
-		std::get<2>(list) = lproc;
-		std::get<3>(list) = no_string;
 	}
+	catch (...) {}
 }
 
 /* epics_tc_db_processing::done_lists
  ************************************************************************/
-void epics_tc_db_processing::done_lists()
+void epics_tc_db_processing::done_lists() noexcept
 {
 	if (!lists) return;
 	for (filename_rule_list_tuple& list : *lists) {
-		if (std::get<2>(list)) {
-			delete std::get<2>(list);
-			std::get<2>(list) = nullptr;
+		if (std::get<epics_list_processing*>(list)) {
+			delete std::get<epics_list_processing*>(list);
+			std::get<epics_list_processing*>(list) = nullptr;
 		}
 	}
 }
@@ -245,7 +253,7 @@ void epics_tc_db_processing::done_lists()
 /* Process a channel
    epics_tc_db_processing::process_lists()
  ************************************************************************/
-bool epics_tc_db_processing::process_lists (const ParseUtil::process_arg& arg)
+bool epics_tc_db_processing::process_lists (const ParseUtil::process_arg& arg) noexcept
 {
 	if (!lists) return true;
 	bool succ = true;
@@ -259,46 +267,56 @@ bool epics_tc_db_processing::process_lists (const ParseUtil::process_arg& arg)
    epics_tc_db_processing::process_list()
  ************************************************************************/
 bool epics_tc_db_processing::process_list (filename_rule_list_tuple& listdef,
-									  const ParseUtil::process_arg& arg)
+									  const ParseUtil::process_arg& arg) noexcept
 {
-	epics_list_processing* lptr = std::get<2>(listdef);
+	epics_list_processing* lptr = std::get<epics_list_processing*>(listdef);
 	if (!lptr) return false;
-	if (std::get<3>(listdef) && arg.get_process_type() == process_type_enum::pt_string) return false;
-	return (*lptr) (arg);
+	if (std::get<bool>(listdef) && arg.get_process_type() == process_type_enum::pt_string) return false;
+	try {
+		return (*lptr) (arg);
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /* epics_tc_db_processing::init_macros
  ************************************************************************/
-void epics_tc_db_processing::init_macros()
+void epics_tc_db_processing::init_macros() noexcept
 {
 	if (!macros) return;
-	for (dirname_arg_macro_tuple& macro : *macros) {
-		optarg options (get<1>(macro));
-		epics_macrofiles_processing* mproc = 
-			new (std::nothrow) epics_macrofiles_processing (
-			plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
-		if (mproc) {
-			// set replacement rules
-			mproc->set_rule_table (get_rule_table());
-			// set input directory to tpy file dir
-			if (get<3>(macro) && *get<3>(macro)) {
-				mproc->set_indirname (get<3>(macro));
+	try {
+		for (dirname_arg_macro_tuple& macro : *macros) {
+			optarg options(std::get<1>(macro));
+			epics_macrofiles_processing* mproc =
+				new (std::nothrow) epics_macrofiles_processing(
+					plc->get_alias(), std::get<0>(macro), false, options.argc(), options.argv());
+			if (mproc) {
+				// set replacement rules
+				mproc->set_rule_table(get_rule_table());
+				mproc->set_recursive(is_recursive());
+				// set input directory to tpy file dir
+				if (std::get<const char*>(macro) && *std::get<const char*>(macro)) {
+					mproc->set_indirname(std::get<const char*>(macro));
+				}
 			}
+			if (std::get<epics_macrofiles_processing*>(macro))
+				delete std::get<epics_macrofiles_processing*>(macro);
+			std::get<epics_macrofiles_processing*>(macro) = mproc;
 		}
-		if (std::get<2>(macro)) delete std::get<2>(macro);
-		std::get<2>(macro) = mproc;
 	}
+	catch (...) {}
 }
 
 /* epics_tc_db_processing::done_macros
  ************************************************************************/
-void epics_tc_db_processing::done_macros()
+void epics_tc_db_processing::done_macros() noexcept
 {
 	if (!macros) return;
 	for (dirname_arg_macro_tuple& list : *macros) {
-		if (std::get<2>(list)) {
-			delete std::get<2>(list);
-			std::get<2>(list) = nullptr;
+		if (std::get<epics_macrofiles_processing*>(list)) {
+			delete std::get<epics_macrofiles_processing*>(list);
+			std::get<epics_macrofiles_processing*>(list) = nullptr;
 		}
 	}
 }
@@ -306,7 +324,7 @@ void epics_tc_db_processing::done_macros()
 /* Process a channel
    epics_tc_db_processing::process_macros()
  ************************************************************************/
-bool epics_tc_db_processing::process_macros (const ParseUtil::process_arg& arg)
+bool epics_tc_db_processing::process_macros (const ParseUtil::process_arg& arg) noexcept
 {
 	if (!macros) return true;
 	bool succ = true;
@@ -320,17 +338,84 @@ bool epics_tc_db_processing::process_macros (const ParseUtil::process_arg& arg)
    epics_tc_db_processing::process_macro()
  ************************************************************************/
 bool epics_tc_db_processing::process_macro(dirname_arg_macro_tuple& macrodef,
-									  const ParseUtil::process_arg& arg)
+									  const ParseUtil::process_arg& arg) noexcept
 {
-	epics_macrofiles_processing* mptr = std::get<2>(macrodef);
+	epics_macrofiles_processing* mptr = std::get<epics_macrofiles_processing*>(macrodef);
 	if (!mptr) return false;
-	return (*mptr) (arg);
+	try {
+		return (*mptr) (arg);
+	}
+	catch (...) {
+		return false;
+	}
+}
+
+/* Read options
+   epics_tc_db_processing::getopt()
+ ************************************************************************/
+int epics_tc_db_processing::getopt(int argc, const char* const argv[], bool argp[])
+{
+	// call inherited getopt
+	const int ret = EpicsTpy::epics_db_processing::getopt(argc, argv, argp);
+
+	// copy substitution list into lists
+	if (lists) {
+		const substitution_list* r = this;
+		for (filename_rule_list_tuple& list : *lists) {
+			auto lproc = std::get<epics_list_processing*>(list);
+			if (lproc) {
+				// set substitution list
+				substitution_list* l = lproc;
+				*l = *r;
+			}
+		}
+	}
+	// copy substitution list into macros
+	if (macros) {
+		const substitution_list* r = this;
+		for (dirname_arg_macro_tuple& macro : *macros) {
+			auto mproc = std::get<epics_macrofiles_processing*>(macro);
+			if (mproc) {
+				// set substitution list
+				substitution_list* l = mproc;
+				*l = *r;
+			}
+		}
+	}
+	return ret;
+}
+
+
+/* Set ignore of substitutions on all lists
+   epics_tc_db_processing::set_ignore_all()
+ ************************************************************************/
+void epics_tc_db_processing::set_ignore_all(bool ignr) noexcept
+{
+	ignore = ignr; // database 
+	// Set ignore of substitutions into lists
+	if (lists) {
+		for (filename_rule_list_tuple& list : *lists) {
+			auto lproc = std::get<epics_list_processing*>(list);
+			if (lproc) {
+				lproc->set_ignore(ignr);
+			}
+		}
+	}
+	// Set ignore of substitutions into macros
+	if (macros) {
+		for (dirname_arg_macro_tuple& macro : *macros) {
+			auto mproc = std::get<epics_macrofiles_processing*>(macro);
+			if (mproc) {
+				mproc->set_ignore(ignr);
+			}
+		}
+	}
 }
 
 /* Process a channel
    epics_tc_db_processing::operator()
  ************************************************************************/
-bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
+bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg) noexcept
 {
 	// Generate EPICS database record
 	if (!EpicsTpy::epics_db_processing::operator()(arg)) {
@@ -354,11 +439,15 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		rt = plc::data_type_enum::dtUInt16;
 	else if (arg.get_type_name() == "DINT") 
 		rt = plc::data_type_enum::dtInt32;
-	else if (arg.get_type_name() == "UDINT" || arg.get_type_name() == "DWORD") 
+	else if (arg.get_type_name() == "UDINT" || arg.get_type_name() == "DWORD" ||
+		     arg.get_type_name() == "TIME"  || arg.get_type_name() == "TOD"   || 
+			 arg.get_type_name() == "DATE"  || arg.get_type_name() == "DT"    || 
+		     arg.get_type_name() == "TIME_OF_DAY" || arg.get_type_name() == "DATE_AND_TIME")
 		rt = plc::data_type_enum::dtUInt32;
 	else if (arg.get_type_name() == "LINT")
 		rt = plc::data_type_enum::dtInt64;
-	else if (arg.get_type_name() == "ULINT" || arg.get_type_name() == "LWORD")
+	else if (arg.get_type_name() == "ULINT" || arg.get_type_name() == "LWORD" || 
+		     arg.get_type_name() == "LTIME")
 		rt = plc::data_type_enum::dtUInt64;
 	else if (arg.get_type_name() == "REAL")
 		rt = plc::data_type_enum::dtFloat;
@@ -372,111 +461,88 @@ bool epics_tc_db_processing::operator() (const ParseUtil::process_arg& arg)
 		return false;
 	}
 
-	/// Make new record object
-	plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
-	plc::Interface* iface = nullptr;
+	try {
+		/// Make new record object
+		plc::BaseRecordPtr pRecord = plc::BaseRecordPtr(new plc::BaseRecord(arg.get_full(), rt));
+		plc::Interface* iface = nullptr;
 
-	/// Make TCat interface
-	const process_arg_tc* targ = dynamic_cast<const process_arg_tc*>(&arg);
-	if (targ) {
-		std::stringcase tcatname = arg.get_alias();
-		if (HasRules()) {
-			tcatname = apply_replacement_rules (tcatname);
+		/// Make TCat interface
+		const process_arg_tc* targ = dynamic_cast<const process_arg_tc*>(&arg);
+		if (targ) {
+			std::stringcase tcatname = arg.get_alias();
+			if (HasRules()) {
+				tcatname = apply_replacement_rules (tcatname);
+			}
+			TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord,
+				tcatname,
+				targ->get_igroup(),
+				targ->get_ioffset(),
+				targ->get_bytesize(),
+				arg.get_type_name(),
+				arg.get_process_type() == process_type_enum::pt_binary,
+				arg.get_process_type() == process_type_enum::pt_enum);
+			iface = tcat;
 		}
-		TcComms::TCatInterface* tcat = new (std::nothrow) TcComms::TCatInterface (*pRecord,
-			tcatname,
-			targ->get_igroup(),
-			targ->get_ioffset(),
-			targ->get_bytesize(),
-			arg.get_type_name(),
-			arg.get_process_type() == process_type_enum::pt_binary,
-			arg.get_process_type() == process_type_enum::pt_enum);
-		iface = tcat;
-	}
-	
-	/// Make info interface
-	else {
-		std::stringcase tcatname = arg.get_alias();
-		if (HasRules()) {
-			tcatname = apply_replacement_rules(tcatname);
-		}
-		const InfoPlc::process_arg_info* iarg = dynamic_cast<const InfoPlc::process_arg_info*>(&arg);
-		if (iarg) {
-			InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface(*pRecord,
-				arg.get_name(), tcatname, arg.get_type_name());
-			iface = info;
-		}
-	}
 
-	if (iface == 0) {
-		// this means the allocation failed!
-		++invnum;
+		/// Make info interface
+		else {
+			std::stringcase tcatname = arg.get_alias();
+			if (HasRules()) {
+				tcatname = apply_replacement_rules(tcatname);
+			}
+			const InfoPlc::process_arg_info* iarg = dynamic_cast<const InfoPlc::process_arg_info*>(&arg);
+			if (iarg) {
+				InfoPlc::InfoInterface* info = new (std::nothrow) InfoPlc::InfoInterface(*pRecord,
+					arg.get_name(), tcatname, arg.get_type_name());
+				iface = info;
+			}
+		}
+
+		if (iface == 0) {
+			// this means the allocation failed!
+			++invnum;
+			return false;
+		}
+
+		/// Tell record about TCat interface
+		pRecord->set_plcInterface (iface);
+
+		if (!plc->add (pRecord)) {
+			// this means the EPICS record has nothing to connect to!
+			++invnum;
+			return false;
+		}
+
+		process_lists(arg);
+		process_macros(arg);
+		return true;
+	}
+	catch (...) {
 		return false;
 	}
-
-	/// Tell record about TCat interface
-	pRecord->set_plcInterface (iface);
-
-	if (!plc->add (pRecord)) {
-		// this means the EPICS record has nothing to connect to!
-		++invnum;
-		return false;
-	}
-
-	process_lists (arg);
-	process_macros (arg);
-	return true;
 }
 
 
 /* Flush output files
    epics_tc_db_processing::flush()
  ************************************************************************/
-void epics_tc_db_processing::flush() 
+void epics_tc_db_processing::flush() noexcept
 {
 	EpicsTpy::epics_db_processing::flush();
 	if (lists) {
 		for (filename_rule_list_tuple& list : *lists) {
-			if (get<2>(list)) get<2>(list)->flush();
+			if (std::get<epics_list_processing*>(list)) 
+				std::get<epics_list_processing*>(list)->flush();
 		}
 	}
 	if (macros) {
 		for (dirname_arg_macro_tuple& macro : *macros) {
-			if (get<2>(macro)) get<2>(macro)->flush();
+			if (std::get<epics_macrofiles_processing*>(macro)) 
+				std::get<epics_macrofiles_processing*>(macro)->flush();
 		}
 	}
 }
 
-/* Patch channel names in info database
-   epics_tc_db_processing::patch_db_recordnames()
- ************************************************************************/
-bool epics_tc_db_processing::patch_db_recordnames (std::stringcase& infodb)
-{
-	bool err = false;
-	// first mark all channel names by a sentinel
-	std::regex e(R"++((record\w*\(\w*(bi|bo|ai|ao|mbbi|mbbo|longin|longout|int64in|int64out|stringin|stringout|lsi|lso)\w*,\w*)"([^"]+)")++");
-	std::stringcase fmt("$1%#$3#%");
-	infodb = std::regex_replace(infodb, e, fmt);
-	// now: search and replace  
-	std::regex e2(R"++((%#([^#]+)#%))++");
-	std::smatch m;
-	while (std::regex_search(infodb, m, e2)) {
-		if (m.size() == 3) {
-			std::string rep = "\"";
-			// check record header
-			string epicsname = to_epics(m[2].str().c_str());
-			if (epicsname.size() > MAX_EPICS_CHANNEL) {
-				fprintf(stderr, "Warning: channel name %s too long by %i\n",
-					epicsname.c_str(), static_cast<int>(epicsname.size() - MAX_EPICS_CHANNEL));
-				err = true;
-			}
-			rep += epicsname;
-			rep += "\"";
-			infodb.replace(m[1].first, m[1].second, rep.c_str());
-		}
-	}
-	return !err;
-}
 /// @endcond
 
 /** Function for loading a TCat tpy file, and using it to generate 
@@ -488,7 +554,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 {
 	// save and reset alias name, listings and macro
 	std::stringcase alias = tc_alias;
-	ParseUtil::replacement_table rules = tc_replacement_rules;
+	ParseUtil::replacement_rules rules = tc_replacement_rules;
 	tc_listing_def listings = tc_lists;
 	tc_macro_def macros = tc_macros;
 	std::stringcase infoprefix = tc_infoprefix;
@@ -510,15 +576,12 @@ void tcLoadRecords (const iocshArgBuf *args)
 		return;
 	}
 	FILE* inpf = 0;
-	#pragma warning (disable : 4996)
-	inpf = fopen (args[0].sval, "r");
-	#pragma warning (default : 4996)
-	if (!inpf) {
+	if (fopen_s(&inpf, args[0].sval, "r")) {
 		printf ("Failed to open input %s.\n", args[0].sval);
 		return;
 	}
 	for (dirname_arg_macro_tuple& macro : macros) {
-		get<3>(macro) = args[0].sval;
+		std::get<const char*>(macro) = args[0].sval;
 	}
 	
 	// check option arguments
@@ -528,8 +591,8 @@ void tcLoadRecords (const iocshArgBuf *args)
 	}
 
 	// Timer for just tpy file parsing
-	clock_t tpybegin;
-	clock_t tpyend;
+	clock_t tpybegin = 0;
+	clock_t tpyend = 0;
 
 	tpybegin = clock();
 
@@ -553,7 +616,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 
 	// get ADS parameters
 	stringcase netid = tpyfile.get_project_info().get_netid();
-	int port = tpyfile.get_project_info().get_port();
+	const int port = tpyfile.get_project_info().get_port();
 
 	// get plc
 	TcComms::TcPLC* tcplc = new (std::nothrow) TcComms::TcPLC(args[0].sval);
@@ -570,46 +633,59 @@ void tcLoadRecords (const iocshArgBuf *args)
 	tcplc->set_alias (alias);
 	
 	// Set up output db generator
-	epics_tc_db_processing dbproc (*tcplc, rules, &listings, &macros);
-	// option processing
-	dbproc.getopt (options.argc(), options.argv(), options.argp());
-	// force single file
-	split_io_support iosupp (outfilename, false, 0);
-	if (!iosupp) {
-		printf ("Failed to open output %s.\n", outfilename.c_str());
-		return;
-	}
-	(split_io_support&)(dbproc) = iosupp;
-	// setup macro processing
-	for (dirname_arg_macro_tuple& macro : macros) {
-		if (get<2>(macro)) {
-			bool twincat3 = (tpyfile.get_project_info().get_tcat_version_major() >= 3);
-			get<2>(macro)->set_twincat3(twincat3);
-			// set output dir to the input dir for Tc3
-			if (twincat3) get<2>(macro)->set_indirname(get<2>(macro)->get_outdirname());
+	try {
+		epics_tc_db_processing dbproc(*tcplc, rules, &listings, &macros);
+		// option processing
+		dbproc.getopt(options.argc(), options.argv(), options.argp());
+		// force single file
+		split_io_support iosupp(outfilename, false, 0);
+		if (!iosupp) {
+			printf("Failed to open output %s.\n", outfilename.c_str());
+			return;
+		}
+		(split_io_support&)(dbproc) = iosupp;
+		// setup macro processing
+		for (dirname_arg_macro_tuple& macro : macros) {
+			if (std::get<epics_macrofiles_processing*>(macro)) {
+				const bool twincat3 = (tpyfile.get_project_info().get_tcat_version_major() >= 3);
+				std::get<epics_macrofiles_processing*>(macro)->set_twincat3(twincat3);
+				// set output dir to the input dir for Tc3
+				if (twincat3) std::get<epics_macrofiles_processing*>(macro)->set_indirname(
+					std::get<epics_macrofiles_processing*>(macro)->get_outdirname());
+			}
+		}
+
+		// generate db file from tc records
+		if (dbg) tpyfile.set_export_all(TRUE);
+		int num = tpyfile.process_symbols(dbproc);
+
+		// generate db file from info records
+		if (!infoprefix.empty()) {
+			dbproc.flush();
+			const bool save_ignore = dbproc.get_ignore();
+			dbproc.set_ignore_all(true);
+			num += InfoPlc::InfoInterface::get_infodb(infoprefix,
+				tpyfile.get_project_info().get(), dbproc);
+			dbproc.set_ignore_all(save_ignore);
+		}
+
+		// make sure all file contents is written to file
+		dbproc.flush();
+
+		// check unused entries in the substitution list
+		dbproc.check_unused_subsititions();
+		// write statistics
+		if (dbproc.get_invalid_records() == 0) {
+			printf("Loaded %i records from %s.\n", num, args[0].sval);
+		}
+		else {
+			printf("Loaded %i valid and %i invaid records from %s.\n",
+				num, dbproc.get_invalid_records(), args[0].sval);
 		}
 	}
-
-	// generate db file from tc records
-	if (dbg) tpyfile.set_export_all (TRUE);
-	int num = tpyfile.process_symbols (dbproc);
-
-	// generate db file from info  records
-	if (!infoprefix.empty()) {
-		dbproc.flush();
-		num += InfoPlc::InfoInterface::get_infodb (infoprefix, 
-			tpyfile.get_project_info().get(), dbproc);
-	}
-
-	// make sure all file contents is written to file
-	dbproc.flush();
-	// write statistics
-	if (dbproc.get_invalid_records() == 0) {
-		printf ("Loaded %i records from %s.\n", num, args[0].sval);
-	}
-	else {
-		printf ("Loaded %i valid and %i invaid records from %s.\n", 
-			num, dbproc.get_invalid_records(), args[0].sval);
+	catch (...) {
+		printf("Failed to generate database file %s.\n", outfilename.c_str());
+		return;
 	}
 
 	// end timer
@@ -632,20 +708,20 @@ void tcLoadRecords (const iocshArgBuf *args)
 	plc::System::get().add(plc::BasePLCPtr(tcplc)); // adopted by TSystem
 
 	// load epics database
-	pos = outfilename.rfind ('\\');
-	stringcase path;
-	stringcase fname;
-	if (pos == stringcase::npos) {
-		fname = outfilename;
-	}
-	else {
-		fname = outfilename.substr (pos + 1);
-		path  = outfilename.substr (0, pos);
-	}
+	//pos = outfilename.rfind ('\\');
+	//stringcase path;
+	//stringcase fname;
+	//if (pos == stringcase::npos) {
+	//	fname = outfilename;
+	//}
+	//else {
+	//	fname = outfilename.substr (pos + 1);
+	//	path  = outfilename.substr (0, pos);
+	//}
 
 	printf ("Loading record database %s.\n", outfilename.c_str());
 	if (dbLoadRecords (outfilename.c_str(), 0)) {
-		printf ("\nUnable to laod record database for %s.\n", outfilename.c_str());
+		printf ("\nUnable to load record database for %s.\n", outfilename.c_str());
 		return;
 	}
 	printf ("Loaded record database %s.\n", outfilename.c_str());
@@ -658,7 +734,7 @@ void tcLoadRecords (const iocshArgBuf *args)
 	@brief Set the scan rate
  	@param args Arguments for tcSetScanRate
 ************************************************************************/
-void tcSetScanRate (const iocshArgBuf *args) 
+void tcSetScanRate (const iocshArgBuf *args) noexcept
 {
 	// Check if Ioc is running
     if (plc::System::get().is_ioc_running()) {
@@ -786,30 +862,10 @@ void tcAlias (const iocshArgBuf *args)
 	tc_alias = p1;
 	// Check replacement rules
 	tc_replacement_rules.clear();
-	tc_replacement_rules["ALIAS"] = tc_alias;
 	const char* p2 = args[1].sval;
 	if (p2) {
-		std::regex e ("([^=,]+)=([^=,]*)");
-		std::cmatch m;
-		while (std::regex_search (p2, m, e)) {
-			if (m.size() == 3) {
-				std::stringcase var (m[1].str().c_str());
-				trim_space (var);
-				std::stringcase val (m[2].str().c_str());
-				trim_space (val);
-				if (!var.empty()) {
-					tc_replacement_rules [var] = val;
-				}
-			}
-			p2 += m.length();
-        }
-		std::stringcase msg = "Replacement rules are: ";
-		for (auto i : tc_replacement_rules) {
-			msg += i.first + "=" + i.second + ",";
-		}
-		if (!msg.empty()) {
-			msg.erase (msg.length()-1, std::stringcase::npos);
-		}
+		tc_replacement_rules.parse_rules(p2, tc_alias);
+		std::stringcase msg = "Replacement rules are: " + tc_replacement_rules.get_rule_string();
 		printf("%s\n", msg.c_str());
 	}
 }
@@ -879,7 +935,7 @@ void tcPrintVal (const iocshArgBuf *args)
  ************************************************************************/
 
 #pragma warning (disable : 26812)
-static void piniProcessHook (initHookState state)
+static void piniProcessHook (initHookState state) noexcept
 {
     switch (state) {
     case initHookAtIocRun:
@@ -909,7 +965,7 @@ static void piniProcessHook (initHookState state)
 /** Register functions to EPICS IOC shell
 	@brief Register to iocsh
  ************************************************************************/
-tcRegisterToIocShell::tcRegisterToIocShell () 
+tcRegisterToIocShell::tcRegisterToIocShell () noexcept
 {
     iocshRegister(&tcLoadRecordsFuncDef, tcLoadRecords);
     iocshRegister(&tcSetScanRateFuncDef, tcSetScanRate);

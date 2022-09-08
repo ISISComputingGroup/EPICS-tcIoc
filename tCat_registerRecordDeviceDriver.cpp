@@ -315,7 +315,7 @@ static void rrddCallFunc(const iocshArgBuf *)
 /*
  * Register commands on application startup
  */
-static int Registration() {
+static int Registration() noexcept {
     iocshRegisterCommon();
     iocshRegister(&rrddFuncDef, rrddCallFunc);
     return 0;
