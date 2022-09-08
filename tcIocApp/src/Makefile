@@ -35,8 +35,9 @@ USR_DBDFLAGS += -I$(TOP)/TCatDeviceSupport
 #USR_DBDFLAGS += -I$(TOP)/InfoDeviceSupport
 USR_CPPFLAGS += -I$(EXPAT) -I$(ADSROOT)/Include
 
-## for c++17 std::filesystem support on Windows Visual Studio
-USR_CPPFLAGS_WIN32 += -std:c++17
+## Previously at least c++17 for std::filesystem support on Windows Visual Studio
+## Now need c++20
+USR_CPPFLAGS_WIN32 += -std:c++20
 
 TYPLIBSRC = ParseTpy.cpp ParseUtil.cpp stringcase.cpp
 EPICSDBLIBSRC = TpyToEpics.cpp
