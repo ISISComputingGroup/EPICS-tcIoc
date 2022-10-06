@@ -31,8 +31,8 @@ namespace ParseTpy {
 static void XMLCALL startElement (void *userData, const char *name, 
 	const char **atts);
 static void XMLCALL endElement (void *userData, const char *name);
-static void XMLCALL startCData (void *userData);
-static void XMLCALL endCData (void *userData);
+static void XMLCALL startCData (void *userData) noexcept;
+static void XMLCALL endCData (void *userData) noexcept;
 static void XMLCALL dataElement (void *userData, const char *data, int len);
 
 /** This structure keeps track of the parser information.
@@ -42,32 +42,32 @@ class parserinfo_type
 {
 public:
 	/// Constructor
-	parserinfo_type (project_record& p, symbol_list& s, type_map& t) 
+	parserinfo_type (project_record& p, symbol_list& s, type_map& t) noexcept
 		: ignore (0), projects (false), routing (0), compiler (0), types (0), 
 		symbols(0), name_parse (0), type_parse (0), opc_cur (0), 
 		opc_parse (0), opc_cdata (0), igroup_parse (0), 
 		ioffset_parse (0), bitsize_parse (0), 
 		bitoffs_parse (0), array_parse (0), enum_parse (0), 
 		struct_parse (0), fb_parse(0),
-		project_info (&p), sym_list (&s), type_list (&t) {}
+		sym_list (&s), type_list (&t), project_info(&p) {}
 
 	/// Get symbol list
-	symbol_list& get_symbols() { return *sym_list; }
+	symbol_list& get_symbols() noexcept { return *sym_list; }
 	/// Get type list
-	type_map& get_types() { return *type_list; }
+	type_map& get_types() noexcept { return *type_list; }
 	/// Get project information
-	project_record& get_projectinfo() { return *project_info; }
+	project_record& get_projectinfo() noexcept { return *project_info; }
 
 	/// Initialze temporary parser info
 	void init ();
 	/// Get type of parsed object
-	type_enum get_type_description() const;
+	type_enum get_type_description() const noexcept;
 
 	/// the very top of the xml tag hierarchy (not within any tag)
-	bool verytop() {
+	bool verytop() noexcept {
 		return !projects && !ignore && !routing && !compiler && !types && !symbols; }
 	/// the top of the xml tag hierarchy (within the PlcProjectInfo tag)
-	bool top() {
+	bool top() noexcept {
 		return projects && !ignore && !routing && !compiler && !types && !symbols; }
 
 	/// ignore elements during parsing (with level)
@@ -149,7 +149,7 @@ protected:
 
 private:
 	/// Default constructor
-	parserinfo_type();
+	parserinfo_type() = delete;
 };
 
 
@@ -183,7 +183,7 @@ private:
 
 /* parserinfo_type::get_type_description
  ************************************************************************/
- type_enum parserinfo_type::get_type_description() const
+ type_enum parserinfo_type::get_type_description() const noexcept
  {
 	 if (name_parse != 1) return type_enum::unknown;
 	 if (array_parse == 1 && type_parse == 1) return type_enum::arraytype;
@@ -197,13 +197,13 @@ private:
 
 /* ads_routing_info::get
  ************************************************************************/
-bool ads_routing_info::isValid() const
+bool ads_routing_info::isValid() const noexcept
 {
 	if (ads_netid.empty() || (ads_port < 0)) {
 		return false;
 	}
 	int end = 0;
-	int num = sscanf_s (ads_netid.c_str(), "%*i.%*i.%*i.%*i.%*i.%*i%n", &end);
+	const int num = sscanf_s (ads_netid.c_str(), "%*i.%*i.%*i.%*i.%*i.%*i%n", &end);
 	if ((num != 0) || (end != ads_netid.length())) {
 		return false;
 	}
@@ -227,14 +227,14 @@ std::stringcase ads_routing_info::get() const
  ************************************************************************/
 bool ads_routing_info::get (unsigned char& a1, unsigned char& a2, 
 							unsigned char& a3, unsigned char& a4, 
-							unsigned char& a5, unsigned char& a6) const
+							unsigned char& a5, unsigned char& a6) const noexcept
 {
 	if (!isValid()) {
 		return false;
 	}
 	int end = 0;
 	int b1(0), b2(0), b3(0), b4(0), b5(0), b6 (0); 
-	int num = sscanf_s (ads_netid.c_str(), "%i.%i.%i.%i.%i.%i%n", 
+	const int num = sscanf_s (ads_netid.c_str(), "%i.%i.%i.%i.%i.%i%n", 
 		&b1, &b2, &b3, &b4, &b5, &b6, &end);
 	if ((num == 0) || (num == EOF) || (end != ads_netid.length())) {
 		return false;
@@ -248,10 +248,10 @@ bool ads_routing_info::get (unsigned char& a1, unsigned char& a2,
  ************************************************************************/
 bool ads_routing_info::set (const std::stringcase& s)
 {
-	char buf[256];
+	char buf[256] = "";
 	int p = 0;
 	int end = 0;
-	int num = sscanf_s (s.c_str(), " tc://%255s:%i%n", 
+	const int num = sscanf_s (s.c_str(), " tc://%255s:%i%n", 
 		buf, static_cast<unsigned>(sizeof (buf)), &p, &end);
 	if ((num != 2) || (end != s.length())) {
 		ads_netid = "";
@@ -260,7 +260,7 @@ bool ads_routing_info::set (const std::stringcase& s)
 	}
 	buf[255] = 0;
 	std::stringcase	ads_netid_old = ads_netid;
-	int ads_port_old = ads_port;
+	const int ads_port_old = ads_port;
 	ads_netid = buf;
 	ads_port = p;
 	if (!isValid()) {
@@ -299,15 +299,15 @@ void compiler_info::set_cmpl_versionstr (const std::stringcase& versionstr)
 
 /* compiler_info::is_cmpl_Valid
  ************************************************************************/
-bool compiler_info::is_cmpl_Valid() const
+bool compiler_info::is_cmpl_Valid() const noexcept
 {
 	if (cmpl_versionstr.empty()) {
 		return false;
 	}
-	unsigned int v1;
-	unsigned int v2;
+	unsigned int v1 = 0;
+	unsigned int v2 = 0;
 	int end = 0;
-	int num = sscanf_s (cmpl_versionstr.c_str(), "%u.%u.%*s%n", 
+	const int num = sscanf_s (cmpl_versionstr.c_str(), "%u.%u.%*s%n", 
 						&v1, &v2, &end);
 	return (num == 2);
 }
@@ -330,39 +330,33 @@ void compiler_info::set_tcat_versionstr (const std::stringcase& versionstr)
 
 /* compiler_info::is_tcat_Valid
  ************************************************************************/
-bool compiler_info::is_tcat_Valid() const
+bool compiler_info::is_tcat_Valid() const noexcept
 {
 	if (tcat_versionstr.empty()) {
 		return false;
 	}
-	unsigned int v1;
-	unsigned int v2;
-	unsigned int v3;
+	unsigned int v1 = 0;
+	unsigned int v2 = 0;
+	unsigned int v3 = 0;
 	int end = 0;
-	int num = sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u%n", 
+	const int num = sscanf_s (tcat_versionstr.c_str(), "%u.%u.%u%n", 
 						&v1, &v2, &v3, &end);
 	return (num == 3);
-}
-/* type_map::insert
- ************************************************************************/
-void type_map::insert (value_type val)
-{
-	type_multipmap::insert (val);
 }
 
 /** compareNamesWoNamespace
  ************************************************************************/
 bool compareNamesWoNamespace (const std::stringcase& p1, const std::stringcase& p2)
 {
-	int pos = static_cast<int>(p1.length() - p2.length());
-	if (pos > 0) {
-		return (p1[(std::stringcase::size_type)pos-1] == '.') &&
-			(p1.compare (pos, std::stringcase::npos, p2) == 0);
+	const size_t pos1 = p1.length();
+	const size_t pos2 = p2.length();
+	if (pos1 > pos2) {
+		return (p1[pos1 - pos2 - 1] == '.') &&
+			(p1.compare (pos1 - pos2, std::stringcase::npos, p2) == 0);
 	}
-	else if (pos < 0) {
-		pos = -pos;
-		return (p2[(std::stringcase::size_type)pos-1] == '.') &&
-			(p2.compare (pos, std::stringcase::npos, p1) == 0);
+	else if (pos2 > pos1) {
+		return (p2[pos2 - pos1 - 1] == '.') &&
+			(p2.compare (pos2 - pos1, std::stringcase::npos, p1) == 0);
 	}
 	else {
 		return p1 == p2;
@@ -386,9 +380,44 @@ type_map::find (value_type::first_type id, const std::stringcase& typn) const
 		}
 		++i;
 	}
+	// fall back to linear search if id == 0, and not found with id == 0
+	if ((t == end()) && (id == 0)) {
+		i = begin();
+		while (i != end()) {
+			if (compareNamesWoNamespace(i->second.get_name(), typn)) {
+				t = i;
+				break;
+			}
+			++i;
+		}
+	}
 	return (t == end()) ? nullptr : &t->second;
 }
 
+/* type_map::patch_type_decorators
+ ************************************************************************/
+int type_map::patch_type_decorators()
+{
+	int num = 0;
+	unsigned int id = 0;
+	// simple data type
+	std::regex e(R"++(SINT|INT|DINT|LINT|USINT|UINT|UDINT|ULINT|BYTE|WORD|DWORD|LWORD|TIME|TOD|LTIME|DATE|DT|TIME_OF_DAY|DATE_AND_TIME|REAL|LREAL|BOOL|STRING|STRING\([0-9]+\))++");
+
+	for (auto& i : *this)	{
+		id = i.second.get_type_decoration();
+		// check for zero id, array type and non-trivial type
+		if (id != 0) continue;
+		if (i.second.get_type_description() != type_enum::arraytype) continue;
+		if (std::regex_match(i.second.get_type_name(), e)) continue;
+		// find array subtype
+		const type_record* t = find (id, i.second.get_type_name());
+		if ((t != nullptr) && (t->get_name_decoration() != 0)) {
+			i.second.set_type_decoration(t->get_name_decoration());
+			++num;
+		}
+	}
+	return num;
+}
 
 /* tpy_file::tpy_file
  ************************************************************************/
@@ -409,7 +438,7 @@ bool tpy_file::parse (FILE* inp)
 	parserinfo_type info (project_info, sym_list, type_list);
 
 	// Initialize XML parser
-	char buf[BUFSIZ];
+	char buf[BUFSIZ] = "";
 	XML_Parser parser = XML_ParserCreate (NULL);
 	XML_SetUserData (parser, &info);
 	XML_SetElementHandler (parser, startElement, endElement);
@@ -419,15 +448,17 @@ bool tpy_file::parse (FILE* inp)
 	// read data and parse
 	bool done = false;
 	do {
-		int len = (int)fread (buf, 1, sizeof(buf), inp);
+		const int len = (int)fread(buf, 1, sizeof(buf), inp);
 		done = len < sizeof(buf);
-		if (XML_Parse (parser, buf, len, done) == XML_STATUS_ERROR) {
+#pragma warning (disable : 26812)
+		if (XML_Parse (parser, buf, len, done) == XML_Status::XML_STATUS_ERROR) {
 			fprintf (stderr,
 				"%s at line %" XML_FMT_INT_MOD "u\n",
 				XML_ErrorString (XML_GetErrorCode (parser)),
 				XML_GetCurrentLineNumber (parser));
 			return false;
 		}
+#pragma warning (default : 26812)
 	} while (!done);
 
 	// Finish up
@@ -454,13 +485,15 @@ bool tpy_file::parse (const char* p, int len)
 	XML_SetCharacterDataHandler (parser, dataElement);
 
 	// read data and parse
-	if (XML_Parse (parser, p, len, true) == XML_STATUS_ERROR) {
+#pragma warning (disable : 26812)
+	if (XML_Parse (parser, p, len, true) == XML_Status::XML_STATUS_ERROR) {
 		fprintf (stderr,
 			"%s at line %" XML_FMT_INT_MOD "u\n",
 			XML_ErrorString (XML_GetErrorCode (parser)),
 			XML_GetCurrentLineNumber (parser));
 		return false;
 	}
+#pragma warning (default : 26812)
 
 	// Finish up
 	XML_ParserFree(parser);
@@ -472,12 +505,24 @@ bool tpy_file::parse (const char* p, int len)
  ************************************************************************/
 void tpy_file::parse_finish ()
 {
+	// patch missing type decorators
+	const int num = type_list.patch_type_decorators();
+	if (num > 0) {
+		// fprintf(stderr, "Patching %d type decorators\n", num);
+	}
+	// set plc name in opc
 	std::stringcase tcname = project_info.get();
 	if (!tcname.empty()) {
 		for (auto& sym : sym_list) {
 			sym.get_opc().add (property_el (OPC_PROP_PLCNAME, tcname));
 		}
 	}
+	//// patch export all
+	//if (get_export_all()) {
+	//	for (auto& sym : sym_list) {
+	//		sym.get_opc().set_opc_state(ParseUtil::opc_enum::publish);
+	//	}
+	//}
 }
 
 
@@ -503,7 +548,6 @@ bool get_decoration (const char **atts, unsigned int& decoration)
  ************************************************************************/
 bool get_pointer (const char **atts)
 {
-	unsigned int num = 0;
 	for (const char** pp = atts; pp && pp[0] && pp[1]; pp += 2) {
 		std::stringcase a (pp[0]);
 		if (a.compare (xmlAttrPointer) == 0) {
@@ -844,7 +888,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 		// Port
 		else if (n.compare (xmlPort) == 0 && (pinfo->routing == 4)) {
 			pinfo->routing = 2;
-			int num = strtol (pinfo->data.c_str(), NULL, 10);
+			const int num = strtol (pinfo->data.c_str(), NULL, 10);
 			pinfo->get_projectinfo().set_port (num);
 		}
 		// Target name
@@ -915,7 +959,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlProperty) == 0 && pinfo->opc_parse == 2) {
 			pinfo->opc_parse = 1;
 			if (pinfo->opc_prop.first == -1) {
-				int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
+				const int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
 				pinfo->sym.get_opc().set_opc_state (num ? opc_enum::publish : opc_enum::silent);
 			}
 			else if (pinfo->opc_prop.first > 0) {
@@ -1073,7 +1117,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 		else if (n.compare (xmlProperty) == 0 && pinfo->opc_parse == 2) {
 			pinfo->opc_parse = 1;
 			if (pinfo->opc_prop.first == -1) {
-				int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
+				const int num = strtol (pinfo->opc_prop.second.c_str(), NULL, 10);
 				if (pinfo->opc_cur) 
 					pinfo->opc_cur->set_opc_state (num ? opc_enum::publish : opc_enum::silent);
 			}
@@ -1107,7 +1151,7 @@ static void XMLCALL endElement (void *userData, const char *name)
 
 /* XML start CData function callback
  ************************************************************************/
-static void XMLCALL startCData (void *userData)
+static void XMLCALL startCData (void *userData) noexcept
 {
 	parserinfo_type*	pinfo = (parserinfo_type*) userData;
 	if (pinfo->ignore) {
@@ -1131,7 +1175,7 @@ static void XMLCALL startCData (void *userData)
 
 /* XML end CData function callback
  ************************************************************************/
-static void XMLCALL endCData (void *userData)
+static void XMLCALL endCData (void *userData) noexcept
 {
 	parserinfo_type*	pinfo = (parserinfo_type*) userData;
 	if (pinfo->ignore) {

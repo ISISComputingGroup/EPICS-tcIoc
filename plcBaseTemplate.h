@@ -8,23 +8,22 @@ namespace plc {
 	the DataValue class.
  ************************************************************************/
 
-/** DataValue::data_enum
- ************************************************************************/
-template <typename T> 
-	const typename DataValueTraits<T>::data_type_enum 
-	DataValueTraits<T>::data_enum = data_type_enum::dtInvalid;
-
 /** Will read the value and reset the dirty flag.
    @brief Reset and read
  ************************************************************************/
 template<typename T, typename U>
 bool reset_and_read (DataValueTypeDef::atomic_bool& dirty, 
-					 T& dest, U source)
+					 T& dest, U source) noexcept
 {
-	// must be before read
-	dirty.store (false, DataValueTypeDef::memory_order); 
-	dest = (T) (source->load (DataValueTypeDef::memory_order));
-	return true;
+	try {
+		// must be before read
+		dirty.store(false, DataValueTypeDef::memory_order);
+		dest = (T)(source->load(DataValueTypeDef::memory_order));
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /** Will read the value and reset the dirt flag (same type).
@@ -32,12 +31,17 @@ bool reset_and_read (DataValueTypeDef::atomic_bool& dirty,
  ************************************************************************/
 template<typename T>
 bool reset_and_read (DataValueTypeDef::atomic_bool& dirty, T& dest, 
-					 typename DataValueTraits<T>::traits_atomic* source)
+					 const typename DataValueTraits<T>::traits_atomic* source) noexcept
 {
 	// must be before read
-	dirty.store (false, DataValueTypeDef::memory_order); 
-	dest = source->load (DataValueTypeDef::memory_order);
-	return true;
+	try {
+		dirty.store (false, DataValueTypeDef::memory_order); 
+		dest = source->load (DataValueTypeDef::memory_order);
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /** Will set the dirty bit, when the newly written value is different 
@@ -48,14 +52,21 @@ template<typename T, typename U>
 bool write_and_test (DataValueTypeDef::atomic_bool& dirty, 
 					 const DataValueTypeDef::atomic_bool& read_pending,
 					 DataValueTypeDef::atomic_bool& valid, 
-					 U dest, const T& source)
+					 U dest, const T& source) noexcept
 {
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
-	auto old = dest->exchange (source, DataValueTypeDef::memory_order);
-	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	// must be after modifying the value
-	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
-	return true;
+	try {
+		const auto old = dest->exchange(source, DataValueTypeDef::memory_order);
+		const bool oldvalid = valid.exchange(true, DataValueTypeDef::memory_order);
+//		if (old != (decltype(old))source || !oldvalid) {
+			// must be after modifying the value
+			dirty.store(true, DataValueTypeDef::memory_order);  // this is conditional in upstream - see #6874
+//		}
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /** Will set the dirty bit, when the newly written value is different 
@@ -67,20 +78,27 @@ bool write_and_test (DataValueTypeDef::atomic_bool& dirty,
 					 const DataValueTypeDef::atomic_bool& read_pending,
 					 DataValueTypeDef::atomic_bool& valid, 
 					 typename DataValueTraits<T>::traits_atomic* dest, 
-					 const T& source)
+					 const T& source) noexcept
 {
 	if (read_pending.load(DataValueTypeDef::memory_order)) return false;
-	T old = dest->exchange (source, DataValueTypeDef::memory_order);
-	bool oldvalid = valid.exchange (true, DataValueTypeDef::memory_order);
-	// must be after modifying the value
-	dirty.store (true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
-	return true;
+	try {
+		const T old = dest->exchange(source, DataValueTypeDef::memory_order);
+		const bool oldvalid = valid.exchange(true, DataValueTypeDef::memory_order);
+//		if (old != source || !oldvalid) {
+			// must be after modifying the value
+			dirty.store(true, DataValueTypeDef::memory_order); // this is conditional in upstream - see #6874
+//		}
+		return true;
+	}
+	catch (...) {
+		return false;
+	}
 }
 
 /** DataValue::Read (bool, Inegral and floating point types)
  ************************************************************************/
 template <typename T> 
-bool DataValue::Read (atomic_bool& dirty, T& data) const
+bool DataValue::Read (atomic_bool& dirty, T& data) const noexcept
 {
 	switch (mytype) {
 	case data_type_enum::dtBool:
@@ -113,7 +131,7 @@ bool DataValue::Read (atomic_bool& dirty, T& data) const
 /** DataValue::UserWrite (bool, Integral and floating point types)
  ************************************************************************/
 template<typename T> 
-bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& data)
+bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& data) noexcept
 {
 	switch (mytype) {
 	case data_type_enum::dtBool:
@@ -146,7 +164,7 @@ bool DataValue::Write (atomic_bool& dirty, const atomic_bool& pend, const T& dat
 /* BaseRecord::UserPush
  ************************************************************************/
 inline
-bool BaseRecord::UserPush (bool force) 
+bool BaseRecord::UserPush (bool force) noexcept
 { 
 	if (user.get() && (force || UserIsDirty())) {
 		return user->push(); 
@@ -159,7 +177,7 @@ bool BaseRecord::UserPush (bool force)
 /* BaseRecord::UserPull
  ************************************************************************/
 inline
-bool BaseRecord::UserPull() 
+bool BaseRecord::UserPull() noexcept
 { 
 	if (user.get()) {
 		return user->pull(); 
@@ -172,7 +190,7 @@ bool BaseRecord::UserPull()
 /* BaseRecord::PlcPush
  ************************************************************************/
 inline
-bool BaseRecord::PlcPush (bool force) 
+bool BaseRecord::PlcPush (bool force) noexcept
 { 
 	if (plc.get() && (force || PlcIsDirty())) {
 		return plc->push(); 
@@ -185,7 +203,7 @@ bool BaseRecord::PlcPush (bool force)
 /* BaseRecord::PlcPull
  ************************************************************************/
 inline
-bool BaseRecord::PlcPull() 
+bool BaseRecord::PlcPull() noexcept
 { 
 	if (plc.get()) {
 		return plc->pull(); 

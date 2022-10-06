@@ -24,8 +24,11 @@ int InfoInterface::get_infodb(const std::stringcase& prefix,
 		ParseUtil::variable_name var (
 			std::get<ParseUtil::variable_name>(rec).get_name(), alias);
 		ParseUtil::opc_list opc (std::get<ParseUtil::opc_list>(rec));
-		process_arg_info arg (var, std::get< ParseUtil::process_type_enum>(rec),
-			opc, std::get<std::stringcase>(rec), std::get<bool>(rec), plcaddr);
+		const bool atomic = 
+			(std::get<ParseUtil::process_type_enum>(rec) != ParseUtil::process_type_enum::pt_invalid) &&
+			(std::get<ParseUtil::process_type_enum>(rec) != ParseUtil::process_type_enum::pt_binary);
+		process_arg_info arg (var, std::get<ParseUtil::process_type_enum>(rec),
+			opc, std::get<std::stringcase>(rec), atomic, plcaddr);
 		if (proc (arg)) {
 			++num;
 		}

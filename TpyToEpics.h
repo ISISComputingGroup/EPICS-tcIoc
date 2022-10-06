@@ -56,25 +56,23 @@ enum class case_type {
     Epics channels are generated from opc through a conversion rule
 	@brief Epics conversion
 ************************************************************************/
-class epics_conversion : public ParseUtil::replacement_rules {
+class epics_conversion : public ParseUtil::replacement_rules, 
+					     public ParseUtil::substitution_list {
 public:
 	/// Default constructor
-	epics_conversion()
-		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (case_type::upper), 
-		no_leading_dot (true), no_array_index (true) {}
+	epics_conversion() noexcept = default;
 	/// Constructor
 	/// @param caseconv Case conversion specification
 	/// @param noindex Eliminate array indices '[n]' with '_n'
-	epics_conversion (case_type caseconv, bool noindex)
-		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (caseconv), 
-		no_leading_dot (true), no_array_index (noindex) {}
+	epics_conversion (case_type caseconv, bool noindex) noexcept
+		: case_epics_names (caseconv), no_array_index (noindex) {}
 	/// Constructor
 	/// @param epics_conv Epics conversion rule
 	/// @param caseconv Case conversion specification
 	/// @param noldot Eliminate leading dot in a name
 	/// @param noindex Eliminate array indices '[n]' with '_n'
 	epics_conversion (tc_epics_conv epics_conv, case_type caseconv, 
-		bool noldot, bool noindex)
+		bool noldot, bool noindex) noexcept
 		: conv_rule (epics_conv), case_epics_names (caseconv), 
 		no_leading_dot (noldot), no_array_index (noindex) {}
 	/// Constructor
@@ -85,9 +83,9 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	epics_conversion (int argc, const char* const argv[], bool argp[] = 0)
-		: conv_rule (tc_epics_conv::ligo_std), case_epics_names (case_type::upper), 
-		no_leading_dot (true), no_array_index (true) { 
-		getopt (argc, argv ,argp);}
+		{ getopt (argc, argv ,argp);}
+	/// Destructor
+	virtual ~epics_conversion() = default;
 
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
@@ -97,18 +95,26 @@ public:
 	/// if supplied, must be at least argc long. Upon return, newly processed
 	/// arguments are also marked as processed in this list. The arguments are:
 	///
+	/// /fs 'filename': Reads a substitution file and keeps defined or published channels
+	/// /fi 'filename': Reads a substitution file and keeps only defined channels
+	/// /fa 'filename': Reads a substitution file and keeps all channels
+	/// /nd: Eliminates leading dot in channel name (default)
+	/// /yd: Leaves leading dot in channel name
 	/// /rn: Does not apply any special conversion rules
 	/// /rd: Replaces dots with underscores in channel names
 	/// /rl: LIGO standard conversion rule (default)
+	/// /rv: LIGO vacuum channel conversion rule
 	/// /cp: Preserve case in EPICS channel names
 	/// /cu: Force upper case in EPICS channel names (default)
 	/// /cl: Force lower case in EPICS channel names
-	/// /nd: Eliminates leading dot in channel name (default)
-	/// /yd: Leaves leading dot in channel name
 	/// /ni: Replaces array brackets with underscore (default)
 	/// /yi: Leave array indices as is
 	/// /p 'name': Include a prefix of 'name' for every channel (defaults to no prefix) 
 	///
+	/// The channel name conversions are processed in the order specified above. 
+	/// Replacement rules, if specified, are applied after the substitution file has 
+	/// been processed and before all other steps.
+	/// 
 	/// Command line arguments can use '-' instead of a '/'. Capitalization does
 	/// not matter. getopt will only override arguments that are specifically 
 	/// specified. It relies on the contructors to provide the defaults.
@@ -116,27 +122,27 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	virtual int getopt (int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Get the conversion rule
-	tc_epics_conv get_conversion_rule () const { return conv_rule; }
+	tc_epics_conv get_conversion_rule () const noexcept { return conv_rule; }
 	/// Set the conversion rule
-	void set_conversion_rule (tc_epics_conv epics_conv) {
+	void set_conversion_rule (tc_epics_conv epics_conv) noexcept {
 		conv_rule = epics_conv; }
 	/// Get the conversion rule
-	case_type get_case_rule () const { return case_epics_names; }
+	case_type get_case_rule () const noexcept { return case_epics_names; }
 	/// Set the conversion rule
-	void set_case_rule (case_type epics_conv) {
+	void set_case_rule (case_type epics_conv) noexcept {
 		case_epics_names = epics_conv; }
 	/// Get the leadin dot rule
-	bool get_dot_rule () const { return no_leading_dot; }
+	bool get_dot_rule () const noexcept { return no_leading_dot; }
 	/// Set the leading dot rule
-	void set_dot_rule (bool noldot) {
+	void set_dot_rule (bool noldot) noexcept {
 		no_leading_dot = noldot; }
 	/// Get the array index rule
-	bool get_array_rule () const { return no_array_index; }
+	bool get_array_rule () const noexcept { return no_array_index; }
 	/// Set the array conversion rule
-	void set_array_rule (bool noindex) {
+	void set_array_rule (bool noindex) noexcept {
 		no_array_index = noindex; }
 	/// Get the channel prefix
 	std::stringcase get_prefix() const { return prefix; }
@@ -146,18 +152,21 @@ public:
 	}
 	/// Converts a TwinCAT or OPC name to an EPICS channel name
 	/// @param name TwinCAT/opc name
+	/// @param published This variable is published
+	/// @param subst Optional substitution return, when non null
 	/// @return EPICS name
-	std::string to_epics (const std::stringcase& name) const;
+	virtual std::string to_epics (const std::stringcase& name, bool published = true,
+		const ParseUtil::substitution** subst = nullptr) const;
 
 protected:
 	/// Conversion rule
-	tc_epics_conv	conv_rule;
+	tc_epics_conv	conv_rule = tc_epics_conv::ligo_std;
 	/// Case conversion rule
-	case_type		case_epics_names;
+	case_type		case_epics_names = case_type::upper;
 	/// Leading dot conversion rule
-	bool			no_leading_dot;
+	bool			no_leading_dot = true;
 	/// Array index conversion rule
-	bool			no_array_index;
+	bool			no_array_index = true;
 	/// Prefix to apply to all EPICS names
 	std::stringcase		prefix; 
 };
@@ -170,19 +179,12 @@ protected:
 class split_io_support {
 public:
 	/// Default constructor
-	split_io_support () 
-		: error (true), split_io (false), split_n (0), 
-		outf(stdout), outf_in (nullptr), outf_io (nullptr), 
-		rec_num (0), rec_num_in (0), rec_num_io (0), 
-		file_num_in (1), file_num_io (1) {}
+	split_io_support() noexcept = default;
 
 	/// Constructor
 	explicit split_io_support (const std::stringcase& fname, 
 		bool split = false, int max = 0) 
-		: error (false), split_io (split), split_n (max), 
-		outf(stdout), outf_in (nullptr), outf_io (nullptr), 
-		rec_num (0), rec_num_in (0), rec_num_io (0), 
-		file_num_in (1), file_num_io (1) 
+		: error (false), split_io (split), split_n (max) 
 	{ set_filename (fname); }
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
@@ -194,56 +196,57 @@ public:
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	split_io_support (const std::stringcase& fname,
 		int argc, const char* const argv[], bool argp[] = 0) 
-		: error (false), split_io (false), split_n (0), 
-		outf(stdout), outf_in (nullptr), outf_io (nullptr), 
-		rec_num (0), rec_num_in (0), rec_num_io (0), 
-		file_num_in (1), file_num_io (1) { 
+		: error (false) { 
 		getopt (argc, argv, argp); set_filename (fname); }
 	/// Destructor
-	~split_io_support ();
+	virtual ~split_io_support ();
 	/// Copy constructor
 	/// File pointers will be moved over and the original ones will become invalid.
 	split_io_support (const split_io_support&);
-	/// Assignment
+	/// Move constructor
+	split_io_support(split_io_support&&) = delete;
+	/// Copy assignment
 	/// File pointers will be moved over and the original ones will become invalid.
 	split_io_support& operator= (const split_io_support&);
+	/// Move assignment
+	split_io_support& operator= (split_io_support&&) = delete;
 
 	/// Return error
-	bool operator! () const { return error; }
+	virtual bool operator! () const noexcept { return error; }
 
 	/// Increase the channel number
 	/// @param readonly Inidcates if channel is readonly
 	/// @return True if no error
 	bool increment (bool readonly);
 	/// Flush contents of output files
-	void flush();
+	virtual void flush() noexcept;
 
 	/// Get output file
-	FILE* get_file () const {return outf; }
+	FILE* get_file () const noexcept {return outf; }
 	/// Get output filename
-	const std::stringcase& get_filename () const 
+	const std::stringcase& get_filename () const noexcept
 	{ return outfilename; }
 	/// Is output split?
-	bool is_split() const { return split_io; }
+	bool is_split() const noexcept { return split_io; }
 	/// Maximum of channels per file
-	int get_max() const { return split_n; }
+	int get_max() const noexcept { return split_n; }
 
 	/// Get number of processed channels
-	int get_processed_total() const { return rec_num; }
+	int get_processed_total() const noexcept { return rec_num; }
 	/// Get number of processed readonly channels
-	int get_processed_readonly() const { return rec_num_in; }
+	int get_processed_readonly() const noexcept { return rec_num_in; }
 	/// Get number of processed input/ouput channels
-	int get_processed_io() const { return rec_num_io; }
+	int get_processed_io() const noexcept { return rec_num_io; }
 
 protected:
 	/// Set output filename
-	void set_filename (const std::stringcase& fname);
+	virtual void set_filename (const std::stringcase& fname);
 	/// Close files
-	void close();
+	virtual void close() noexcept;
 	/// set split
-	void set_split (bool split) { split_io = split; }
+	void set_split (bool split) noexcept { split_io = split; }
 	/// Set maximum of channels per file
-	void set_max (int max) { split_n = (max <= 0) ? 0 : max; }
+	void set_max (int max) noexcept { split_n = (max <= 0) ? 0 : max; }
 
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
@@ -265,33 +268,34 @@ protected:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	virtual int getopt (int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Error 
-	bool			error;
+	bool			error = true;
+	
 	/// Output filename
 	std::stringcase		outfilename;
 	/// Split output into read only channels and input/output channels
-	bool			split_io;
+	bool			split_io = false;
 	/// Maximum number of channels per file; 0 indicates no limit
-	int				split_n;
+	int				split_n = 0;
 	/// Output file
-	mutable FILE*	outf;
+	mutable FILE*	outf = stdout;
 	/// Output file for read only channels
-	mutable FILE*	outf_in;
+	mutable FILE*	outf_in = nullptr;
 	/// Output file for input/output channels
-	mutable FILE*	outf_io;
+	mutable FILE*	outf_io = nullptr;
 
 	/// Current number of processed channels (records)
-	int				rec_num;
+	int				rec_num = 0;
 	/// Current number of processed read only channels (records)
-	int				rec_num_in;
+	int				rec_num_in = 0;
 	/// Current number of processed input/output channels (records)
-	int				rec_num_io;
+	int				rec_num_io = 0;
 	/// Current file number of processed read only channels (records)
-	int				file_num_in;
+	int				file_num_in = 1;
 	/// Current file number of processed input/output channels (records)
-	int				file_num_io;
+	int				file_num_io = 1;
 
 	/// Contains the readonly file number in string format
 	std::stringcase		file_num_in_s;
@@ -321,14 +325,11 @@ enum class io_filestat {
 class multi_io_support {
 public:
 	/// Default constructor
-	multi_io_support ()
-		: filestat (io_filestat::closed), filehandle(0), 
-		file_num_in(0), file_num_out(0) {}
+	multi_io_support() = default;
 
 	/// Constructor
 	explicit multi_io_support (const std::stringcase& dname)
-		: filestat (io_filestat::closed), filehandle(0), file_num_in(0), 
-		file_num_out(0) { set_outdirname (dname); set_indirname (dname); }
+		{ set_outdirname (dname); set_indirname (dname); }
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -339,48 +340,43 @@ public:
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	multi_io_support (const std::stringcase& dname,
 		int argc, const char* const argv[], bool argp[] = 0)
-		: filestat (io_filestat::closed), filehandle(0), file_num_in(0), 
-		file_num_out(0) { 
-		getopt (argc, argv, argp); set_outdirname (dname); set_indirname (dname); }
+		{ getopt (argc, argv, argp); set_outdirname (dname); set_indirname (dname); }
 	/// Destructor
-	~multi_io_support () {close(); }
+	virtual ~multi_io_support () {close(); }
 
 	/// Return error
 	bool operator! () const;
 	/// Open file for reading/writing
-	bool open (const std::stringcase& fname, const std::stringcase& io = "w",
+	virtual bool open (const std::stringcase& fname, const std::stringcase& io = "w",
 			bool superrmsg = false);
 	/// Close file
-	void close();
+	virtual void close() noexcept;
 	/// Get file handle
-	FILE* get_file () const {return filehandle; }
+	FILE* get_file () const noexcept {return filehandle; }
 
 	/// Set output directory name
 	void set_outdirname (const std::stringcase& dname);
 	/// Get output directory name
-	const std::stringcase& get_outdirname () const { 
+	const std::stringcase& get_outdirname () const noexcept {
 		return outdirname; }
 	/// Set input directory name
 	void set_indirname (const std::stringcase& dname);
 	/// Get input directory name
-	const std::stringcase& get_indirname () const { 
+	const std::stringcase& get_indirname () const noexcept {
 		return indirname; }
 
 	/// Get full filename
-	const std::stringcase& get_filename () const { 
+	const std::stringcase& get_filename () const noexcept {
 		return filename; }
 	/// Reading
-	io_filestat fileread () const { return filestat; }
+	io_filestat fileread () const noexcept { return filestat; }
 
 	/// Get number of read files
-	int get_filein_total() const { return file_num_in; }
+	int get_filein_total() const noexcept { return file_num_in; }
 	/// Get number of written files
-	int get_fileout_total() const { return file_num_out; }
+	int get_fileout_total() const noexcept { return file_num_out; }
 
 protected:
-	/// Set output filename
-	void set_filename (const std::stringcase& fname);
-
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
@@ -396,7 +392,7 @@ protected:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0) {
+	virtual int getopt (int argc, const char* const argv[], bool argp[] = 0) {
 		return 0; }
 
 	/// Directory name
@@ -406,14 +402,14 @@ protected:
 	/// Current filename
 	std::stringcase	filename;
 	/// reading or writing?
-	io_filestat		filestat;
+	io_filestat		filestat = io_filestat::closed;
 	/// Output file
-	mutable FILE*	filehandle;
+	mutable FILE*	filehandle = nullptr;
 
 	/// Current file number of processed read only channels (records)
-	int				file_num_in;
+	int				file_num_in = 0;
 	/// Current file number of processed input/output channels (records)
-	int				file_num_out;
+	int				file_num_out = 0;
 };
 
 
@@ -436,13 +432,11 @@ class epics_list_processing :
 	public epics_conversion, public split_io_support {
 public:
 	/// Default constructor
-	epics_list_processing() 
-		: listing (listing_type::standard), verbose (false) {}
+	epics_list_processing() noexcept = default;
 	/// Constructor
 	/// @param ltype Type of listing
 	/// @param ll long listing
-	explicit epics_list_processing (listing_type ltype, 
-		bool ll = false) 
+	explicit epics_list_processing (listing_type ltype, bool ll = false) noexcept
 		: listing (ltype), verbose (ll) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
@@ -457,13 +451,16 @@ public:
 	epics_list_processing (const std::stringcase& fname,
 		int argc, const char* const argv[], bool argp[] = 0);
 
+	/// Default destructor
+	virtual ~epics_list_processing() = default;
+
 	/// Parse a command line
 	/// Processed options with epics_conversion::getopt and mygetopt().
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	int getopt (int argc, const char* const argv[], bool argp[] = 0) override;
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
@@ -489,22 +486,22 @@ public:
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successfully processed
-	bool operator() (const ParseUtil::process_arg& arg);
+	virtual bool operator() (const ParseUtil::process_arg& arg);
 
 	/// Get listing type
-	listing_type get_listing () const { return listing; }
+	listing_type get_listing () const noexcept { return listing; }
 	/// Set listing
-	void set_listing (listing_type lt) { listing = lt; }
+	void set_listing (listing_type lt) noexcept { listing = lt; }
 	/// Is long listing?
-	bool is_verbose() const { return verbose; }
+	bool is_verbose() const noexcept { return verbose; }
 	/// Set long listing
-	void set_verbose (bool vrbs) { verbose = vrbs; }
+	void set_verbose (bool vrbs) noexcept { verbose = vrbs; }
 
 protected:
 	/// Listing type
-	listing_type	listing;
+	listing_type	listing = listing_type::standard;
 	/// long listing
-	bool			verbose;
+	bool			verbose = false;
 };
 
 /** This enum describes the type of macros to produce
@@ -523,35 +520,35 @@ enum class macrofile_type {
 ************************************************************************/
 struct macro_info {
 	/// Default constructor
-	macro_info () : ptype (ParseUtil::process_type_enum::pt_invalid), readonly (false) {}
+	macro_info() noexcept = default;
 
 	/// Process Type
-	ParseUtil::process_type_enum	ptype;
+	ParseUtil::process_type_enum	ptype = ParseUtil::process_type_enum::pt_invalid;
 	/// name of type
 	std::stringcase			name;
 	/// type definition
 	std::stringcase			type_n;
 	/// readonly
-	bool					readonly;
+	bool					readonly = false;
 };
 
 /** A list of fields
  ************************************************************************/
-typedef std::vector<macro_info> macro_list;
+using macro_list = std::vector<macro_info>;
 
 /** This structure describes a record/struct
     @brief Macro record
 ************************************************************************/
 struct macro_record {
-	macro_record () : iserror (false), haserror (false), erroridx (-1) {}
+	macro_record() noexcept = default;
 	/// name of structure
 	macro_info				record;
 	/// is an ErrorStruct
-	bool					iserror;
+	bool					iserror = false;
 	/// contains an ErrorStruct
-	bool					haserror;
+	bool					haserror = false;
 	/// index if fileds list to ErrorStruct
-	int						erroridx;
+	int						erroridx = -1;
 	/// List of fields
 	macro_list				fields;
 	/// name of upper level structure
@@ -560,11 +557,11 @@ struct macro_record {
 
 /** A stack of records/structs
  ************************************************************************/
-typedef std::stack<macro_record> macro_stack;
+using macro_stack = std::stack<macro_record>;
 
 /** A set of filenames
  ************************************************************************/
-typedef std::unordered_set<std::stringcase> filename_set;
+using filename_set = std::unordered_set<std::stringcase>;
 
 /** Class for generatig macro files to be used by medm
 	@brief Macro file processing
@@ -586,11 +583,10 @@ public:
 	static const std::regex errorsearchregex;
 
 	/// Default constructor
-	epics_macrofiles_processing() : macros (macrofile_type::all), isTwinCAT3 (false), rec_num (0) {}
+	epics_macrofiles_processing() noexcept = default;
 	/// Constructor
 	/// @param mt Type of macro
-	explicit epics_macrofiles_processing (macrofile_type mt) 
-		: macros (mt), isTwinCAT3 (false), rec_num (0) {}
+	explicit epics_macrofiles_processing (macrofile_type mt) : macros (mt) {}
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
 	/// The format is the same as the arguments passed to the main program
@@ -608,9 +604,9 @@ public:
 		int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Destructor
-	~epics_macrofiles_processing() { flush(); }
+	virtual ~epics_macrofiles_processing() { flush(); }
 	/// flush all pending prcossing
-	void flush();
+	virtual void flush() noexcept;
 
 	/// Parse a command line
 	/// Processed options with epics_conversion::getopt and mygetopt().
@@ -618,7 +614,7 @@ public:
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	int getopt (int argc, const char* const argv[], bool argp[] = 0) override;
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
@@ -643,45 +639,45 @@ public:
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successfully processed
-	bool operator() (const ParseUtil::process_arg& arg);
+	virtual bool operator() (const ParseUtil::process_arg& arg);
 
 	/// Get listing type
-	macrofile_type get_macrofile_type () const { return macros; }
+	macrofile_type get_macrofile_type () const noexcept { return macros; }
 	/// Set listing
-	void set_macrofile_type (macrofile_type m) { macros = m; }
+	void set_macrofile_type (macrofile_type m) noexcept { macros = m; }
 
 	/// Set PLC name
 	void set_plcname (const std::stringcase& name) {
 		plcname = name; }
 	/// Get PLC name
-	const std::stringcase& get_plcname () const { 
+	const std::stringcase& get_plcname () const noexcept {
 		return plcname; }
 
 	/// Is this twincat 3?
-	bool is_twincat3() const { return isTwinCAT3; }
+	bool is_twincat3() const noexcept { return isTwinCAT3; }
 	/// Set twincat 3 version?
-	void set_twincat3 (bool tcat3 = true) {isTwinCAT3 = tcat3; }
+	void set_twincat3 (bool tcat3 = true) noexcept {isTwinCAT3 = tcat3; }
 
 	/// Translate epics name to filename
 	std::stringcase to_filename (const std::stringcase& epicsname);
 
 	/// Get number of processed channels
-	int get_processed_total() const { return rec_num; }
+	int get_processed_total() const noexcept { return rec_num; }
 
 protected:
 	/// Process top of stack
 	bool process_record (const macro_record& mrec, int level = 0);
 
 	/// Listing type
-	macrofile_type	macros;
+	macrofile_type	macros = macrofile_type::all;
 	/// PLC name
 	std::stringcase	plcname;
 	/// TwinCAT version
-	bool			isTwinCAT3;
+	bool			isTwinCAT3 = false;
 	/// Processing stack
 	macro_stack		procstack;
 	/// Current number of processed channels (records)
-	int				rec_num;
+	int				rec_num = 0;
 	/// set of missing input files
 	filename_set	missing;
 };
@@ -727,9 +723,7 @@ class epics_db_processing :
 	public epics_conversion, public split_io_support {
 public:
 	/// Default constructor
-	epics_db_processing () : device_support (device_support_type::tc_name), 
-		string_support (string_support_type::vary_string),
-		int_support (int_support_type::int_auto) {}
+	epics_db_processing() noexcept = default;
 
 	/// Constructor
 	/// Command line arguments will override default parameters when specified
@@ -744,13 +738,15 @@ public:
 	epics_db_processing (const std::stringcase& fname,
 		int argc, const char* const argv[], bool argp[] = 0);
 
+	virtual ~epics_db_processing() = default;
+
 	/// Parse a command line
 	/// Processed options with epics_conversion::getopt and mygetopt.
 	/// @param argc Number of command line arguments
 	/// @param argv List of command line arguments, same format as in main()
 	/// @param argp Excluded/processed arguments (in/out), array length must be argc
 	/// @return Number of arguments processed
-	int getopt (int argc, const char* const argv[], bool argp[] = 0);
+	virtual int getopt (int argc, const char* const argv[], bool argp[] = 0);
 	/// Parse a command line
 	/// The format is the same as the arguments passed to the main program
 	/// argv[0] is program name and will be ignored
@@ -780,67 +776,68 @@ public:
 	int mygetopt (int argc, const char* const argv[], bool argp[] = 0);
 
 	/// Get device support conversion rule
-	device_support_type get_device_support () const { 
+	device_support_type get_device_support () const noexcept {
 		return device_support; }
 	/// Set device support conversion rule
-	void set_device_support (device_support_type devsup) {
+	void set_device_support (device_support_type devsup) noexcept {
 		device_support = devsup; }
 
 	/// Get string support conversion rule
-	string_support_type get_string_support() const {
+	string_support_type get_string_support() const noexcept {
 		return string_support; }
 	/// Set string support conversion rule
-	void set_string_support(string_support_type strsup) {
+	void set_string_support(string_support_type strsup) noexcept {
 		string_support = strsup; }
 
 	/// Get integer support conversion rule
-	int_support_type get_int_support() const {
+	int_support_type get_int_support() const noexcept {
 		return int_support;	}
 	/// Set integer support conversion rule
-	void set_int_support(int_support_type intsup) {
+	void set_int_support(int_support_type intsup) noexcept {
 		int_support = intsup; }
 
 	/// Process a variable
 	/// @param arg Process argument describign the variable and type
 	/// @return True if successfully processed
-	bool operator() (const ParseUtil::process_arg& arg);
+	virtual bool operator() (const ParseUtil::process_arg& arg) noexcept;
 
 protected:
 	/// Process a record field of type string
 	/// @param name Name of field
 	/// @param val Value of field
+	/// @param maxlen Maximum length of value field
 	/// @return True if successful
 	bool process_field_string (std::stringcase name, 
-		std::stringcase val);
+		std::stringcase val, int maxlen = 256) noexcept;
 	/// Process a record field of numeric type
 	/// @param name Name of field
 	/// @param val Value of field
 	/// @return True if successful
-	bool process_field_numeric (std::stringcase name, int val);
+	bool process_field_numeric (std::stringcase name, int val) noexcept;
 	/// Process a record field of numeric type
 	/// @param name Name of field
 	/// @param val Value of field
 	/// @return True if successful
-	bool process_field_numeric (std::stringcase name, double val);
+	bool process_field_numeric (std::stringcase name, double val) noexcept;
 	/// Process a record field of type string
 	/// @param name Name of field
 	/// @param val Value of field
 	/// @return True if successful
 	bool process_field_numeric (std::stringcase name, 
-		std::stringcase val);
+		std::stringcase val) noexcept;
 	/// Process a record field of type alarm
 	/// @param name Name of field
 	/// @param severity Severity of alarm
 	/// @return True if successful
 	bool process_field_alarm (std::stringcase name, 
-		std::stringcase severity);
+		std::stringcase severity) noexcept;
 
 	/// Device support field conversion rule
-	device_support_type	device_support;
+	device_support_type	device_support = device_support_type::tc_name;
 	/// String support field conversion rule
-	string_support_type string_support;
+	string_support_type string_support = string_support_type::vary_string;
 	/// Integer support field conversion rule
-	int_support_type int_support;
+	int_support_type int_support = int_support_type::int_auto;
 };
 
 

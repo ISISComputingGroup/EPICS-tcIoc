@@ -83,39 +83,50 @@ available options can be found on page TwinCAT EPICS Options.
 Versions
 --------
 
+**Version 2.3**
+
+Added features:
+* Add support for a channel name substitution list
+* Support time and date types as integers
+
+Bug Fixes:
+* Support tpy file changes in TwinCAT v3.1.4024.22
+* Fix /ea support
+* Enforce string length limits in records fields like EGU, ONAM, etc.
+* Fix info record processing for output records 
+* A lot of code cleanup
+* Compile with most recent VS2022
+
 **Version 2.2**
 
 Added features:
-
 * Updated to EPICS base-3.15.9
 * Support for the TwinCAT LINT, ULINT and LWORD 64-bit integers. 
-  Due to limitations in EPICS, they still only represented as 32-bit 
+  Due to limitations in EPICS, they are still only represented as 32-bit 
   values by channel access.
 * Support for a long string records. 
   Strings over  39 characters can now be accessed over channel access 
   as character arrays.
 
 Bug Fixes:
- * Fix filetime conversion
- * Compile with most recent VS2019
+* Fix filetime conversion
+* Compile with most recent VS2019
 
 **Version 2.1**
 
 Added features:
-
 * Updated to Visual Studio Community Edition 2019
 * Updated to EPICS base-3.15.7
 * Support for a channel prefix option "-p 'name'" to add a prefix to 
   all channel names (thanks Dominic Oram) 
 
 Bug Fixes:
- * Problem with 4 digit version numbers for TwinCAT
- * Issue with input directory for macro generation in TwinCAT 3.1
+* Problem with 4 digit version numbers for TwinCAT
+* Issue with input directory for macro generation in TwinCAT 3.1
 
 **Version 2.0**
 
 Added features:
-
 * Updated to Visual Studio Community Edition 2017
 * Updated to EPICS base-3.15.6
 * Updated to expat version 2.6.6

@@ -16,10 +16,10 @@ using namespace ParseUtil;
 class syminfo_processing {
 public:
 	/// Constructor
-	explicit syminfo_processing (FILE* outfile = 0, bool atomic = true)
+	explicit syminfo_processing (FILE* outfile = 0, bool atomic = true) noexcept
 		: outf (outfile ? outfile : stdout), firstline (true) {}
 	/// Process
-	bool operator() (const process_arg& arg) const;
+	bool operator() (const process_arg& arg) const noexcept;
 protected:
 	/// Ouptut file
 	FILE*		outf;
@@ -27,7 +27,7 @@ protected:
 	mutable bool firstline;
 };
 
-bool syminfo_processing::operator() (const process_arg& arg) const
+bool syminfo_processing::operator() (const process_arg& arg) const noexcept
 {
 	if (firstline) {
 		firstline = false;
@@ -90,7 +90,7 @@ bool syminfo_processing::operator() (const process_arg& arg) const
 /** Main program for tpyinfo
     @brief tpyinfo
  ************************************************************************/
-int main (int argc, char *argv[])
+int main (int argc, const char *argv[])
 {
 	int			help = 0;
 	stringcase	prefix;
@@ -141,20 +141,14 @@ int main (int argc, char *argv[])
 	FILE* inpf = stdin;
 	FILE* outf = stdout;
 	if (!inpfilename.empty()) {
-		#pragma warning (disable: 4996)
-		inpf = fopen (inpfilename.c_str(), "r");
-		#pragma warning (default: 4996)
-		if (!inpf) {
+		if (fopen_s(&inpf, inpfilename.c_str(), "r")) {
 			fprintf (stderr, "Failed to open input %s.\n", inpfilename.c_str());
 			return 1;
 		}
 	}
 	// open output file
 	if (!outfilename.empty()) {
-		#pragma warning (disable: 4996)
-		outf = fopen (outfilename.c_str(), "w");
-		#pragma warning (default: 4996)
-		if (!outf) {
+		if (fopen_s(&outf, outfilename.c_str(), "w")) {
 			fprintf (stderr, "Failed to open output %s.\n", outfilename.c_str());
 			return 1;
 		}
