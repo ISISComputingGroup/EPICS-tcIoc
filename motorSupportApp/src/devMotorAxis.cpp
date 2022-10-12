@@ -445,3 +445,13 @@ asynStatus devMotorAxis::poll(bool *moving) {
   callParamCallbacks();
   return asynSuccess;
 }
+
+/** Set the motor closed loop status.
+  * \param[in] closedLoop true = close loop, false = open loop. */
+asynStatus devMotorAxis::setClosedLoop(bool closedLoop)
+{
+  asynPrint(pC_->pasynUserSelf, ASYN_TRACE_ERROR|ASYN_TRACEIO_DRIVER,
+					"Called with: %i\n", closedLoop);
+  setIntegerParam(pC_->motorStatusPowerOn_, closedLoop);
+  return asynSuccess;
+}
