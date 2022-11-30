@@ -104,6 +104,8 @@ private:
 	std::string COMMAND() { return "STCONTROL-ECOMMAND"; };
 	std::string POSITIVE_DIR() { return "STSTATUS-BMOVINGFORWARD"; };
 	std::string NEGATIVE_DIR() { return "STSTATUS-BMOVINGBACKWARD"; };
+	std::string LIMITFWD() { return "STSTATUS-BFWENABLED"; };
+	std::string LIMITBWD() { return "STSTATUS-BBWENABLED"; };
 	
     epicsInt32 HOME_COMMAND() { return 10; };
 	epicsInt32 STOP_COMMAND() { return 15; };

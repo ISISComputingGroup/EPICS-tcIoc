@@ -244,8 +244,8 @@ void devMotorAxis::scaleValueToMotorRecord(double* value) {
 }
 
 void twincatMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) { 
-	getInteger("STINPUTS-BLIMITFWD", &axis_status->bLimitFwd); 
-	getInteger("STINPUTS-BLIMITBWD", &axis_status->bLimitBwd);
+	getInteger(LIMITFWD(), &axis_status->bLimitFwd); 
+	getInteger(LIMITBWD(), &axis_status->bLimitBwd);
 }
 
 void ISISMotorAxis::populateLimitStatus(st_axis_status_type *axis_status) {
