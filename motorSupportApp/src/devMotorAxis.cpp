@@ -431,7 +431,7 @@ asynStatus devMotorAxis::poll(bool *moving) {
 	setIntegerParam(pC_->motorStatusAtHome_, 0);
   
   int dir;
-  getIntegerParam(pC_->motorRecDirection_, &dir);
+  pC_->getIntegerParam(pC_->motorRecDirection_, &dir);
   if (dir == 1){
     // Move is positive from mtr rec
     setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
