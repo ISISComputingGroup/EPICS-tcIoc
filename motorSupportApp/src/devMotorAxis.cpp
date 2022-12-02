@@ -435,13 +435,15 @@ asynStatus devMotorAxis::poll(bool *moving) {
   if (dir == 0){
     // Move is positive from mtr rec
     setIntegerParam(pC_->motorStatusDirection_, st_axis_status.bDirection);
+    setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
+    setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   } else {
     // Move is negative from mtr rec, so flip direction and limits
     setIntegerParam(pC_->motorStatusDirection_, !st_axis_status.bDirection);
+    setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitFwd);
+    setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitBwd);
   }
   // these are flipped by the motor record by the above
-  setIntegerParam(pC_->motorStatusLowLimit_, !st_axis_status.bLimitBwd);
-  setIntegerParam(pC_->motorStatusHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorHighLimit_, !st_axis_status.bLimitFwd);
   setIntegerParam(pC_->motorLowLimit_, !st_axis_status.bLimitBwd);
 
